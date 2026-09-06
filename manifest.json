@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "romills.omarkeys",
+  "name": "OmarKEYS",
+  "version": "1.1.0",
+  "author": "romills",
+  "license": "MIT",
+  "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super for one second, or Super+K to show a topic-organized keymap. Tap Super or Esc to close.",
+  "kinds": ["overlay"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Keymap.qml"
+  }
+}
