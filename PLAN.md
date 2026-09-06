@@ -14,13 +14,26 @@ under `~/.local/state/omarchy/omarkeys-history`, rollback on a failed
 reload. Edits still land in `~/.config/hypr/omarkeys-edits.lua` rather
 than rewriting the body of `bindings.lua`.
 
+User comments (layer vs app / Super+W):
+
+- Super+W closed the last focused window, not OmarKEYS.
+- Should this be an app (so Super+W closes it) or a layer plugin?
+
+Dealt with: OmarKEYS stays an overlay **layer plugin** (same family as
+the menu and clipboard). Super+W is "close window"; a layer is not a
+window, so that bind would kill the app behind the overlay. While the
+layer is up, Super+W is **temporarily remapped** to close OmarKEYS.
+The original "Close window" bind is restored when the overlay hides.
+
 ## Done
 
 ### Overlay (Super+K replacement)
 
 - [x] Topic-organized overlay plugin (`io.github.romills.omarkeys`)
 - [x] Open: Super+K, double-tap Super, hold Super (default 5s)
-- [x] Close: tap Super, Esc, click dim
+- [x] Close: tap Super, Esc, Super+W, click dim
+- [x] Keyboard grab after Super-up; dismiss if the focused window changes
+- [x] Super+W temp-mapped to the layer while open (does not close the window behind it)
 - [x] Live Hyprland binds on open (`dump-keymap`)
 - [x] Type to search (digits included; Ctrl+1–9 jumps groups)
 - [x] Arrows, Enter or click to run the highlighted chord

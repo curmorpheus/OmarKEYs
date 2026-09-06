@@ -35,6 +35,8 @@ Item {
   property string selectedSectionTitle: ""
   property bool launching: false
   property int focusTick: 0
+  property bool contextArmed: false
+  property var contextToplevel: null
   property string keymapHash: ""
   property var omarchySections: []
   property var clients: []
@@ -96,6 +98,8 @@ Item {
     root.filterText = ""
     root.grabKeys = false
     root.launching = false
+    root.contextArmed = false
+    root.contextToplevel = ToplevelManager.activeToplevel
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
@@ -284,6 +288,38 @@ Item {
   function grab() {
     root.grabKeys = true
     root.requestFocus()
+    if (!root.contextArmed)
+      armContextTimer.restart()
+  }
+
+  Timer {
+    id: grabWatch
+    interval: 50
+    repeat: true
+    running: root.opened && !root.grabKeys && !root.launching
+    onTriggered: root.grab()
+  }
+
+  Timer {
+    id: armContextTimer
+    interval: 180
+    repeat: false
+    onTriggered: {
+      if (!root.opened || !root.grabKeys)
+        return
+      root.contextToplevel = ToplevelManager.activeToplevel
+      root.contextArmed = true
+    }
+  }
+
+  Connections {
+    target: ToplevelManager
+    function onActiveToplevelChanged() {
+      if (!root.opened || !root.contextArmed || root.launching)
+        return
+      if (ToplevelManager.activeToplevel !== root.contextToplevel)
+        root.dismiss()
+    }
   }
 
   function requestFocus() {
@@ -291,11 +327,13 @@ Item {
   }
 
   function close() {
+    root.contextArmed = false
     root.grabKeys = false
     root.opened = false
   }
 
   function dismiss() {
+    root.contextArmed = false
     root.grabKeys = false
     root.opened = false
     if (root.shell && typeof root.shell.hide === "function")
@@ -665,6 +703,11 @@ Item {
       else
         root.dismiss()
       event.accepted = true
+    } else if (event.key === Qt.Key_W
+        && (event.modifiers & Qt.MetaModifier)
+        && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier))) {
+      root.dismiss()
+      event.accepted = true
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
       root.executeSelected()
       event.accepted = true
@@ -774,6 +817,14 @@ Item {
           }
           function onFocusTickChanged() {
             if (root.opened)
+              Qt.callLater(panel.takeFocus)
+          }
+        }
+
+        Connections {
+          target: Hyprland
+          function onFocusedMonitorChanged() {
+            if (root.opened && root.grabKeys && panel.hasKeyboard)
               Qt.callLater(panel.takeFocus)
           }
         }

@@ -3,8 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_ID="romills.omarkeys"
-OLD_ID="romills.keymap"
+PLUGIN_ID="io.github.romills.omarkeys"
+OLD_ID="romills.omarkeys"
 PLUGIN_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/${PLUGIN_ID}"
 OLD_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/${OLD_ID}"
 BINDINGS="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/bindings.lua"

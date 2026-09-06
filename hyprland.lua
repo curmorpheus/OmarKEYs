@@ -1,8 +1,8 @@
 -- OmarKEYS Hyprland activation.
 -- Loaded from ~/.config/hypr/bindings.lua:
---   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/romills.omarkeys/hyprland.lua")
+--   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/io.github.romills.omarkeys/hyprland.lua")
 
-local PLUGIN_ID = "romills.omarkeys"
+local PLUGIN_ID = "io.github.romills.omarkeys"
 local NAMESPACE = "romills-omarkeys"
 local DOUBLE_TAP_MS = 400
 local CONFIG_PATH = (os.getenv("HOME") or "") .. "/.config/omarchy/omarkeys.json"
@@ -46,6 +46,9 @@ local st = {
   tap_armed = false,
   hold_timer = nil,
   tap_timer = nil,
+  overlay_layers = 0,
+  close_swallowed = false,
+  restore_close_pending = false,
 }
 
 local function stop_timer(name)
@@ -71,12 +74,61 @@ local function grab_keys()
   hl.dispatch(hl.dsp.exec_cmd("omarchy-shell shell call " .. PLUGIN_ID .. " grab 1"))
 end
 
-local function hide_overlay()
+-- Exclusive grab while Super is still down eats Super-up. Keep retrying
+-- until Super is up so filter typing actually lands in OmarKEYS.
+local function schedule_grab()
+  hl.timer(function()
+    if not st.overlay_open then
+      return
+    end
+    if st.super_down then
+      schedule_grab()
+      return
+    end
+    grab_keys()
+  end, { timeout = 40, type = "oneshot" })
+end
+
+local hide_overlay
+local restore_super_w
+
+-- SUPER+W is "close window". OmarKEYS is a layer plugin, not an app, so
+-- that bind would kill the last focused window. Temporarily remap it to
+-- close this layer; restore "Close window" when the overlay hides.
+local function swallow_super_w()
+  st.restore_close_pending = false
+  if st.close_swallowed then
+    return
+  end
+  st.close_swallowed = true
+  hl.unbind("SUPER + W")
+  o.bind("SUPER + W", "Close OmarKEYS", function()
+    hide_overlay()
+  end)
+end
+
+restore_super_w = function()
+  if not st.close_swallowed then
+    return
+  end
+  -- Don't restore mid-chord: Super+W just hid us, Super is still down.
+  if st.super_down then
+    st.restore_close_pending = true
+    return
+  end
+  st.close_swallowed = false
+  st.restore_close_pending = false
+  hl.unbind("SUPER + W")
+  o.bind("SUPER + W", "Close window", hl.dsp.window.close())
+end
+
+hide_overlay = function()
   st.overlay_open = false
   st.close_tap = false
   st.tap_armed = false
   stop_timer("hold_timer")
   stop_timer("tap_timer")
+  restore_super_w()
   hl.dispatch(hl.dsp.exec_cmd("omarchy-shell shell hide " .. PLUGIN_ID))
 end
 
@@ -85,7 +137,9 @@ local function show_overlay()
   st.close_tap = false
   st.tap_armed = false
   stop_timer("tap_timer")
+  swallow_super_w()
   hl.dispatch(hl.dsp.exec_cmd("omarchy-shell shell summon " .. PLUGIN_ID .. " '{}'"))
+  schedule_grab()
 end
 
 local function on_key(keycode, _, state)
@@ -138,6 +192,9 @@ local function on_key(keycode, _, state)
     end
     st.super_down = false
     stop_timer("hold_timer")
+    if st.restore_close_pending then
+      restore_super_w()
+    end
     if st.chorded then
       -- Super+K (and other Super chords). If OmarKEYS just opened, Super
       -- is now up — take keyboard focus so typing/filter works.
@@ -173,13 +230,6 @@ o.bind("SUPER + K", "OmarKEYS", function()
     hide_overlay()
   else
     show_overlay()
-    -- Super is still held for this chord. Grab as soon as it is up so
-    -- filter typing matches double-tap / hold.
-    hl.timer(function()
-      if st.overlay_open and not st.super_down then
-        grab_keys()
-      end
-    end, { timeout = 50, type = "oneshot" })
   end
 end)
 
@@ -187,6 +237,33 @@ hl.on("input.keyboard.key", function(keycode, timestamp, state)
   local ok, err = pcall(on_key, keycode, timestamp, state)
   if not ok then
     print("[OmarKEYS] key handler: " .. tostring(err))
+  end
+end)
+
+-- Keep lua overlay_open / Super+W swallow in sync when Esc or a click
+-- hides the layer without going through hide_overlay().
+hl.on("layer.opened", function(layer)
+  if not layer or layer.namespace ~= NAMESPACE then
+    return
+  end
+  st.overlay_layers = st.overlay_layers + 1
+  if st.overlay_layers == 1 then
+    st.overlay_open = true
+    swallow_super_w()
+  end
+end)
+
+hl.on("layer.closed", function(layer)
+  if not layer or layer.namespace ~= NAMESPACE then
+    return
+  end
+  if st.overlay_layers > 0 then
+    st.overlay_layers = st.overlay_layers - 1
+  end
+  if st.overlay_layers == 0 then
+    st.overlay_open = false
+    st.close_tap = false
+    restore_super_w()
   end
 end)
 

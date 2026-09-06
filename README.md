@@ -13,6 +13,7 @@ keymap overlay, summoned without eating Super+other shortcuts.
 
 - Tap Super
 - Escape
+- Super+W (temporarily mapped to the overlay so it does not close the window behind it)
 - Click the dimmed background
 
 Type while it is open to filter, including digits.
