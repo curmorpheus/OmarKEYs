@@ -269,8 +269,8 @@ function isHidden(title) {
   return false
 }
 
-function catalog() {
-  var source = withGestures(activeSections(), currentConfig)
+function catalogFor(sectionList) {
+  var source = sectionList && sectionList.length ? sectionList : []
   var out = []
   for (var i = 0; i < source.length; i++) {
     out.push({
@@ -279,6 +279,10 @@ function catalog() {
     })
   }
   return out
+}
+
+function catalog() {
+  return catalogFor(withGestures(activeSections(), currentConfig))
 }
 
 function activeSections() {

@@ -420,6 +420,26 @@ def sheet_for(cls: str) -> str | None:
     return None
 
 
+def client_label(cls: str, sheet: str | None) -> str:
+    if sheet:
+        try:
+            meta = json.loads((SHEETS_DIR / sheet).read_text())
+            title = str(meta.get("title") or "").strip()
+        except (OSError, json.JSONDecodeError):
+            title = ""
+        if title:
+            if cls.startswith("chrome-") and cls.lower() != "chromium":
+                slug = cls[7:].split("__")[0].replace("-Default", "")
+                if slug and slug.lower() != "chromium":
+                    return f"{title} · {slug[:20]}"
+            return title
+    if cls.startswith("chrome-"):
+        return cls[7:].split("__")[0][:24] or "Chromium"
+    if "." in cls:
+        return cls.rsplit(".", 1)[-1]
+    return cls
+
+
 def dump_clients() -> list[dict]:
     try:
         clients = json.loads(subprocess.check_output(["hyprctl", "-j", "clients"], text=True))
@@ -433,14 +453,14 @@ def dump_clients() -> list[dict]:
         # Hyprland marks the focused window with focusHistoryID 0.
         entry = grouped.get(cls)
         if not entry:
-            label = cls.rsplit(".", 1)[-1] if "." in cls else cls
+            sheet = sheet_for(cls)
             grouped[cls] = {
                 "class": cls,
-                "label": label,
+                "label": client_label(cls, sheet),
                 "title": title,
                 "focused": focused,
                 "count": 1,
-                "sheet": sheet_for(cls),
+                "sheet": sheet,
             }
         else:
             entry["count"] += 1

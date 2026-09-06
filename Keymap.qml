@@ -27,6 +27,7 @@ Item {
   property int holdSeconds: 5
   property var hiddenGroups: []
   property var groupList: []
+  property var omarchyGroupList: []
   property string modSuper: "any"
   property string modShift: "any"
   property string modCtrl: "any"
@@ -59,7 +60,7 @@ Item {
   readonly property bool allModsMust: root.modSuper === "must" && root.modShift === "must" && root.modCtrl === "must" && root.modAlt === "must"
   readonly property bool allModsHide: root.modSuper === "hide" && root.modShift === "hide" && root.modCtrl === "hide" && root.modAlt === "hide"
   readonly property string sourceDir: (root.manifest && root.manifest.__sourceDir)
-    || ((Quickshell.env("HOME") || "") + "/.config/omarchy/plugins/romills.omarkeys")
+    || ((Quickshell.env("HOME") || "") + "/.config/omarchy/plugins/io.github.romills.omarkeys")
   readonly property string configPath: (Quickshell.env("HOME") || "") + "/.config/omarchy/omarkeys.json"
 
   property color background: Color.menu.background
@@ -74,7 +75,7 @@ Item {
   property int contentMargin: Style.spacing.panelPadding
 
   function pluginId() {
-    return (root.manifest && root.manifest.id) || "romills.omarkeys"
+    return (root.manifest && root.manifest.id) || "io.github.romills.omarkeys"
   }
 
   function configObject() {
@@ -319,6 +320,9 @@ Item {
     var keepAction = root.selectedAction
     root.applyConfigToData()
     root.groupList = KeymapData.catalog()
+    root.omarchyGroupList = KeymapData.catalogFor(
+      (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
+    )
     var cols = KeymapData.columns(root.filterText)
     root.leftSections = cols.left
     root.rightSections = cols.right
@@ -341,7 +345,8 @@ Item {
     root.filterText = ""
     root.selected = 0
     if (root.omarchyActive) {
-      KeymapData.setSections(root.omarchySections)
+      root.sheetPath = ""
+      KeymapData.setSections(root.omarchySections.length ? root.omarchySections : KeymapData.sections)
       root.rebuild()
       return
     }

@@ -5,6 +5,8 @@ import qs.Ui
 Rectangle {
   id: side
   property Item host: null
+  property bool omarchyOpen: true
+  property bool windowsOpen: true
 
   readonly property color foreground: host ? host.foreground : Color.menu.text
   readonly property color chipFg: host ? host.chipFg : Color.menu.selectedText
@@ -25,74 +27,83 @@ Rectangle {
     anchors.margins: Style.spacing.sm
     spacing: Style.space(6)
 
-    Item {
-      id: groupsHeader
-      width: parent.width
-      height: Math.max(Style.space(22), allToggle.height)
-
-      Text {
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        text: "Groups"
-        textFormat: Text.PlainText
-        color: side.chipFg
-        font.family: side.fontFamily
-        font.pixelSize: Style.font.caption
-        font.bold: true
-        font.capitalization: Font.AllUppercase
-      }
-
-      Row {
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
-
-        Text {
-          anchors.verticalCenter: parent.verticalCenter
-          text: host && host.allGroupsVisible ? "All" : "None"
-          textFormat: Text.PlainText
-          color: side.foreground
-          opacity: 0.7
-          font.family: side.fontFamily
-          font.pixelSize: Style.font.caption
-        }
-
-        ToggleSwitch {
-          id: allToggle
-          anchors.verticalCenter: parent.verticalCenter
-          checked: host ? host.allGroupsVisible : true
-          foreground: side.foreground
-          accent: side.chipFg
-          trackHeight: 16
-          activeFocusOnTab: false
-          onToggled: if (host) host.setAllGroupsVisible(!host.allGroupsVisible)
-        }
-      }
-    }
-
     Flickable {
       width: parent.width
-      height: Math.max(40, parent.height - groupsHeader.height - modBlock.height - parent.spacing * 2)
+      height: Math.max(40, parent.height - modBlock.height - parent.spacing)
       clip: true
       contentWidth: width
-      contentHeight: groupCol.height
+      contentHeight: treeCol.height
       boundsBehavior: Flickable.StopAtBounds
       activeFocusOnTab: false
 
       Column {
-        id: groupCol
+        id: treeCol
         width: parent.width
         spacing: 2
 
+        Item {
+          width: parent.width
+          height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
+
+          Row {
+            anchors.fill: parent
+            spacing: 4
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              width: 12
+              text: side.omarchyOpen ? "▾" : "▸"
+              color: side.chipFg
+              font.family: side.fontFamily
+              font.pixelSize: Style.font.caption
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: side.omarchyOpen = !side.omarchyOpen
+              }
+            }
+
+            Text {
+              id: omarchyLabel
+              anchors.verticalCenter: parent.verticalCenter
+              width: parent.width - 70
+              text: "Omarchy"
+              textFormat: Text.PlainText
+              color: host && host.omarchyActive ? side.chipFg : side.foreground
+              font.family: side.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              elide: Text.ElideRight
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: if (host) host.selectSource("omarchy")
+              }
+            }
+
+            ToggleSwitch {
+              anchors.verticalCenter: parent.verticalCenter
+              visible: host && host.omarchyActive
+              checked: host ? host.allGroupsVisible : true
+              foreground: side.foreground
+              accent: side.chipFg
+              trackHeight: 16
+              activeFocusOnTab: false
+              onToggled: if (host) host.setAllGroupsVisible(!host.allGroupsVisible)
+            }
+          }
+        }
+
         Repeater {
-          model: host ? host.groupList : []
+          model: side.omarchyOpen && host ? host.omarchyGroupList : []
           delegate: Item {
             required property var modelData
-            width: groupCol.width
-            height: Math.max(Style.space(24), groupLabel.implicitHeight + 6)
+            width: treeCol.width
+            height: Math.max(Style.space(22), groupLabel.implicitHeight + 4)
 
             Row {
               anchors.fill: parent
+              anchors.leftMargin: 14
               spacing: 6
 
               ToggleSwitch {
@@ -100,7 +111,7 @@ Rectangle {
                 checked: !modelData.hidden
                 foreground: side.foreground
                 accent: side.chipFg
-                trackHeight: 16
+                trackHeight: 14
                 activeFocusOnTab: false
                 onToggled: if (host) host.toggleGroup(modelData.title)
               }
@@ -108,21 +119,93 @@ Rectangle {
               Text {
                 id: groupLabel
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - 40
+                width: parent.width - 36
                 text: modelData.title
                 textFormat: Text.PlainText
-                color: host && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
+                color: host && host.omarchyActive && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
                 opacity: modelData.hidden ? 0.4 : 1
                 font.family: side.fontFamily
                 font.pixelSize: Style.font.caption
-                font.bold: host && modelData.title === host.selectedSectionTitle
+                font.bold: host && host.omarchyActive && modelData.title === host.selectedSectionTitle
                 elide: Text.ElideRight
-
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: if (host) host.focusGroup(modelData.title)
+                  onClicked: {
+                    if (!host)
+                      return
+                    if (!host.omarchyActive)
+                      host.selectSource("omarchy")
+                    host.focusGroup(modelData.title)
+                  }
                 }
+              }
+            }
+          }
+        }
+
+        Item {
+          width: parent.width
+          height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
+
+          Row {
+            anchors.fill: parent
+            spacing: 4
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              width: 12
+              text: side.windowsOpen ? "▾" : "▸"
+              color: side.chipFg
+              font.family: side.fontFamily
+              font.pixelSize: Style.font.caption
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: side.windowsOpen = !side.windowsOpen
+              }
+            }
+
+            Text {
+              id: windowsLabel
+              anchors.verticalCenter: parent.verticalCenter
+              text: "Open windows"
+              textFormat: Text.PlainText
+              color: side.chipFg
+              font.family: side.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              font.capitalization: Font.AllUppercase
+            }
+          }
+        }
+
+        Repeater {
+          model: side.windowsOpen && host ? host.clients : []
+          delegate: Item {
+            required property var modelData
+            width: treeCol.width
+            height: Math.max(Style.space(22), winLabel.implicitHeight + 4)
+
+            Text {
+              id: winLabel
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: 16
+              anchors.verticalCenter: parent.verticalCenter
+              text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
+                + (modelData.count > 1 ? " (" + modelData.count + ")" : "")
+              textFormat: Text.PlainText
+              color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
+              opacity: modelData.sheet ? 1 : 0.55
+              font.family: side.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: host && host.activeSource === modelData.class
+              elide: Text.ElideRight
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: if (host) host.selectSource(modelData.class)
               }
             }
           }

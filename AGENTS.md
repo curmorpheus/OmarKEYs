@@ -7,7 +7,7 @@ so `omarchy plugin add <git-url>` works.
 
 | Path | Role |
 |---|---|
-| `manifest.json` | Plugin id `romills.omarkeys`, overlay entry |
+| `manifest.json` | Plugin id `io.github.romills.omarkeys`, overlay entry |
 | `Keymap.qml` | Overlay host: config, dump, keyboard, execute |
 | `KeymapSidebar.qml` | Group visibility and modifier Any/Must/Hide |
 | `KeymapBoard.qml` | Two-column section grid |
@@ -24,7 +24,7 @@ so `omarchy plugin add <git-url>` works.
 
 Keep overlay logic in the host (`Keymap.qml`) and UI chrome in the child
 QML files. `KeymapData.js` is the only place that decides which rows are
-visible (search, hidden groups, modifier modes).
+visible (search, hidden groups, modifier modes). Roadmap: `PLAN.md`.
 
 ## Validation
 
@@ -49,5 +49,5 @@ QML changes need `omarchy restart shell` (keepLoaded overlay).
 ./install.sh
 ```
 
-That symlinks this repo to `~/.config/omarchy/plugins/romills.omarkeys`
+That symlinks this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
 and `dofile`s `hyprland.lua` from `~/.config/hypr/bindings.lua`.

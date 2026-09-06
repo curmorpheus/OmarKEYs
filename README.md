@@ -26,7 +26,9 @@ Type while it is open to filter, including digits.
 
 **Sidebar**
 
-- Groups: show or hide topic cards; All/None for every group
+- Tree: **Omarchy** (expanded) with topic groups under it; **Open windows**
+  for live apps (click a window to load its sheet)
+- Groups: show or hide topic cards; All/None on the Omarchy row
 - Modifiers: each of Super, Shift, Ctrl, Alt is Any / Must / Hide.
   Click a name to cycle it, or click **A any**, **M must**, **H hide** to set all four.
 
@@ -56,7 +58,7 @@ cd ~/Work/omarkeys
 
 `install.sh` will:
 
-1. Symlink this repo to `~/.config/omarchy/plugins/romills.omarkeys`
+1. Symlink this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
 2. Enable the overlay plugin
 3. Point `~/.config/hypr/bindings.lua` at `hyprland.lua`
 4. Reload Hyprland
