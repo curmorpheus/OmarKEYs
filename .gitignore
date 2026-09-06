@@ -6,3 +6,5 @@
 *.jsc
 .qmlcache/
 .nrepl-port
+apply-edit
+sheets/

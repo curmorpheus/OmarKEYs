@@ -2,7 +2,7 @@
 
 var sections = [
   {
-    title: "Start here",
+    title: "Main",
     rows: [
       { keys: "Super + Space", action: "Omarchy menu" },
       { keys: "Super + Return", action: "Terminal" },
@@ -10,7 +10,7 @@ var sections = [
       { keys: "Super + Shift + F", action: "File manager" },
       { keys: "Super + K", action: "OmarKEYS" },
       { keys: "Double-tap Super", action: "OmarKEYS" },
-      { keys: "Hold Super 1s", action: "OmarKEYS" },
+      { keys: "Hold Super 5s", action: "OmarKEYS" },
       { keys: "Super + Escape", action: "System menu" },
       { keys: "Super + W", action: "Close window" },
       { keys: "Super + Ctrl + L", action: "Lock screen" }
@@ -191,14 +191,154 @@ var sections = [
   }
 ]
 
+var liveSections = null
+var currentConfig = {
+  doubleTap: true,
+  holdSeconds: 5,
+  hiddenGroups: [],
+  modifiers: { Super: "any", Shift: "any", Ctrl: "any", Alt: "any" }
+}
+
+function setSections(next) {
+  liveSections = (next && next.length) ? next : null
+}
+
+function setConfig(cfg) {
+  var hidden = []
+  if (cfg && cfg.hiddenGroups) {
+    for (var i = 0; i < cfg.hiddenGroups.length; i++)
+      hidden.push(String(cfg.hiddenGroups[i]))
+  }
+  var modsIn = (cfg && cfg.modifiers) || {}
+  currentConfig = {
+    doubleTap: !cfg || cfg.doubleTap !== false,
+    holdSeconds: Math.max(1, Math.min(10, Number(cfg && cfg.holdSeconds) || 5)),
+    hiddenGroups: hidden,
+    modifiers: {
+      Super: normalizeModifierMode(modsIn.Super),
+      Shift: normalizeModifierMode(modsIn.Shift),
+      Ctrl: normalizeModifierMode(modsIn.Ctrl),
+      Alt: normalizeModifierMode(modsIn.Alt)
+    }
+  }
+}
+
+function normalizeModifierMode(value) {
+  if (value === "must" || value === "hide" || value === "any")
+    return value
+  if (value === false)
+    return "hide"
+  return "any"
+}
+
+function rowUsesModifier(row, name) {
+  var blob = String((row && row.mods) || "") + " " + String((row && row.keys) || "")
+  var low = blob.toLowerCase()
+  if (name === "Super")
+    return /\bsuper\b/.test(low)
+  if (name === "Shift")
+    return /\bshift\b/.test(low)
+  if (name === "Ctrl")
+    return /\bctrl\b|\bcontrol\b/.test(low)
+  if (name === "Alt")
+    return /\balt\b/.test(low)
+  return false
+}
+
+function rowMatchesModifiers(row) {
+  var modes = currentConfig.modifiers || {}
+  var names = ["Super", "Shift", "Ctrl", "Alt"]
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i]
+    var mode = modes[name] || "any"
+    var uses = rowUsesModifier(row, name)
+    if (mode === "must" && !uses)
+      return false
+    if (mode === "hide" && uses)
+      return false
+  }
+  return true
+}
+
+function isHidden(title) {
+  var hidden = currentConfig.hiddenGroups || []
+  for (var i = 0; i < hidden.length; i++) {
+    if (hidden[i] === title)
+      return true
+  }
+  return false
+}
+
+function catalog() {
+  var source = withGestures(activeSections(), currentConfig)
+  var out = []
+  for (var i = 0; i < source.length; i++) {
+    out.push({
+      title: source[i].title,
+      hidden: isHidden(source[i].title)
+    })
+  }
+  return out
+}
+
+function activeSections() {
+  return liveSections && liveSections.length ? liveSections : sections
+}
+
+function gestureRows(cfg) {
+  var hold = (cfg && cfg.holdSeconds) || 5
+  var rows = []
+  if (!cfg || cfg.doubleTap !== false)
+    rows.push({ keys: "Double-tap Super", action: "OmarKEYS" })
+  rows.push({ keys: "Hold Super " + hold + "s", action: "OmarKEYS" })
+  return rows
+}
+
+function withGestures(all, cfg) {
+  var extra = gestureRows(cfg)
+  var out = []
+  var injected = false
+  for (var i = 0; i < all.length; i++) {
+    var sec = { title: all[i].title, rows: all[i].rows.slice() }
+    if (!injected && sec.title === "Main") {
+      var rows = []
+      var placed = false
+      for (var r = 0; r < sec.rows.length; r++) {
+        var row = sec.rows[r]
+        if (/double-tap super|hold super/i.test(String(row.keys)))
+          continue
+        rows.push(row)
+        if (!placed && (String(row.keys) === "Super + K" || /omarkeys/i.test(String(row.action)))) {
+          for (var e = 0; e < extra.length; e++)
+            rows.push(extra[e])
+          placed = true
+        }
+      }
+      if (!placed) {
+        for (var e2 = 0; e2 < extra.length; e2++)
+          rows.push(extra[e2])
+      }
+      sec.rows = rows
+      injected = true
+    }
+    out.push(sec)
+  }
+  return out
+}
+
 function filtered(query) {
   var q = String(query || "").toLowerCase().trim()
+  var source = withGestures(activeSections(), currentConfig)
   var out = []
-  for (var s = 0; s < sections.length; s++) {
+  for (var s = 0; s < source.length; s++) {
     var rows = []
-    var section = sections[s]
+    var section = source[s]
+    if (isHidden(section.title))
+      continue
     for (var r = 0; r < section.rows.length; r++) {
       var row = section.rows[r]
+      if (!rowMatchesModifiers(row))
+        continue
       if (!q || String(row.keys).toLowerCase().indexOf(q) !== -1
           || String(row.action).toLowerCase().indexOf(q) !== -1
           || String(section.title).toLowerCase().indexOf(q) !== -1)
@@ -215,10 +355,11 @@ function columns(query) {
   var left = []
   var right = []
   for (var i = 0; i < all.length; i++) {
+    var block = { title: all[i].title, rows: all[i].rows, sectionIndex: i }
     if (i % 2 === 0)
-      left.push(all[i])
+      left.push(block)
     else
-      right.push(all[i])
+      right.push(block)
   }
   return { left: left, right: right }
 }
@@ -227,4 +368,96 @@ function splitKeys(keys) {
   return String(keys || "").split(/\s*\+\s*/).filter(function(part) {
     return part.length > 0
   })
+}
+
+function isRunnable(keys) {
+  var k = String(keys || "")
+  if (!k)
+    return false
+  if (/\d-\d/.test(k) || /arrows|drag|scroll|volume keys|brightness keys|keyboard light|play \/ pause|mic mute|double-tap|hold super/i.test(k))
+    return false
+  if (/\s\/\s/.test(k))
+    return false
+  return true
+}
+
+var KEY_SYMS = {
+  Return: "Return",
+  Enter: "Return",
+  Space: "space",
+  Escape: "Escape",
+  Backspace: "BackSpace",
+  Print: "Print",
+  Home: "Home",
+  Delete: "Delete",
+  Tab: "Tab",
+  ",": "comma",
+  ".": "period",
+  "-": "minus",
+  "=": "equal",
+  "/": "slash",
+  "[": "bracketleft",
+  "]": "bracketright"
+}
+
+var MOD_SYMS = {
+  Super: "SUPER",
+  Shift: "SHIFT",
+  Ctrl: "CTRL",
+  Control: "CTRL",
+  Alt: "ALT"
+}
+
+function shortcut(keys) {
+  if (!isRunnable(keys))
+    return null
+  var parts = splitKeys(keys)
+  var mods = []
+  var key = ""
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i]
+    if (MOD_SYMS[p])
+      mods.push(MOD_SYMS[p])
+    else
+      key = KEY_SYMS[p] || p
+  }
+  if (!key)
+    return null
+  return { mods: mods.join(" "), key: key }
+}
+
+function navList(query) {
+  var all = filtered(query)
+  var items = []
+  for (var s = 0; s < all.length; s++) {
+    for (var r = 0; r < all[s].rows.length; r++) {
+      var row = all[s].rows[r]
+      var sc = null
+      if (row.bindKey)
+        sc = { mods: row.mods || "", key: row.bindKey }
+      else
+        sc = shortcut(row.keys)
+      items.push({
+        section: s,
+        sectionTitle: all[s].title,
+        keys: row.keys,
+        action: row.action,
+        runnable: isRunnable(row.keys) && !!sc,
+        shortcut: sc
+      })
+    }
+  }
+  return items
+}
+
+function sectionStarts(items) {
+  var starts = []
+  var last = null
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].section !== last) {
+      starts.push(i)
+      last = items[i].section
+    }
+  }
+  return starts
 }

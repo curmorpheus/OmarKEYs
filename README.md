@@ -5,8 +5,8 @@ keymap overlay, summoned without eating Super+other shortcuts.
 
 **Open**
 
-- Double-tap Super
-- Hold Super for one second
+- Double-tap Super (optional)
+- Hold Super (default 5 seconds)
 - Super+K
 
 **Close**
@@ -15,7 +15,28 @@ keymap overlay, summoned without eating Super+other shortcuts.
 - Escape
 - Click the dimmed background
 
-Type while it is open to filter.
+Type while it is open to filter, including digits.
+
+**Navigate**
+
+- Arrow keys move the highlight (up/down command, left/right group)
+- `Ctrl+1`–`Ctrl+9` jump to a numbered group (`Ctrl+0` is the 10th)
+- Enter or click runs the highlighted shortcut
+- Greyed-out rows (ranges, holds, double-tap) cannot be run
+
+**Sidebar**
+
+- Groups: show or hide topic cards; All/None for every group
+- Modifiers: each of Super, Shift, Ctrl, Alt is Any / Must / Hide.
+  Click a name to cycle it, or click **A any**, **M must**, **H hide** to set all four.
+
+**Settings** (bottom of the overlay)
+
+- Double-tap Super on/off
+- Hold Super duration, 1–10 seconds
+
+Bindings are read live from Hyprland each time OmarKEYS opens. Settings
+are stored in `~/.config/omarchy/omarkeys.json`.
 
 ## Install
 
@@ -53,6 +74,18 @@ omarchy plugin add <git-url> --enable
 This repository root *is* the Omarchy plugin (`manifest.json` at the top).
 Hyprland activation lives in `hyprland.lua` and is `dofile`d from your
 user bindings file so Super+chords stay unmodified.
+
+| Path | Role |
+|---|---|
+| `Keymap.qml` | Overlay host: config, live dump, keys, execute |
+| `KeymapSidebar.qml` | Groups and modifier filters |
+| `KeymapBoard.qml` | Two-column binding cards |
+| `KeymapSection.qml` / `KeymapRow.qml` | One topic card and one command row |
+| `KeymapSettingsBar.qml` | Double-tap and hold controls |
+| `KeymapData.js` | Filter, catalog, shortcut parse, fallback list |
+| `dump-keymap` | Live Hyprland binds → JSON sections |
+| `run-shortcut` | Replay a chord after the overlay closes |
+| `hyprland.lua` | Super+K, double-tap, hold |
 
 ## License
 

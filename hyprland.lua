@@ -5,7 +5,36 @@
 local PLUGIN_ID = "romills.omarkeys"
 local NAMESPACE = "romills-omarkeys"
 local DOUBLE_TAP_MS = 400
-local HOLD_MS = 1000
+local CONFIG_PATH = (os.getenv("HOME") or "") .. "/.config/omarchy/omarkeys.json"
+
+local function clamp(n, lo, hi)
+  if n < lo then
+    return lo
+  end
+  if n > hi then
+    return hi
+  end
+  return n
+end
+
+local function read_config()
+  local cfg = { doubleTap = true, holdSeconds = 5 }
+  local f = io.open(CONFIG_PATH, "r")
+  if not f then
+    return cfg
+  end
+  local raw = f:read("*a") or ""
+  f:close()
+  if raw:match('"doubleTap"%s*:%s*false') then
+    cfg.doubleTap = false
+  end
+  local hold = tonumber(raw:match('"holdSeconds"%s*:%s*(%d+)'))
+  if hold then
+    cfg.holdSeconds = clamp(hold, 1, 10)
+  end
+  return cfg
+end
+
 -- Linux KEY_LEFTMETA/RIGHTMETA and XKB Super_L/Super_R.
 local SUPER = { [125] = true, [126] = true, [133] = true, [134] = true }
 
@@ -85,13 +114,16 @@ local function on_key(keycode, _, state)
       st.close_tap = st.overlay_open
       stop_timer("hold_timer")
       if not st.overlay_open then
-        st.hold_timer = hl.timer(function()
-          st.hold_timer = nil
-          if st.chorded or st.overlay_open or not st.super_down then
-            return
-          end
-          show_overlay()
-        end, { timeout = HOLD_MS, type = "oneshot" })
+        local hold_ms = math.floor((read_config().holdSeconds or 5) * 1000)
+        if hold_ms > 0 then
+          st.hold_timer = hl.timer(function()
+            st.hold_timer = nil
+            if st.chorded or st.overlay_open or not st.super_down then
+              return
+            end
+            show_overlay()
+          end, { timeout = hold_ms, type = "oneshot" })
+        end
       end
     elseif st.super_down then
       st.chorded = true
@@ -107,18 +139,24 @@ local function on_key(keycode, _, state)
     st.super_down = false
     stop_timer("hold_timer")
     if st.chorded then
+      -- Super+K (and other Super chords). If OmarKEYS just opened, Super
+      -- is now up — take keyboard focus so typing/filter works.
+      if st.overlay_open then
+        st.close_tap = false
+        grab_keys()
+      end
       return
     elseif st.overlay_open and st.close_tap then
       hide_overlay()
     elseif st.overlay_open then
       st.close_tap = false
       grab_keys()
-    elseif st.tap_armed then
+    elseif read_config().doubleTap and st.tap_armed then
       st.tap_armed = false
       stop_timer("tap_timer")
       show_overlay()
       grab_keys()
-    else
+    elseif read_config().doubleTap then
       st.tap_armed = true
       stop_timer("tap_timer")
       st.tap_timer = hl.timer(function()
@@ -135,6 +173,13 @@ o.bind("SUPER + K", "OmarKEYS", function()
     hide_overlay()
   else
     show_overlay()
+    -- Super is still held for this chord. Grab as soon as it is up so
+    -- filter typing matches double-tap / hold.
+    hl.timer(function()
+      if st.overlay_open and not st.super_down then
+        grab_keys()
+      end
+    end, { timeout = 50, type = "oneshot" })
   end
 end)
 

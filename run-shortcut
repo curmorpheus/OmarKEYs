@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Replay a Hyprland shortcut after OmarKEYS closes.
+# Same down/up send_key_state path as omarchy-menu-keybindings.
+set -euo pipefail
+
+mods="${1-}"
+key="${2-}"
+[[ -n $key ]] || exit 1
+
+lua_string() {
+  python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"
+}
+
+dispatch_lua() {
+  local expression="$1"
+  local output
+  output=$(hyprctl dispatch "$expression" 2>&1) || return 1
+  [[ -z $output || $output == ok ]]
+}
+
+window="activewindow"
+mods_lua=$(lua_string "$mods")
+key_lua=$(lua_string "$key")
+window_lua=$(lua_string "$window")
+
+if dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"down\", window = ${window_lua} })"; then
+  sleep 0.05
+  dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"up\", window = ${window_lua} })" || true
+  exit 0
+fi
+
+hyprctl dispatch sendshortcut "${mods},${key}," >/dev/null

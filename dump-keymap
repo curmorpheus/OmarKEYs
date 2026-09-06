@@ -1,0 +1,477 @@
+#!/usr/bin/env python3
+"""Dump live Hyprland keybindings as OmarKEYS JSON sections."""
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+SECTION_RULES = [
+    (
+        "Main",
+        (
+            "omarchy menu",
+            "terminal",
+            "browser",
+            "file manager",
+            "omarkeys",
+            "keybindings",
+            "system menu",
+            "close window",
+            "lock system",
+        ),
+    ),
+    (
+        "Menus and launchers",
+        (
+            "apps menu",
+            "theme menu",
+            "background switcher",
+            "toggle menu",
+            "hardware menu",
+            "capture menu",
+            "power menu",
+            "toggle top bar",
+            "bar panel",
+        ),
+    ),
+    (
+        "Windows",
+        (
+            "full screen",
+            "full width",
+            "floating",
+            "window split",
+            "pop window",
+            "pseudo window",
+            "workspace layout",
+            "transparency",
+            "window gaps",
+            "square aspect",
+            "close all windows",
+            "reveal active window",
+        ),
+    ),
+    (
+        "Focus and move",
+        (
+            "focus on",
+            "swap window",
+            "move window",
+            "resize window",
+        ),
+    ),
+    (
+        "Workspaces",
+        (
+            "workspace",
+        ),
+    ),
+    (
+        "Resize",
+        (
+            "expand window",
+            "shrink window",
+            "window width",
+        ),
+    ),
+    (
+        "Groups and scratchpad",
+        (
+            "group",
+            "scratchpad",
+        ),
+    ),
+    (
+        "Clipboard and text",
+        (
+            "universal copy",
+            "universal cut",
+            "universal paste",
+            "clipboard",
+            "emoji",
+            "color picker",
+            "dictation",
+        ),
+    ),
+    (
+        "Capture and share",
+        (
+            "screenshot",
+            "screenrecording",
+            "ocr",
+            "share",
+            "transcode",
+            "webcam",
+            "download video",
+            "copy url",
+        ),
+    ),
+    (
+        "Notifications",
+        (
+            "notification",
+            "reminder",
+        ),
+    ),
+    (
+        "Display and look",
+        (
+            "monitor scaling",
+            "display",
+            "nightlight",
+            "locking on idle",
+            "zoom",
+        ),
+    ),
+    (
+        "Bar panels",
+        (
+            "audio",
+            "bluetooth",
+            "network",
+            "power",
+            "activity",
+            "calculator",
+            "calendar",
+            "show time",
+            "weather",
+            "battery",
+        ),
+    ),
+    (
+        "Apps",
+        (
+            "tmux",
+            "herdr",
+            "editor",
+            "obsidian",
+            "docker",
+            "music",
+            "password",
+            "agent",
+            "chatgpt",
+            "grok",
+            "email",
+            "signal",
+            "youtube",
+            "whatsapp",
+            "google",
+            "omawrite",
+            "x post",
+        ),
+    ),
+    (
+        "Media and hardware",
+        (
+            "volume",
+            "mute",
+            "brightness",
+            "keyboard",
+            "play",
+            "pause",
+            "track",
+            "media source",
+            "touchpad",
+            "eject",
+            "microphone",
+        ),
+    ),
+]
+
+MODS = {
+    "SUPER": "Super",
+    "SHIFT": "Shift",
+    "CTRL": "Ctrl",
+    "CONTROL": "Ctrl",
+    "ALT": "Alt",
+}
+
+KEYS = {
+    "SPACE": "Space",
+    "RETURN": "Return",
+    "ESCAPE": "Escape",
+    "BACKSPACE": "Backspace",
+    "PRINT": "Print",
+    "TAB": "Tab",
+    "COMMA": ",",
+    "PERIOD": ".",
+    "MINUS": "-",
+    "EQUAL": "=",
+    "SLASH": "/",
+    "HOME": "Home",
+    "DELETE": "Delete",
+    "INSERT": "Insert",
+    "LEFT": "Left",
+    "RIGHT": "Right",
+    "UP": "Up",
+    "DOWN": "Down",
+}
+
+START_EXACT = {
+    "omarchy menu",
+    "terminal",
+    "browser",
+    "file manager",
+    "omarkeys",
+    "system menu",
+    "close window",
+    "lock system",
+}
+
+def pretty_keys(combo: str) -> str:
+    parts = [p for p in re.split(r"[\s+]+", combo.strip()) if p]
+    out = []
+    for part in parts:
+        upper = part.upper()
+        if upper in MODS:
+            out.append(MODS[upper])
+        elif upper in KEYS:
+            out.append(KEYS[upper])
+        elif re.fullmatch(r"code:\d+", part, re.I):
+            out.append(part.lower())
+        elif len(part) == 1:
+            out.append(part.upper())
+        else:
+            out.append(part[:1].upper() + part[1:].lower() if part.isalpha() else part)
+    return " + ".join(out)
+
+
+MODMASK_TEXT = {
+    0: "",
+    1: "SHIFT",
+    4: "CTRL",
+    5: "SHIFT CTRL",
+    8: "ALT",
+    9: "SHIFT ALT",
+    12: "CTRL ALT",
+    13: "SHIFT CTRL ALT",
+    64: "SUPER",
+    65: "SUPER SHIFT",
+    68: "SUPER CTRL",
+    69: "SUPER SHIFT CTRL",
+    72: "SUPER ALT",
+    73: "SUPER SHIFT ALT",
+    76: "SUPER CTRL ALT",
+    77: "SUPER SHIFT CTRL ALT",
+}
+
+
+def load_hypr_binds() -> dict[str, list[dict]]:
+    try:
+        raw = subprocess.check_output(["hyprctl", "-j", "binds"], text=True)
+        binds = json.loads(raw)
+    except (OSError, json.JSONDecodeError, subprocess.CalledProcessError):
+        return {}
+    by_desc: dict[str, list[dict]] = {}
+    for bind in binds:
+        desc = str(bind.get("description") or "").strip()
+        key = str(bind.get("key") or "").strip()
+        if not desc or not key or bind.get("mouse"):
+            continue
+        mods = MODMASK_TEXT.get(int(bind.get("modmask") or 0), "")
+        by_desc.setdefault(desc, []).append({"mods": mods, "bindKey": key})
+    return by_desc
+
+
+def attach_hypr_keys(rows: list[dict], binds: dict[str, list[dict]]) -> None:
+    for row in rows:
+        opts = binds.get(row["action"]) or []
+        if not opts:
+            continue
+        row["mods"] = opts[0]["mods"]
+        row["bindKey"] = opts[0]["bindKey"]
+
+
+def parse_print(text: str) -> list[dict]:
+    rows = []
+    for line in text.splitlines():
+        if "→" not in line:
+            continue
+        left, right = line.split("→", 1)
+        keys = pretty_keys(left.strip())
+        action = right.strip()
+        if not keys or not action:
+            continue
+        rows.append({"keys": keys, "action": action})
+    return rows
+
+
+def section_for(action: str) -> str:
+    low = action.lower().strip()
+    if low in START_EXACT or low.startswith("browser") or low.startswith("file manager"):
+        return "Main"
+    if low == "x" or low.startswith("x "):
+        return "Apps"
+    for title, needles in SECTION_RULES:
+        for needle in needles:
+            if needle in low:
+                if title == "Main" and low not in START_EXACT and not low.startswith("browser") and not low.startswith("file manager"):
+                    continue
+                if title == "Focus and move" and any(
+                    word in low for word in ("workspace", "group", "scratchpad")
+                ):
+                    continue
+                if title == "Bar panels" and "menu" in low:
+                    continue
+                if title == "Media and hardware" and needle == "play" and "display" in low:
+                    continue
+                return title
+    return "Other"
+
+
+def collapse_numbered(rows: list[dict]) -> list[dict]:
+    pattern = re.compile(
+        r"^(?P<label>Switch to workspace|Move window to workspace|Move window silently to workspace|Bar panel|Switch to group window)\s+(?P<n>\d+)$"
+    )
+    groups: dict[tuple[str, str], list[tuple[int, str]]] = {}
+    passthrough: list[dict] = []
+    order: list[tuple[str, str] | None] = []
+
+    for row in rows:
+        match = pattern.match(row["action"])
+        if not match:
+            passthrough.append(row)
+            order.append(None)
+            continue
+        mods = row["keys"].rsplit(" + ", 1)[0] if " + " in row["keys"] else ""
+        key = (mods, match.group("label"))
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        else:
+            order.append("skip")
+        groups[key].append((int(match.group("n")), row["keys"]))
+
+    out: list[dict] = []
+    used = set()
+    p = 0
+    for item in order:
+        if item == "skip":
+            continue
+        if item is None:
+            out.append(passthrough[p])
+            p += 1
+            continue
+        if item in used:
+            continue
+        used.add(item)
+        nums = sorted(n for n, _ in groups[item])
+        mods, label = item
+        if nums == list(range(1, 11)):
+            keys = f"{mods} + 1-9, 0" if mods else "1-9, 0"
+            action = f"{label} 1-10"
+        elif nums == list(range(1, 10)):
+            keys = f"{mods} + 1-9" if mods else "1-9"
+            action = f"{label} 1-9"
+        elif nums == list(range(1, 6)):
+            keys = f"{mods} + 1-5" if mods else "1-5"
+            action = f"{label} 1-5"
+        else:
+            for _, original_keys in groups[item]:
+                n = next(n for n, k in groups[item] if k == original_keys)
+                out.append({"keys": original_keys, "action": f"{label} {n}"})
+            continue
+        out.append({"keys": keys, "action": action})
+    return out
+
+
+def group(rows: list[dict]) -> list[dict]:
+    buckets: dict[str, list[dict]] = {}
+    titles = [title for title, _ in SECTION_RULES] + ["Other"]
+    for title in titles:
+        buckets[title] = []
+    for row in rows:
+        buckets[section_for(row["action"])].append(row)
+    sections = []
+    for title in titles:
+        collapsed = collapse_numbered(buckets[title])
+        if collapsed:
+            sections.append({"title": title, "rows": collapsed})
+    return sections
+
+
+SHEETS_DIR = Path(__file__).resolve().parent / "sheets"
+
+
+def sheet_for(cls: str) -> str | None:
+    low = cls.lower()
+    exact = SHEETS_DIR / f"{cls}.json"
+    if exact.exists():
+        return exact.name
+    if SHEETS_DIR.is_dir():
+        for path in SHEETS_DIR.glob("*.json"):
+            try:
+                meta = json.loads(path.read_text())
+            except (OSError, json.JSONDecodeError):
+                continue
+            aliases = [str(a).lower() for a in (meta.get("classes") or [path.stem])]
+            if any(alias == low or alias in low or low.startswith(alias) for alias in aliases):
+                return path.name
+    if "ghostty" in low:
+        return "com.mitchellh.ghostty.json"
+    if "chrom" in low:
+        return "chromium.json"
+    if "nautilus" in low:
+        return "org.gnome.Nautilus.json"
+    return None
+
+
+def dump_clients() -> list[dict]:
+    try:
+        clients = json.loads(subprocess.check_output(["hyprctl", "-j", "clients"], text=True))
+    except (OSError, json.JSONDecodeError, subprocess.CalledProcessError):
+        return []
+    grouped: dict[str, dict] = {}
+    for client in clients:
+        cls = str(client.get("class") or "unknown").strip() or "unknown"
+        title = str(client.get("title") or cls)
+        focused = bool(client.get("focusHistoryID") == 0) or bool(client.get("mapped") and client.get("focused"))
+        # Hyprland marks the focused window with focusHistoryID 0.
+        entry = grouped.get(cls)
+        if not entry:
+            label = cls.rsplit(".", 1)[-1] if "." in cls else cls
+            grouped[cls] = {
+                "class": cls,
+                "label": label,
+                "title": title,
+                "focused": focused,
+                "count": 1,
+                "sheet": sheet_for(cls),
+            }
+        else:
+            entry["count"] += 1
+            entry["focused"] = entry["focused"] or focused
+            if focused:
+                entry["title"] = title
+    return sorted(grouped.values(), key=lambda c: (not c["focused"], c["label"].lower()))
+
+
+def dump() -> dict:
+    proc = subprocess.run(
+        ["omarchy-menu-keybindings", "--print"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.stderr or "omarchy-menu-keybindings --print failed")
+    rows = parse_print(proc.stdout)
+    attach_hypr_keys(rows, load_hypr_binds())
+    sections = group(rows)
+    digest = hashlib.sha256(
+        json.dumps(sections, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()[:16]
+    return {"sections": sections, "clients": dump_clients(), "hash": digest}
+
+
+def main() -> None:
+    json.dump(dump(), sys.stdout, ensure_ascii=False)
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()

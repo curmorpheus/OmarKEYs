@@ -1,17 +1,32 @@
 import QtQuick
 import qs.Commons
-import "KeymapData.js" as KeymapData
 
 Rectangle {
   id: section
 
   property string title: ""
+  property int sectionNumber: 0
   property var rows: []
+  property string selectedKeys: ""
+  property string selectedAction: ""
   property string fontFamily: Style.font.menuFamily
   property color foreground: Color.menu.text
   property color borderColor: Color.menu.border
   property color chipBg: Color.menu.selectedBackground
   property color chipFg: Color.menu.selectedText
+  property color selectedBg: Color.menu.selectedBackground
+  property color selectedFg: Color.menu.selectedText
+  signal rowClicked(string keys, string action)
+  signal rowActivated(string keys, string action)
+  signal rowHighlighted(var item)
+
+  readonly property string numberLabel: {
+    if (section.sectionNumber >= 1 && section.sectionNumber <= 9)
+      return "[Ctrl-" + section.sectionNumber + "]"
+    if (section.sectionNumber === 10)
+      return "[Ctrl-0]"
+    return ""
+  }
 
   implicitHeight: sectionCol.implicitHeight + Style.spacing.md
   radius: 6
@@ -27,66 +42,54 @@ Rectangle {
     anchors.margins: Style.spacing.sm
     spacing: Style.space(5)
 
-    Text {
-      text: section.title
-      textFormat: Text.PlainText
-      color: Color.menu.selectedText
-      font.family: section.fontFamily
-      font.pixelSize: Style.font.caption
-      font.bold: true
-      font.capitalization: Font.AllUppercase
+    Item {
+      width: sectionCol.width
+      height: titleRow.height
+
+      Row {
+        id: titleRow
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 8
+
+        Text {
+          text: section.title
+          textFormat: Text.PlainText
+          color: Color.menu.selectedText
+          font.family: section.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+          font.capitalization: Font.AllUppercase
+        }
+
+        Text {
+          visible: section.numberLabel.length > 0
+          text: section.numberLabel
+          textFormat: Text.PlainText
+          color: section.selectedFg
+          font.family: section.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+          opacity: 0.8
+        }
+      }
     }
 
     Repeater {
       model: section.rows
-      delegate: Item {
+      delegate: KeymapRow {
         width: sectionCol.width
-        height: Math.max(Style.space(22), actionLabel.implicitHeight)
-
-        Row {
-          id: keysRow
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          width: parent.width * 0.56
-          spacing: 4
-
-          Repeater {
-            model: KeymapData.splitKeys(modelData.keys)
-            delegate: Rectangle {
-              implicitWidth: chipText.implicitWidth + 10
-              implicitHeight: Math.max(Style.space(18), chipText.implicitHeight + 4)
-              radius: 4
-              color: section.chipBg
-              border.width: 1
-              border.color: section.borderColor
-
-              Text {
-                id: chipText
-                anchors.centerIn: parent
-                text: modelData
-                textFormat: Text.PlainText
-                color: section.chipFg
-                font.family: section.fontFamily
-                font.pixelSize: Style.font.caption
-                font.bold: true
-              }
-            }
-          }
-        }
-
-        Text {
-          id: actionLabel
-          anchors.left: keysRow.right
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          anchors.leftMargin: Style.spacing.sm
-          text: modelData.action
-          textFormat: Text.PlainText
-          color: section.foreground
-          font.family: section.fontFamily
-          font.pixelSize: Style.font.body
-          elide: Text.ElideRight
-        }
+        selected: modelData.keys === section.selectedKeys
+          && modelData.action === section.selectedAction
+        fontFamily: section.fontFamily
+        foreground: section.foreground
+        borderColor: section.borderColor
+        chipBg: section.chipBg
+        chipFg: section.chipFg
+        selectedBg: section.selectedBg
+        selectedFg: section.selectedFg
+        onClicked: function(keys, action) { section.rowClicked(keys, action) }
+        onActivated: function(keys, action) { section.rowActivated(keys, action) }
+        onHighlighted: function(item) { section.rowHighlighted(item) }
       }
     }
   }

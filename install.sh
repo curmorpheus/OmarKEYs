@@ -86,6 +86,7 @@ if [[ -e $PLUGIN_DIR && ! -L $PLUGIN_DIR ]]; then
   mv "$PLUGIN_DIR" "$backup"
   log "moved existing plugin dir -> $backup"
 fi
+chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap"
 ln -sfn "$ROOT" "$PLUGIN_DIR"
 log "symlinked $PLUGIN_DIR -> $ROOT"
 
@@ -125,4 +126,4 @@ if command -v hyprctl >/dev/null; then
   log "Hyprland reloaded"
 fi
 
-log "OmarKEYS ready. Super+K, double-tap Super, or hold Super 1s."
+log "OmarKEYS ready. Super+K, double-tap Super, or hold Super 5s."

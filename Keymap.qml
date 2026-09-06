@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import qs.Commons
@@ -16,6 +17,50 @@ Item {
   property string filterText: ""
   property var leftSections: []
   property var rightSections: []
+  property var navItems: []
+  property int selected: 0
+  property string selectedKeys: ""
+  property string selectedAction: ""
+  property string pendingMods: ""
+  property string pendingKey: ""
+  property bool doubleTap: true
+  property int holdSeconds: 5
+  property var hiddenGroups: []
+  property var groupList: []
+  property string modSuper: "any"
+  property string modShift: "any"
+  property string modCtrl: "any"
+  property string modAlt: "any"
+  property string selectedSectionTitle: ""
+  property bool launching: false
+  property int focusTick: 0
+  property string keymapHash: ""
+  property var omarchySections: []
+  property var clients: []
+  property string activeSource: "omarchy"
+  property bool editMode: false
+  property bool capturing: false
+  property string captureOldKeys: ""
+  property string captureAction: ""
+  property string editStatus: ""
+  readonly property bool omarchyActive: root.activeSource === "omarchy"
+
+  readonly property bool allGroupsVisible: {
+    var list = root.groupList
+    if (!list || !list.length)
+      return true
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].hidden)
+        return false
+    }
+    return true
+  }
+  readonly property bool allModsAny: root.modSuper === "any" && root.modShift === "any" && root.modCtrl === "any" && root.modAlt === "any"
+  readonly property bool allModsMust: root.modSuper === "must" && root.modShift === "must" && root.modCtrl === "must" && root.modAlt === "must"
+  readonly property bool allModsHide: root.modSuper === "hide" && root.modShift === "hide" && root.modCtrl === "hide" && root.modAlt === "hide"
+  readonly property string sourceDir: (root.manifest && root.manifest.__sourceDir)
+    || ((Quickshell.env("HOME") || "") + "/.config/omarchy/plugins/romills.omarkeys")
+  readonly property string configPath: (Quickshell.env("HOME") || "") + "/.config/omarchy/omarkeys.json"
 
   property color background: Color.menu.background
   property color foreground: Color.menu.text
@@ -32,22 +77,225 @@ Item {
     return (root.manifest && root.manifest.id) || "romills.omarkeys"
   }
 
+  function configObject() {
+    return {
+      doubleTap: root.doubleTap,
+      holdSeconds: root.holdSeconds,
+      hiddenGroups: root.hiddenGroups,
+      modifiers: {
+        Super: root.modSuper,
+        Shift: root.modShift,
+        Ctrl: root.modCtrl,
+        Alt: root.modAlt
+      }
+    }
+  }
+
   function open(payloadJson) {
     root.filterText = ""
     root.grabKeys = false
+    root.launching = false
+    root.selected = 0
+    root.applyConfigToData()
+    root.refreshKeymap()
     root.rebuild()
     root.opened = true
   }
 
+  function applyConfigToData() {
+    KeymapData.setConfig(root.configObject())
+  }
+
+  function applyConfigText(text) {
+    try {
+      var cfg = JSON.parse(text)
+      if (cfg && typeof cfg === "object") {
+        if (cfg.doubleTap === false)
+          root.doubleTap = false
+        else if (cfg.doubleTap === true)
+          root.doubleTap = true
+        var hold = Number(cfg.holdSeconds)
+        if (hold >= 1 && hold <= 10)
+          root.holdSeconds = Math.round(hold)
+        if (Object.prototype.toString.call(cfg.hiddenGroups) === "[object Array]")
+          root.hiddenGroups = cfg.hiddenGroups.slice()
+        if (cfg.modifiers && typeof cfg.modifiers === "object") {
+          root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
+          root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
+          root.modCtrl = KeymapData.normalizeModifierMode(cfg.modifiers.Ctrl)
+          root.modAlt = KeymapData.normalizeModifierMode(cfg.modifiers.Alt)
+        }
+      }
+    } catch (e) {
+    }
+    root.applyConfigToData()
+    root.rebuild()
+  }
+
+  function saveConfig() {
+    root.applyConfigToData()
+    configFile.setText(JSON.stringify(root.configObject(), null, 2) + "\n")
+    root.rebuild()
+  }
+
+  function applyDump(text) {
+    var data = null
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      return
+    }
+    if (!data)
+      return
+    if (data.clients)
+      root.clients = data.clients
+    var same = data.hash && data.hash === root.keymapHash
+    if (data.sections && data.sections.length) {
+      root.omarchySections = data.sections
+      root.keymapHash = data.hash || root.keymapHash
+    }
+    if (root.omarchyActive) {
+      KeymapData.setSections(root.omarchySections)
+      root.applyConfigToData()
+      root.rebuild(true)
+      if (!same && root.opened)
+        root.requestFocus()
+    }
+  }
+
+  function refreshKeymap() {
+    if (dumpProc.running)
+      dumpProc.running = false
+    dumpProc.running = true
+  }
+
+  property string sheetPath: ""
+
+  FileView {
+    id: sheetFile
+    path: root.sheetPath
+    printErrors: false
+    onLoaded: {
+      try {
+        var data = JSON.parse(text())
+        if (data && data.sections)
+          KeymapData.setSections(data.sections)
+        else
+          throw new Error("empty")
+      } catch (e) {
+        KeymapData.setSections([{
+          title: "This app",
+          rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
+        }])
+      }
+      root.rebuild()
+    }
+    onLoadFailed: {
+      if (!root.sheetPath)
+        return
+      KeymapData.setSections([{
+        title: "This app",
+        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
+      }])
+      root.rebuild()
+    }
+  }
+
+  FileView {
+    id: bindingsWatch
+    path: (Quickshell.env("HOME") || "") + "/.config/hypr/bindings.lua"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: if (root.opened) root.refreshKeymap()
+  }
+
+  FileView {
+    id: editsWatch
+    path: (Quickshell.env("HOME") || "") + "/.config/hypr/omarkeys-edits.lua"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: if (root.opened) root.refreshKeymap()
+  }
+
+  Timer {
+    id: reloadTimer
+    interval: 3000
+    repeat: true
+    running: root.opened
+    onTriggered: root.refreshKeymap()
+  }
+
+  FileView {
+    id: configFile
+    path: root.configPath
+    watchChanges: true
+    atomicWrites: true
+    printErrors: false
+    onLoaded: root.applyConfigText(text())
+    onLoadFailed: root.saveConfig()
+    onFileChanged: reload()
+  }
+
+  Process {
+    id: dumpProc
+    command: [root.sourceDir + "/dump-keymap"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.applyDump(text)
+    }
+  }
+
+  Component.onCompleted: root.refreshKeymap()
+
+  Timer {
+    id: runTimer
+    interval: 120
+    repeat: false
+    onTriggered: {
+      var script = root.sourceDir + "/run-shortcut"
+      Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
+    }
+  }
+
+  Process {
+    id: editProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var out = String(text || "").trim()
+        if (out === "ok") {
+          root.editStatus = "Saved · history committed"
+          root.capturing = false
+          root.refreshKeymap()
+        } else {
+          root.editStatus = "Reload failed · restored previous version"
+          root.capturing = false
+        }
+      }
+    }
+    onExited: function(code) {
+      if (code !== 0 && root.capturing)
+        root.editStatus = "Edit failed · restored previous version"
+      root.capturing = false
+    }
+  }
+
   function grab() {
     root.grabKeys = true
+    root.requestFocus()
+  }
+
+  function requestFocus() {
+    root.focusTick++
   }
 
   function close() {
+    root.grabKeys = false
     root.opened = false
   }
 
   function dismiss() {
+    root.grabKeys = false
     root.opened = false
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
@@ -62,19 +310,423 @@ Item {
 
   function setFilter(nextFilter) {
     root.filterText = nextFilter
+    root.selected = 0
     root.rebuild()
   }
 
-  function rebuild() {
+  function rebuild(keepSelection) {
+    var keepKeys = root.selectedKeys
+    var keepAction = root.selectedAction
+    root.applyConfigToData()
+    root.groupList = KeymapData.catalog()
     var cols = KeymapData.columns(root.filterText)
     root.leftSections = cols.left
     root.rightSections = cols.right
+    root.navItems = KeymapData.navList(root.filterText)
+    if (keepSelection)
+      root.selectKeys(keepKeys, keepAction)
+    if (root.selected >= root.navItems.length)
+      root.selected = Math.max(0, root.navItems.length - 1)
+    root.syncSelection()
+    if (root.opened && !keepSelection)
+      root.requestFocus()
+  }
+
+  function selectSource(id) {
+    root.capturing = false
+    root.editStatus = ""
+    root.activeSource = id || "omarchy"
+    if (!root.omarchyActive)
+      root.editMode = false
+    root.filterText = ""
+    root.selected = 0
+    if (root.omarchyActive) {
+      KeymapData.setSections(root.omarchySections)
+      root.rebuild()
+      return
+    }
+    var sheet = ""
+    var list = root.clients
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].class === id) {
+        sheet = list[i].sheet || ""
+        break
+      }
+    }
+    if (!sheet) {
+      KeymapData.setSections([{
+        title: "This app",
+        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
+      }])
+      root.rebuild()
+      return
+    }
+    root.sheetPath = root.sourceDir + "/sheets/" + sheet
+  }
+
+  function groupIsHidden(title) {
+    for (var i = 0; i < root.hiddenGroups.length; i++) {
+      if (root.hiddenGroups[i] === title)
+        return true
+    }
+    return false
+  }
+
+  function toggleGroup(title) {
+    var next = []
+    var hiding = !root.groupIsHidden(title)
+    for (var i = 0; i < root.hiddenGroups.length; i++) {
+      if (root.hiddenGroups[i] !== title)
+        next.push(root.hiddenGroups[i])
+    }
+    if (hiding)
+      next.push(title)
+    root.hiddenGroups = next
+    root.saveConfig()
+  }
+
+  function modifierMode(name) {
+    if (name === "Super") return root.modSuper
+    if (name === "Shift") return root.modShift
+    if (name === "Ctrl") return root.modCtrl
+    if (name === "Alt") return root.modAlt
+    return "any"
+  }
+
+  function cycleModifier(name) {
+    var cur = root.modifierMode(name)
+    var next = cur === "any" ? "must" : (cur === "must" ? "hide" : "any")
+    if (name === "Super") root.modSuper = next
+    else if (name === "Shift") root.modShift = next
+    else if (name === "Ctrl") root.modCtrl = next
+    else if (name === "Alt") root.modAlt = next
+    root.saveConfig()
+  }
+
+  function setAllModifiers(mode) {
+    var next = mode === "must" || mode === "hide" ? mode : "any"
+    root.modSuper = next
+    root.modShift = next
+    root.modCtrl = next
+    root.modAlt = next
+    root.saveConfig()
+  }
+
+  function setAllGroupsVisible(show) {
+    if (show) {
+      root.hiddenGroups = []
+    } else {
+      var next = []
+      var list = root.groupList
+      for (var i = 0; i < list.length; i++)
+        next.push(list[i].title)
+      root.hiddenGroups = next
+    }
+    root.saveConfig()
+  }
+
+  function focusGroup(title) {
+    if (root.groupIsHidden(title))
+      root.toggleGroup(title)
+    for (var i = 0; i < root.navItems.length; i++) {
+      if (root.navItems[i].sectionTitle === title) {
+        root.selected = i
+        root.syncSelection()
+        return
+      }
+    }
+  }
+
+  function syncSelection() {
+    var item = root.navItems[root.selected]
+    if (!item) {
+      root.selectedKeys = ""
+      root.selectedAction = ""
+      root.selectedSectionTitle = ""
+      return
+    }
+    root.selectedKeys = item.keys
+    root.selectedAction = item.action
+    root.selectedSectionTitle = item.sectionTitle || ""
+  }
+
+  function moveSelection(delta) {
+    if (!root.navItems.length)
+      return
+    var n = root.navItems.length
+    root.selected = (root.selected + delta + n) % n
+    root.syncSelection()
+  }
+
+  function jumpSection(number) {
+    var starts = KeymapData.sectionStarts(root.navItems)
+    var idx = number - 1
+    if (number === 0)
+      idx = 9
+    if (idx < 0 || idx >= starts.length)
+      return
+    root.selected = starts[idx]
+    root.syncSelection()
+  }
+
+  function jumpNeighborSection(delta) {
+    var starts = KeymapData.sectionStarts(root.navItems)
+    if (!starts.length)
+      return
+    var current = 0
+    for (var i = 0; i < starts.length; i++) {
+      if (starts[i] <= root.selected)
+        current = i
+    }
+    var next = current + delta
+    if (next < 0)
+      next = starts.length - 1
+    if (next >= starts.length)
+      next = 0
+    root.selected = starts[next]
+    root.syncSelection()
+  }
+
+  function selectKeys(keys, action) {
+    for (var i = 0; i < root.navItems.length; i++) {
+      if (root.navItems[i].keys === keys && root.navItems[i].action === action) {
+        root.selected = i
+        root.syncSelection()
+        return
+      }
+    }
+  }
+
+  function toHyprChord(keys) {
+    var parts = KeymapData.splitKeys(keys)
+    var out = []
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i]
+      if (p === "Super") out.push("SUPER")
+      else if (p === "Shift") out.push("SHIFT")
+      else if (p === "Ctrl" || p === "Control") out.push("CTRL")
+      else if (p === "Alt") out.push("ALT")
+      else out.push(String(p).toUpperCase())
+    }
+    return out.join(" + ")
+  }
+
+  function qtKeyName(event) {
+    if (event.key >= Qt.Key_A && event.key <= Qt.Key_Z)
+      return String.fromCharCode(65 + (event.key - Qt.Key_A))
+    if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9)
+      return String(event.key - Qt.Key_0)
+    if (event.key === Qt.Key_Space) return "SPACE"
+    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) return "RETURN"
+    if (event.key === Qt.Key_Tab) return "TAB"
+    if (event.key === Qt.Key_Backspace) return "BACKSPACE"
+    if (event.key === Qt.Key_Delete) return "DELETE"
+    if (event.key === Qt.Key_Escape) return "ESCAPE"
+    if (event.key === Qt.Key_Print) return "PRINT"
+    if (event.key === Qt.Key_Home) return "HOME"
+    if (event.key === Qt.Key_End) return "END"
+    if (event.key === Qt.Key_Left) return "LEFT"
+    if (event.key === Qt.Key_Right) return "RIGHT"
+    if (event.key === Qt.Key_Up) return "UP"
+    if (event.key === Qt.Key_Down) return "DOWN"
+    if (event.key === Qt.Key_Comma) return "COMMA"
+    if (event.key === Qt.Key_Period) return "PERIOD"
+    if (event.key === Qt.Key_Minus) return "MINUS"
+    if (event.key === Qt.Key_Equal) return "EQUAL"
+    if (event.key === Qt.Key_Slash) return "SLASH"
+    return ""
+  }
+
+  function eventToHyprChord(event) {
+    if (root.isSuperKey(event) && !(event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier)))
+      return ""
+    var key = root.qtKeyName(event)
+    if (!key || key === "ESCAPE")
+      return ""
+    var mods = []
+    if (event.modifiers & Qt.MetaModifier) mods.push("SUPER")
+    if (event.modifiers & Qt.ShiftModifier) mods.push("SHIFT")
+    if (event.modifiers & Qt.ControlModifier) mods.push("CTRL")
+    if (event.modifiers & Qt.AltModifier) mods.push("ALT")
+    if (!mods.length && !key)
+      return ""
+    return (mods.length ? mods.join(" + ") + " + " : "") + key
+  }
+
+  function startCapture(keys, action) {
+    if (!root.omarchyActive || !root.editMode)
+      return
+    if (!KeymapData.isRunnable(keys)) {
+      root.editStatus = "That row cannot be remapped"
+      return
+    }
+    root.captureOldKeys = keys
+    root.captureAction = action
+    root.capturing = true
+    root.editStatus = "Press the new shortcut for “" + action + "”"
+  }
+
+  function applyCapture(newHypr) {
+    if (!root.capturing || !newHypr)
+      return
+    var oldHypr = root.toHyprChord(root.captureOldKeys)
+    if (!oldHypr)
+      return
+    root.editStatus = "Saving…"
+    editProc.command = [
+      root.sourceDir + "/apply-edit", "remap",
+      "--old-keys", oldHypr,
+      "--old-action", root.captureAction,
+      "--new-keys", newHypr,
+      "--action", root.captureAction
+    ]
+    editProc.running = false
+    editProc.running = true
+  }
+
+  function setEditMode(on) {
+    if (!root.omarchyActive)
+      on = false
+    root.editMode = !!on
+    root.capturing = false
+    if (root.editMode)
+      root.editStatus = "Edit: select a command, then press its new chord"
+    else
+      root.editStatus = ""
+  }
+
+  function executeSelected() {
+    if (root.editMode) {
+      var item = root.navItems[root.selected]
+      if (item)
+        root.startCapture(item.keys, item.action)
+      return
+    }
+    if (root.launching || !root.opened)
+      return
+    var item = root.navItems[root.selected]
+    if (!item)
+      return
+    var sc = item.shortcut
+    if (!sc || !sc.key)
+      sc = KeymapData.shortcut(item.keys)
+    if (!sc || !sc.key)
+      return
+    root.pendingMods = sc.mods || ""
+    root.pendingKey = sc.key
+    root.launching = true
+    root.dismiss()
+    runTimer.restart()
+  }
+
+  function activateRow(keys, action) {
+    root.selectKeys(keys, action)
+    if (root.editMode)
+      root.startCapture(keys, action)
+    else
+      root.executeSelected()
   }
 
   function isSuperKey(event) {
     return event.key === Qt.Key_Meta
         || event.key === Qt.Key_Super_L
         || event.key === Qt.Key_Super_R
+  }
+
+  function chordMods(event) {
+    return event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)
+  }
+
+  function handleKey(event) {
+    if (root.capturing) {
+      if (event.key === Qt.Key_Escape) {
+        root.capturing = false
+        root.editStatus = "Capture cancelled"
+        event.accepted = true
+        return
+      }
+      var chord = root.eventToHyprChord(event)
+      if (chord) {
+        root.applyCapture(chord)
+        event.accepted = true
+      } else {
+        event.accepted = true
+      }
+      return
+    }
+    if (event.key === Qt.Key_Escape) {
+      if (root.filterText)
+        root.setFilter("")
+      else
+        root.dismiss()
+      event.accepted = true
+    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+      root.executeSelected()
+      event.accepted = true
+    } else if (event.key === Qt.Key_Down) {
+      root.moveSelection(1)
+      event.accepted = true
+    } else if (event.key === Qt.Key_Up) {
+      root.moveSelection(-1)
+      event.accepted = true
+    } else if (event.key === Qt.Key_Home) {
+      if (root.navItems.length) {
+        root.selected = 0
+        root.syncSelection()
+      }
+      event.accepted = true
+    } else if (event.key === Qt.Key_End) {
+      if (root.navItems.length) {
+        root.selected = root.navItems.length - 1
+        root.syncSelection()
+      }
+      event.accepted = true
+    } else if (event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
+      root.jumpNeighborSection(1)
+      event.accepted = true
+    } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab) {
+      root.jumpNeighborSection(-1)
+      event.accepted = true
+    } else if ((event.modifiers & Qt.ControlModifier)
+        && !(event.modifiers & (Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier))) {
+      var jump = -1
+      if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9)
+        jump = event.key - Qt.Key_0
+      else if (event.key === Qt.Key_0)
+        jump = 0
+      else if (event.key >= Qt.Key_Keypad1 && event.key <= Qt.Key_Keypad9)
+        jump = event.key - Qt.Key_Keypad0
+      else if (event.key === Qt.Key_Keypad0)
+        jump = 0
+      if (jump >= 0) {
+        root.jumpSection(jump)
+        event.accepted = true
+      }
+    }
+    if (event.accepted)
+      return
+    if (root.isSuperKey(event)) {
+      event.accepted = true
+    } else if (Util.editsFilter(event, root.filterText)) {
+      root.setFilter(Util.editedFilter(event, root.filterText))
+      event.accepted = true
+    } else if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127
+        && !root.chordMods(event)) {
+      root.setFilter(root.filterText + event.text)
+      event.accepted = true
+    } else if (!root.chordMods(event) && event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
+      var letter = String.fromCharCode(65 + (event.key - Qt.Key_A))
+      if (!(event.modifiers & Qt.ShiftModifier))
+        letter = letter.toLowerCase()
+      root.setFilter(root.filterText + letter)
+      event.accepted = true
+    } else if (!root.chordMods(event) && event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
+      root.setFilter(root.filterText + String(event.key - Qt.Key_0))
+      event.accepted = true
+    } else if (event.key === Qt.Key_Space && !root.chordMods(event)) {
+      root.setFilter(root.filterText + " ")
+      event.accepted = true
+    }
   }
 
   Variants {
@@ -97,6 +749,29 @@ Item {
 
         readonly property int cardWidth: Math.min(Style.space(1100), width - Style.gapsOut * 2)
         readonly property int cardHeight: Math.min(Style.space(760), height - Style.gapsOut * 2)
+        readonly property bool hasKeyboard: Hyprland.focusedMonitor && modelData
+          && Hyprland.focusedMonitor.name === modelData.name
+
+        function takeFocus() {
+          if (root.opened && panel.hasKeyboard)
+            keyCatcher.forceActiveFocus()
+        }
+
+        Connections {
+          target: root
+          function onGrabKeysChanged() {
+            if (root.grabKeys)
+              Qt.callLater(panel.takeFocus)
+          }
+          function onOpenedChanged() {
+            if (root.opened)
+              Qt.callLater(panel.takeFocus)
+          }
+          function onFocusTickChanged() {
+            if (root.opened)
+              Qt.callLater(panel.takeFocus)
+          }
+        }
 
         Rectangle {
           anchors.fill: parent
@@ -120,127 +795,88 @@ Item {
 
           MouseArea { anchors.fill: parent; onClicked: {} }
 
+          Shortcut {
+            sequences: ["Return", "Enter"]
+            enabled: root.opened && root.grabKeys && panel.hasKeyboard
+            onActivated: root.executeSelected()
+          }
+
           Item {
             id: keyCatcher
             anchors.fill: parent
-            focus: true
+            focus: root.grabKeys && panel.hasKeyboard
             Keys.priority: Keys.BeforeItem
-            Keys.onPressed: function(event) {
-              if (event.key === Qt.Key_Escape) {
-                if (root.filterText)
-                  root.setFilter("")
-                else
-                  root.dismiss()
-                event.accepted = true
-              } else if (root.isSuperKey(event)) {
-                event.accepted = true
-              } else if (Util.editsFilter(event, root.filterText)) {
-                root.setFilter(Util.editedFilter(event, root.filterText))
-                event.accepted = true
-              } else if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127) {
-                root.setFilter(root.filterText + event.text)
-                event.accepted = true
-              }
-            }
+            Keys.onPressed: function(event) { root.handleKey(event) }
             Keys.onReleased: function(event) {
               if (root.isSuperKey(event))
                 event.accepted = true
             }
-          }
 
-          Column {
-            id: body
-            anchors.fill: parent
-            anchors.topMargin: card.contentTopInset
-            anchors.rightMargin: card.contentRightInset
-            anchors.bottomMargin: card.contentBottomInset
-            anchors.leftMargin: card.contentLeftInset
-            spacing: Style.spacing.md
+            Column {
+              id: body
+              anchors.fill: parent
+              anchors.topMargin: card.contentTopInset
+              anchors.rightMargin: card.contentRightInset
+              anchors.bottomMargin: card.contentBottomInset
+              anchors.leftMargin: card.contentLeftInset
+              spacing: Style.spacing.md
 
-            Item {
-              width: parent.width
-              height: Math.max(Style.space(28), headerLabel.implicitHeight)
+              Item {
+                width: parent.width
+                height: Math.max(Style.space(28), headerLabel.implicitHeight)
 
-              Text {
-                id: headerLabel
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: hintLabel.left
-                anchors.rightMargin: Style.spacing.md
-                text: root.filterText || "OmarKEYS"
-                textFormat: Text.PlainText
-                color: root.foreground
-                opacity: root.filterText ? 1 : 0.58
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.heading
-                elide: Text.ElideRight
+                Text {
+                  id: headerLabel
+                  anchors.left: parent.left
+                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.right: hintLabel.left
+                  anchors.rightMargin: Style.spacing.md
+                  text: root.filterText || "OmarKEYS"
+                  textFormat: Text.PlainText
+                  color: root.foreground
+                  opacity: root.filterText ? 1 : 0.58
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.heading
+                  elide: Text.ElideRight
+                }
+
+                Text {
+                  id: hintLabel
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "↑↓ command · Ctrl+1–9 window · type to search · Enter run"
+                  textFormat: Text.PlainText
+                  color: root.foreground
+                  opacity: 0.72
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
               }
-
-              Text {
-                id: hintLabel
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                text: "Tap Super or Esc to close"
-                textFormat: Text.PlainText
-                color: root.foreground
-                opacity: 0.55
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-              }
-            }
-
-            Flickable {
-              width: parent.width
-              height: parent.height - headerLabel.parent.height - body.spacing
-              clip: true
-              contentWidth: width
-              contentHeight: columnsRow.height
-              boundsBehavior: Flickable.StopAtBounds
 
               Row {
-                id: columnsRow
+                id: mainRow
                 width: parent.width
+                height: parent.height - headerLabel.parent.height - settingsBar.height - body.spacing * 2
                 spacing: Style.spacing.md
 
-                Column {
-                  id: leftCol
-                  width: (columnsRow.width - columnsRow.spacing) / 2
-                  spacing: Style.spacing.sm
-
-                  Repeater {
-                    model: root.leftSections
-                    delegate: KeymapSection {
-                      width: leftCol.width
-                      title: modelData.title
-                      rows: modelData.rows
-                      fontFamily: root.fontFamily
-                      foreground: root.foreground
-                      borderColor: root.border
-                      chipBg: root.chipBg
-                      chipFg: root.chipFg
-                    }
-                  }
+                KeymapSidebar {
+                  id: sideBar
+                  host: root
+                  height: parent.height
                 }
 
-                Column {
-                  id: rightCol
-                  width: (columnsRow.width - columnsRow.spacing) / 2
-                  spacing: Style.spacing.sm
-
-                  Repeater {
-                    model: root.rightSections
-                    delegate: KeymapSection {
-                      width: rightCol.width
-                      title: modelData.title
-                      rows: modelData.rows
-                      fontFamily: root.fontFamily
-                      foreground: root.foreground
-                      borderColor: root.border
-                      chipBg: root.chipBg
-                      chipFg: root.chipFg
-                    }
-                  }
+                KeymapBoard {
+                  id: listFlick
+                  host: root
+                  width: parent.width - sideBar.width - mainRow.spacing
+                  height: parent.height
                 }
+              }
+
+              KeymapSettingsBar {
+                id: settingsBar
+                host: root
+                width: parent.width
               }
             }
           }

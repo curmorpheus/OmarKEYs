@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "romills.omarkeys",
   "name": "OmarKEYS",
-  "version": "1.1.0",
+  "version": "1.4.0",
   "author": "romills",
   "license": "MIT",
-  "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super for one second, or Super+K to show a topic-organized keymap. Tap Super or Esc to close.",
+  "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super (default 5s), or Super+K to show the live Hyprland keymap. Type to search, arrows and Ctrl+1–9 pick a window, Enter runs a shortcut. Double-tap and hold time are configurable on the overlay.",
   "kinds": ["overlay"],
   "keepLoaded": true,
   "entryPoints": {

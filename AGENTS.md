@@ -8,11 +8,21 @@ so `omarchy plugin add <git-url>` works.
 | Path | Role |
 |---|---|
 | `manifest.json` | Plugin id `romills.omarkeys`, overlay entry |
-| `Keymap.qml` | Overlay UI |
-| `KeymapSection.qml` | Section card |
-| `KeymapData.js` | Grouped bindings + filter helpers |
+| `Keymap.qml` | Overlay host: config, dump, keyboard, execute |
+| `KeymapSidebar.qml` | Group visibility and modifier Any/Must/Hide |
+| `KeymapBoard.qml` | Two-column section grid |
+| `KeymapSection.qml` | One topic card |
+| `KeymapRow.qml` | One command row |
+| `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
+| `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |
+| `run-shortcut` | Replay a selected chord after the overlay closes |
+| `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
+
+Keep overlay logic in the host (`Keymap.qml`) and UI chrome in the child
+QML files. `KeymapData.js` is the only place that decides which rows are
+visible (search, hidden groups, modifier modes).
 
 ## Validation
 
@@ -28,6 +38,8 @@ After editing `hyprland.lua` on a live install:
 hyprctl reload
 hyprctl configerrors
 ```
+
+QML changes need `omarchy restart shell` (keepLoaded overlay).
 
 ## Install on this machine
 
