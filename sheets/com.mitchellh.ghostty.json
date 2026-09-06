@@ -1,0 +1,32 @@
+{
+  "title": "Ghostty",
+  "classes": ["com.mitchellh.ghostty"],
+  "sections": [
+    {
+      "title": "Tabs and windows",
+      "rows": [
+        { "keys": "Ctrl + Shift + T", "action": "New tab" },
+        { "keys": "Ctrl + Shift + W", "action": "Close tab" },
+        { "keys": "Ctrl + Shift + N", "action": "New window" },
+        { "keys": "Ctrl + Tab", "action": "Next tab" },
+        { "keys": "Ctrl + Shift + Tab", "action": "Previous tab" }
+      ]
+    },
+    {
+      "title": "Scroll and zoom",
+      "rows": [
+        { "keys": "Ctrl + Shift + +", "action": "Zoom in" },
+        { "keys": "Ctrl + -", "action": "Zoom out" },
+        { "keys": "Shift + PageUp", "action": "Scroll up" },
+        { "keys": "Shift + PageDown", "action": "Scroll down" }
+      ]
+    },
+    {
+      "title": "Clipboard",
+      "rows": [
+        { "keys": "Ctrl + Shift + C", "action": "Copy" },
+        { "keys": "Ctrl + Shift + V", "action": "Paste" }
+      ]
+    }
+  ]
+}

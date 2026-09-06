@@ -18,6 +18,8 @@ so `omarchy plugin add <git-url>` works.
 | `hyprland.lua` | Super double-tap / hold / Super+K |
 | `run-shortcut` | Replay a selected chord after the overlay closes |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
+| `apply-edit` | Remap a chord; required at runtime by edit mode |
+| `sheets/` | Bundled per-app keymap JSON; required for app sources |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
 
 Keep overlay logic in the host (`Keymap.qml`) and UI chrome in the child

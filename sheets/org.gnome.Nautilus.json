@@ -1,0 +1,25 @@
+{
+  "title": "Files",
+  "classes": ["org.gnome.Nautilus", "nautilus"],
+  "sections": [
+    {
+      "title": "Browse",
+      "rows": [
+        { "keys": "Alt + Left", "action": "Back" },
+        { "keys": "Alt + Right", "action": "Forward" },
+        { "keys": "Alt + Up", "action": "Parent folder" },
+        { "keys": "Ctrl + L", "action": "Location bar" },
+        { "keys": "Ctrl + H", "action": "Show hidden files" }
+      ]
+    },
+    {
+      "title": "Files",
+      "rows": [
+        { "keys": "Ctrl + N", "action": "New window" },
+        { "keys": "Ctrl + Shift + N", "action": "New folder" },
+        { "keys": "F2", "action": "Rename" },
+        { "keys": "Delete", "action": "Move to trash" }
+      ]
+    }
+  ]
+}

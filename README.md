@@ -34,9 +34,15 @@ Type while it is open to filter, including digits.
 
 - Double-tap Super on/off
 - Hold Super duration, 1–10 seconds
+- Edit mode (Omarchy source): pick a command, then press its new chord
+
+App windows with a bundled sheet (Chromium, Ghostty, Nautilus) can be
+selected in the overlay; those sheets live in `sheets/`.
 
 Bindings are read live from Hyprland each time OmarKEYS opens. Settings
-are stored in `~/.config/omarchy/omarkeys.json`.
+are stored in `~/.config/omarchy/omarkeys.json`. Remaps write
+`~/.config/hypr/omarkeys-edits.lua` and keep a git history under
+`~/.local/state/omarchy/omarkeys-history`.
 
 ## Install
 
@@ -84,6 +90,8 @@ user bindings file so Super+chords stay unmodified.
 | `KeymapSettingsBar.qml` | Double-tap and hold controls |
 | `KeymapData.js` | Filter, catalog, shortcut parse, fallback list |
 | `dump-keymap` | Live Hyprland binds → JSON sections |
+| `apply-edit` | Remap a chord into `omarkeys-edits.lua` |
+| `sheets/` | Bundled app keymaps (Chromium, Ghostty, Nautilus) |
 | `run-shortcut` | Replay a chord after the overlay closes |
 | `hyprland.lua` | Super+K, double-tap, hold |
 

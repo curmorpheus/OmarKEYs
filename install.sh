@@ -86,7 +86,7 @@ if [[ -e $PLUGIN_DIR && ! -L $PLUGIN_DIR ]]; then
   mv "$PLUGIN_DIR" "$backup"
   log "moved existing plugin dir -> $backup"
 fi
-chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap"
+chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap" "$ROOT/apply-edit"
 ln -sfn "$ROOT" "$PLUGIN_DIR"
 log "symlinked $PLUGIN_DIR -> $ROOT"
 

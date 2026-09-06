@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Remap an Omarchy/Hyprland chord with backup + git history.
+
+Writes ~/.config/hypr/omarkeys-edits.lua (dofile'd from bindings.lua).
+Before each write, snapshots bindings.lua and the edits file into
+~/.local/state/omarchy/omarkeys-history (a git repo). A successful
+hyprctl reload is committed as a working version; a failed reload
+restores the previous commit.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import os
+import shutil
+import subprocess
+import sys
+import re
+from pathlib import Path
+
+HOME = Path(os.environ.get("HOME", ""))
+HYPR = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "hypr"
+BINDINGS = HYPR / "bindings.lua"
+EDITS = HYPR / "omarkeys-edits.lua"
+HISTORY = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "omarchy" / "omarkeys-history"
+GIT_ENV = {
+    **os.environ,
+    "GIT_AUTHOR_NAME": "OmarKEYS",
+    "GIT_AUTHOR_EMAIL": "omarkeys@local",
+    "GIT_COMMITTER_NAME": "OmarKEYS",
+    "GIT_COMMITTER_EMAIL": "omarkeys@local",
+}
+
+
+def log(msg: str) -> None:
+    print(msg, file=sys.stderr)
+
+
+def lua_string(value: str) -> str:
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
+
+
+def is_chord(value: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9_ +./-]+", value or "")) and 0 < len(value) < 80
+
+
+def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, check=False, text=True, capture_output=True, **kwargs)
+
+
+def git(*args: str) -> subprocess.CompletedProcess:
+    return run(["git", "-C", str(HISTORY), *args], env=GIT_ENV)
+
+
+def ensure_history() -> None:
+    HISTORY.mkdir(parents=True, exist_ok=True)
+    if not (HISTORY / ".git").exists():
+        git("init")
+        git("commit", "--allow-empty", "-m", "OmarKEYS keymap history")
+
+
+def snapshot_into_history() -> None:
+    ensure_history()
+    for src in (BINDINGS, EDITS):
+        if src.exists():
+            shutil.copy2(src, HISTORY / src.name)
+
+
+def commit_history(message: str) -> None:
+    snapshot_into_history()
+    git("add", "-A")
+    status = git("status", "--porcelain")
+    if not (status.stdout or "").strip():
+        return
+    git("commit", "-m", message)
+
+
+def restore_last_commit() -> None:
+    git("checkout", "--", ".")
+    for name in ("bindings.lua", "omarkeys-edits.lua"):
+        src = HISTORY / name
+        dest = HYPR / name
+        if src.exists():
+            shutil.copy2(src, dest)
+
+
+def ensure_edits_wired() -> None:
+    if not BINDINGS.exists():
+        raise SystemExit(f"missing {BINDINGS}")
+    marker = "-- OmarKEYS edits"
+    line = 'dofile((os.getenv("HOME") or "") .. "/.config/hypr/omarkeys-edits.lua")'
+    text = BINDINGS.read_text()
+    if "omarkeys-edits.lua" in text:
+        return
+    stamp = dt.datetime.now().strftime("%Y%m%d%H%M%S")
+    shutil.copy2(BINDINGS, BINDINGS.with_suffix(f".lua.bak.{stamp}"))
+    if not text.endswith("\n"):
+        text += "\n"
+    BINDINGS.write_text(text + f"\n{marker}\n{line}\n")
+
+
+def append_edit(old_keys: str, old_action: str, new_keys: str, action: str) -> None:
+    HYPR.mkdir(parents=True, exist_ok=True)
+    if not EDITS.exists():
+        EDITS.write_text(
+            "-- OmarKEYS chord overrides. Each working version is also git-committed\n"
+            "-- under ~/.local/state/omarchy/omarkeys-history.\n"
+            "local edits = edits or {}\n\n"
+        )
+    stanza = (
+        f"-- {dt.datetime.now().isoformat(timespec='seconds')}: "
+        f"{old_keys} ({old_action}) -> {new_keys} ({action})\n"
+        f"hl.unbind({lua_string(old_keys)})\n"
+        f"o.bind({lua_string(new_keys)}, {lua_string(action)})\n\n"
+    )
+    with EDITS.open("a") as fh:
+        fh.write(stanza)
+
+
+def reload_hypr() -> str:
+    run(["hyprctl", "reload"])
+    err = run(["hyprctl", "configerrors"])
+    return (err.stdout or "").strip()
+
+
+def cmd_remap(args: argparse.Namespace) -> int:
+    if not is_chord(args.old_keys) or not is_chord(args.new_keys):
+        log("refusing remap: keys must look like a Hyprland chord")
+        print("error")
+        return 1
+    if not (args.action or "").strip() or "\n" in args.action:
+        log("refusing remap: action is empty or multiline")
+        print("error")
+        return 1
+    ensure_history()
+    commit_history("pre-edit snapshot")
+    ensure_edits_wired()
+    append_edit(args.old_keys, args.old_action, args.new_keys, args.action)
+    errors = reload_hypr()
+    if errors:
+        log(errors)
+        restore_last_commit()
+        reload_hypr()
+        print("error")
+        return 1
+    commit_history(f"remap {args.old_keys} -> {args.new_keys} ({args.action})")
+    print("ok")
+    return 0
+
+
+def cmd_revert(_: argparse.Namespace) -> int:
+    ensure_history()
+    log_out = git("log", "--oneline", "-2")
+    lines = [ln for ln in (log_out.stdout or "").splitlines() if ln.strip()]
+    if len(lines) < 2:
+        log("no earlier version to revert to")
+        print("error")
+        return 1
+    git("revert", "--no-edit", "HEAD")
+    restore_last_commit()
+    errors = reload_hypr()
+    if errors:
+        log(errors)
+        print("error")
+        return 1
+    print("ok")
+    return 0
+
+
+def cmd_list(_: argparse.Namespace) -> int:
+    ensure_history()
+    out = git("log", "--oneline", "-20")
+    sys.stdout.write(out.stdout or "")
+    return 0
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    remap = sub.add_parser("remap", help="unbind old chord and bind new chord")
+    remap.add_argument("--old-keys", required=True)
+    remap.add_argument("--old-action", required=True)
+    remap.add_argument("--new-keys", required=True)
+    remap.add_argument("--action", required=True)
+    remap.set_defaults(func=cmd_remap)
+    rev = sub.add_parser("revert", help="restore the previous working version")
+    rev.set_defaults(func=cmd_revert)
+    listing = sub.add_parser("list", help="show keymap history")
+    listing.set_defaults(func=cmd_list)
+    args = parser.parse_args()
+    raise SystemExit(args.func(args))
+
+
+if __name__ == "__main__":
+    main()

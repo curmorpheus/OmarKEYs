@@ -6,5 +6,5 @@
 *.jsc
 .qmlcache/
 .nrepl-port
-apply-edit
-sheets/
+__pycache__/
+*.pyc
