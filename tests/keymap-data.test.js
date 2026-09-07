@@ -234,3 +234,18 @@ test("display options: short chips, action sort, and the two search modes", () =
 
   context.setConfig({})
 })
+
+test("a mouse bind is one chip, and only real arrow keys become arrows", () => {
+  // Hyprland reports "Super + Left + Mouse + Button" as four words; left as
+  // four chips the button reads as an arrow key, and short mode abbreviated
+  // that "Left" to an arrow outright.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Left + Mouse + Button", "full")),
+    JSON.stringify(["Super", "LMB"]))
+  assert.equal(JSON.stringify(context.displayKeys("Super + Right + Mouse + Button", "short")),
+    JSON.stringify(["Sup", "RMB"]))
+  assert.equal(JSON.stringify(context.displayKeys("Super + mouse_down", "full")),
+    JSON.stringify(["Super", "Wheel↓"]))
+  // The arrow key itself still shortens to an arrow, which is the point.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Left", "short")),
+    JSON.stringify(["Sup", "←"]))
+})

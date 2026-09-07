@@ -211,7 +211,28 @@ var SHORT_KEYS = {
   Return: "Ret", Enter: "Ret", Escape: "Esc", Space: "Spc", Backspace: "Bksp",
   Delete: "Del", Insert: "Ins", Print: "Prt", Home: "Home", End: "End",
   PageUp: "PgUp", PageDown: "PgDn", Left: "←", Right: "→", Up: "↑", Down: "↓",
-  Tab: "Tab", Mouse: "Mous", Button: "Btn"
+  Tab: "Tab", "Wheel↓": "Whl↓", "Wheel↑": "Whl↑"
+}
+
+// Hyprland reports a mouse bind as separate words, so "Super + Left +
+// Mouse + Button" arrives as four chips - and the "Left" would then be
+// abbreviated to an arrow, which reads as the arrow key. Collapse the
+// whole button into one chip before anything else touches it.
+function collapseMouse(parts) {
+  var out = []
+  for (var i = 0; i < parts.length; i++) {
+    var name = parts[i]
+    if (parts[i + 1] === "Mouse" && parts[i + 2] === "Button"
+        && (name === "Left" || name === "Right" || name === "Middle")) {
+      out.push(name === "Left" ? "LMB" : (name === "Right" ? "RMB" : "MMB"))
+      i += 2
+      continue
+    }
+    if (name === "mouse_down") { out.push("Wheel↓"); continue }
+    if (name === "mouse_up") { out.push("Wheel↑"); continue }
+    out.push(name)
+  }
+  return out
 }
 
 function shortKey(name) {
@@ -226,7 +247,7 @@ function shortKey(name) {
 }
 
 function displayKeys(keys, style) {
-  var parts = splitKeys(keys)
+  var parts = collapseMouse(splitKeys(keys))
   if (style !== "short")
     return parts
   var out = []
