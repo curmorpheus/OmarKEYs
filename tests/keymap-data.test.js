@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -266,4 +266,18 @@ test("a mouse bind is one chip, and only real arrow keys become arrows", () => {
   // The arrow key itself still shortens to an arrow, which is the point.
   assert.equal(JSON.stringify(context.displayKeys("Super + Left", "short")),
     JSON.stringify(["Sup", "←"]))
+})
+
+test("hovering an icon names it in words, not in raw key tokens", () => {
+  // The point of the hover is to say what a glyph is; "XF86AudioRaiseVolume"
+  // would be barely better than the glyph itself.
+  assert.equal(JSON.stringify(context.displayNames("XF86AudioRaiseVolume")),
+    JSON.stringify(["Volume up"]))
+  assert.equal(JSON.stringify(context.displayNames("Super + mouse_down")),
+    JSON.stringify(["Super", "Wheel down"]))
+  assert.equal(JSON.stringify(context.displayNames("Super + Left + Mouse + Button")),
+    JSON.stringify(["Super", "Left click"]))
+  // Names line up with chips index for index, which is what the row relies on.
+  const keys = "Super + Shift + XF86MonBrightnessUp"
+  assert.equal(context.displayNames(keys).length, context.displayKeys(keys, "icons").length)
 })

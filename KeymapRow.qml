@@ -23,7 +23,7 @@ Rectangle {
   // Both renderings of the same chord, index for index: collapseMouse runs
   // for either style, so a chip and its full name share a position.
   readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle)
-  readonly property var chipNames: KeymapData.displayKeys(modelData.keys, "full")
+  readonly property var chipNames: KeymapData.displayNames(modelData.keys)
   // An icon says what key it is only once you know the glyph, so hovering
   // the line spells it out. The column widens to hold the words rather
   // than letting them spill over the description.
@@ -31,7 +31,7 @@ Rectangle {
   // Geometry, not toggled anchors: assigning undefined to an anchor does
   // not clear one already set, so swapping the columns left both sides
   // anchored and squeezed the description to nothing.
-  readonly property real keysWidth: Math.max(0, width * (namingKeys ? 0.72 : 0.46) - 8)
+  readonly property real keysWidth: Math.max(0, width * (namingKeys ? 0.62 : 0.46) - 8)
   readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm)
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
@@ -84,7 +84,11 @@ Rectangle {
       delegate: Rectangle {
         // A glyph is its own shape; boxing it fights the icon and squeezes
         // it smaller than the text it sits beside.
+        // Both are required together: declaring one required property
+        // stops QML injecting the others, so asking for index alone left
+        // modelData undefined and every chip blank.
         required property int index
+        required property var modelData
         readonly property bool isIcon: String(modelData).codePointAt(0) >= 0xF0000
         readonly property string fullName: row.chipNames[index] || ""
         implicitWidth: chipText.implicitWidth + (isIcon ? 4 : 10)
