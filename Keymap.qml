@@ -65,22 +65,40 @@ Item {
   property var omarchySections: []
   property var clients: []
   property string activeSource: "omarchy"
-  property bool editMode: false
-  property bool capturing: false
-  property string captureOldKeys: ""
-  property string captureAction: ""
-  property string captureDispatcher: ""
-  property string captureArg: ""
-  property string editStatus: ""
-  property string editHistory: ""
-  readonly property bool canRevert: {
-    var n = 0
-    var lines = String(root.editHistory || "").split("\n")
-    for (var i = 0; i < lines.length; i++) {
-      if (String(lines[i]).trim())
-        n++
-    }
-    return n >= 2
+  property bool recordOpen: false
+  property bool recordListening: false
+  property bool recordBusy: false
+  property var recordRow: null
+  property var recordHeld: null
+  property var recordPending: []
+  property var recordOccupant: null
+  property string recordCaptured: ""
+  property string recordStatus: ""
+  property string recordOriginAction: ""
+  property var remappedActions: ({})
+  property var chordDefaults: ({})
+  property var chordMoves: []
+  readonly property string recordDefaultKeys: {
+    if (!root.recordRow)
+      return ""
+    return KeymapData.defaultKeysFor(root.recordRow.action) || ""
+  }
+  readonly property bool recordRemapped: {
+    if (!root.recordRow)
+      return false
+    return KeymapData.rowRemapped(root.recordRow.action)
+  }
+  readonly property bool recordCanSave: {
+    if (root.recordBusy || !root.recordRow || !root.recordCaptured)
+      return false
+    if (root.recordOccupant)
+      return false
+    if (KeymapData.isProtectedChord(root.recordCaptured))
+      return false
+    if (root.recordPending && root.recordPending.length)
+      return true
+    return KeymapData.normalizeChord(root.recordCaptured)
+      !== KeymapData.normalizeChord(root.recordRow.keys)
   }
   readonly property bool omarchyActive: root.activeSource === "omarchy"
 
@@ -143,12 +161,11 @@ Item {
     root.branchMenuOpen = false
     root.optionsMenuOpen = false
     root.selected = 0
-    root.capturing = false
-    root.editMode = false
-    root.editStatus = ""
+    root.closeRecord()
     root.applyConfigToData()
     root.refreshKeymap()
     root.refreshGitInfo()
+    root.refreshChordIndex()
     root.rebuild()
     root.opened = true
   }
@@ -240,6 +257,8 @@ Item {
       if (!same && root.opened)
         root.requestFocus()
     }
+    if (!same && data.sections && data.sections.length)
+      root.seedChordDefaults(data.sections)
   }
 
   function refreshKeymap() {
@@ -506,63 +525,120 @@ Item {
       waitForEnd: true
       onStreamFinished: {
         var out = String(text || "").trim()
-        if (out === "ok") {
-          root.editStatus = "Saved · history committed"
-          root.capturing = false
+        var ok = false
+        try {
+          var data = JSON.parse(out)
+          ok = !!(data && data.ok)
+        } catch (e) {
+          ok = out === "ok"
+        }
+        root.recordBusy = false
+        if (ok) {
+          root.recordStatus = "Saved"
+          root.closeRecord()
           root.refreshKeymap()
-          root.refreshEditHistory()
+          root.refreshChordIndex()
         } else {
-          root.editStatus = "Reload failed · restored previous version"
-          root.capturing = false
+          root.recordStatus = "Save failed · previous chords restored"
         }
       }
     }
     onExited: function(code) {
-      if (code !== 0 && root.capturing)
-        root.editStatus = "Edit failed · restored previous version"
-      root.capturing = false
+      if (code !== 0) {
+        root.recordBusy = false
+        if (root.recordOpen)
+          root.recordStatus = "Save failed · previous chords restored"
+      }
     }
   }
 
   Process {
-    id: historyProc
+    id: seedProc
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.editHistory = String(text || "")
+      onStreamFinished: root.refreshChordIndex()
     }
   }
 
   Process {
-    id: revertProc
+    id: indexProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.applyChordIndex(text)
+    }
+  }
+
+  Process {
+    id: restoreProc
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
         var out = String(text || "").trim()
-        if (out === "ok") {
-          root.editStatus = "Reverted last remap"
-          root.capturing = false
+        var ok = false
+        try {
+          var data = JSON.parse(out)
+          ok = !!(data && data.ok)
+          if (ok && data.actions && data.actions.length)
+            root.recordStatus = "Restored default for " + data.actions.join(", ")
+        } catch (e) {
+          ok = out === "ok"
+        }
+        root.recordBusy = false
+        if (ok) {
+          root.closeRecord()
           root.refreshKeymap()
-          root.refreshEditHistory()
-        } else {
-          root.editStatus = "Revert failed"
+          root.refreshChordIndex()
+        } else if (root.recordOpen) {
+          root.recordStatus = "Restore failed · previous chords restored"
         }
       }
     }
   }
 
-  function refreshEditHistory() {
-    historyProc.command = [root.sourceDir + "/apply-edit", "list"]
-    historyProc.running = false
-    historyProc.running = true
+  function seedChordDefaults(sectionList) {
+    var entries = []
+    var list = sectionList || []
+    for (var s = 0; s < list.length; s++) {
+      var rows = (list[s] && list[s].rows) || []
+      for (var i = 0; i < rows.length; i++) {
+        if (!rows[i] || !rows[i].action || !rows[i].keys || !rows[i].dispatcher)
+          continue
+        entries.push({
+          action: rows[i].action,
+          keys: rows[i].keys,
+          dispatcher: rows[i].dispatcher,
+          arg: rows[i].arg || ""
+        })
+      }
+    }
+    if (!entries.length)
+      return
+    seedProc.command = [root.sourceDir + "/apply-edit", "seed", "--json", JSON.stringify(entries)]
+    seedProc.running = false
+    seedProc.running = true
   }
 
-  function revertLastEdit() {
-    if (root.launching)
+  function refreshChordIndex() {
+    indexProc.command = [root.sourceDir + "/apply-edit", "index"]
+    indexProc.running = false
+    indexProc.running = true
+  }
+
+  function applyChordIndex(text) {
+    var data = null
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
       return
-    root.editStatus = "Reverting…"
-    revertProc.command = [root.sourceDir + "/apply-edit", "revert"]
-    revertProc.running = false
-    revertProc.running = true
+    }
+    if (!data)
+      return
+    KeymapData.setChordIndex(data)
+    root.remappedActions = data.remapped || ({})
+    root.chordDefaults = data.defaults || ({})
+    root.chordMoves = data.moves || []
+    if (root.opened)
+      root.rebuild(true)
   }
 
   function grab() {
@@ -613,9 +689,7 @@ Item {
     root.branchMenuOpen = false
     root.optionsMenuOpen = false
     root.clearSolo()
-    root.capturing = false
-    root.editMode = false
-    root.editStatus = ""
+    root.closeRecord()
   }
 
   function close() {
@@ -662,11 +736,8 @@ Item {
   }
 
   function selectSource(id) {
-    root.capturing = false
-    root.editStatus = ""
+    root.closeRecord()
     root.activeSource = id || "omarchy"
-    if (!root.omarchyActive)
-      root.editMode = false
     root.filterText = ""
     root.selected = 0
     if (root.omarchyActive) {
@@ -1103,69 +1174,240 @@ Item {
     return (mods.length ? mods.join(" + ") + " + " : "") + key
   }
 
-  function startCapture(keys, action) {
-    if (!root.omarchyActive || !root.editMode)
-      return
-    var item = null
-    var list = root.navItems
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].keys === keys && list[i].action === action) {
-        item = list[i]
-        break
-      }
-    }
-    if (!item || !KeymapData.rowEditable(item)) {
-      root.editStatus = "That row cannot be remapped"
-      return
-    }
-    root.captureOldKeys = keys
-    root.captureAction = action
-    root.captureDispatcher = item.dispatcher || ""
-    root.captureArg = item.dispatchArg || ""
-    root.capturing = true
-    root.editStatus = "Press the new shortcut for “" + action + "”, or Esc"
+  function closeRecord() {
+    root.recordOpen = false
+    root.recordListening = false
+    root.recordBusy = false
+    root.recordRow = null
+    root.recordHeld = null
+    root.recordPending = []
+    root.recordOccupant = null
+    root.recordCaptured = ""
+    root.recordStatus = ""
+    root.recordOriginAction = ""
   }
 
-  function applyCapture(newHypr) {
-    if (!root.capturing || !newHypr)
+  function rowForRecord(item) {
+    if (!item)
+      return null
+    return {
+      keys: item.keys || "",
+      action: item.action || "",
+      dispatcher: item.dispatcher || "",
+      dispatchArg: item.arg || item.dispatchArg || "",
+      arg: item.arg || item.dispatchArg || ""
+    }
+  }
+
+  function openRecord(item) {
+    if (!root.omarchyActive || root.launching)
       return
-    if (KeymapData.isProtectedChord(newHypr)) {
-      root.editStatus = "That chord summons OmarKEYS and cannot be used"
+    var row = root.rowForRecord(item)
+    if (!row || !KeymapData.rowEditable(item || row))
+      return
+    if (!row.dispatcher) {
+      root.recordStatus = "That row cannot be remapped"
       return
     }
-    var oldHypr = root.toHyprChord(root.captureOldKeys)
-    if (!oldHypr)
+    root.recordOpen = true
+    root.recordListening = true
+    root.recordBusy = false
+    root.recordRow = row
+    root.recordHeld = null
+    root.recordPending = []
+    root.recordOccupant = null
+    root.recordCaptured = ""
+    root.recordOriginAction = row.action
+    root.recordStatus = KeymapData.rowRemapped(row.action)
+      ? "Press a new shortcut, or restore the default"
+      : "Press a new shortcut, then Save"
+    root.requestFocus()
+  }
+
+  function restoreRecord(item) {
+    if (!item)
       return
-    if (!root.captureDispatcher) {
-      root.editStatus = "That row cannot be remapped"
-      root.capturing = false
+    root.openRecord(item)
+    if (root.recordOpen)
+      root.recordStatus = "Changed from " + (root.recordDefaultKeys || item.keys)
+        + ". Restore default to unwind this remap and anything it displaced."
+  }
+
+  function recordConflict(chord, exceptAction) {
+    var pending = (root.recordPending || []).slice()
+    if (root.recordHeld)
+      pending.push(root.recordHeld)
+    return KeymapData.findOccupant(chord, exceptAction, KeymapData.sections, pending)
+  }
+
+  function handleRecordChord(chord) {
+    if (!root.recordOpen || !root.recordListening || root.recordBusy || !chord)
+      return
+    if (KeymapData.isProtectedChord(chord)) {
+      root.recordCaptured = chord
+      root.recordOccupant = null
+      root.recordStatus = "That chord summons OmarKEYS and cannot be used"
       return
     }
-    root.editStatus = "Saving…"
+    var row = root.recordRow
+    if (!row)
+      return
+    if (KeymapData.normalizeChord(chord) === KeymapData.normalizeChord(row.keys)) {
+      if (!root.recordHeld)
+        root.recordPending = []
+      root.recordCaptured = chord
+      root.recordOccupant = null
+      root.recordStatus = "That is the current shortcut"
+      return
+    }
+    var occupant = root.recordConflict(chord, row.action)
+    root.recordCaptured = chord
+    root.recordOccupant = occupant
+    if (occupant) {
+      if (!root.recordHeld)
+        root.recordPending = []
+      root.recordStatus = "Already in use · swap or move the other command"
+      return
+    }
+    if (root.recordHeld) {
+      var pending = (root.recordPending || []).slice()
+      pending.push({
+        action: row.action,
+        old_keys: row.keys,
+        new_keys: chord,
+        dispatcher: row.dispatcher,
+        arg: row.dispatchArg || row.arg || "",
+        because: root.recordOriginAction || ""
+      })
+      pending.push(root.recordHeld)
+      root.recordPending = pending
+      root.recordRow = {
+        keys: root.recordHeld.old_keys,
+        action: root.recordHeld.action,
+        dispatcher: root.recordHeld.dispatcher,
+        dispatchArg: root.recordHeld.arg,
+        arg: root.recordHeld.arg
+      }
+      root.recordCaptured = root.recordHeld.new_keys
+      root.recordHeld = null
+      var still = root.recordConflict(root.recordCaptured, root.recordRow.action)
+      root.recordOccupant = still
+      root.recordStatus = still
+        ? "Still in use · swap or move the other command"
+        : "Conflict resolved · save to apply"
+      return
+    }
+    root.recordPending = [{
+      action: row.action,
+      old_keys: row.keys,
+      new_keys: chord,
+      dispatcher: row.dispatcher,
+      arg: row.dispatchArg || row.arg || "",
+      because: ""
+    }]
+    root.recordStatus = "Save to apply this shortcut"
+  }
+
+  function recordSwap() {
+    var row = root.recordRow
+    var occ = root.recordOccupant
+    if (!row || !occ || !root.recordCaptured || !occ.dispatcher)
+      return
+    var pending = (root.recordPending || []).slice()
+    pending.push({
+      action: occ.action,
+      old_keys: occ.keys,
+      new_keys: row.keys,
+      dispatcher: occ.dispatcher,
+      arg: occ.arg || "",
+      because: root.recordOriginAction || row.action
+    })
+    if (root.recordHeld) {
+      pending.push(root.recordHeld)
+      root.recordRow = {
+        keys: root.recordHeld.old_keys,
+        action: root.recordHeld.action,
+        dispatcher: root.recordHeld.dispatcher,
+        dispatchArg: root.recordHeld.arg,
+        arg: root.recordHeld.arg
+      }
+      root.recordCaptured = root.recordHeld.new_keys
+      root.recordHeld = null
+    } else {
+      pending.push({
+        action: row.action,
+        old_keys: row.keys,
+        new_keys: root.recordCaptured,
+        dispatcher: row.dispatcher,
+        arg: row.dispatchArg || row.arg || "",
+        because: ""
+      })
+    }
+    root.recordPending = pending
+    root.recordOccupant = root.recordConflict(root.recordCaptured, root.recordRow.action)
+    root.recordStatus = root.recordOccupant
+      ? "Still in use · swap or move the other command"
+      : "Swap ready · save to apply"
+  }
+
+  function recordMoveOther() {
+    var occ = root.recordOccupant
+    var row = root.recordRow
+    if (!occ || !row || !root.recordCaptured)
+      return
+    if (!occ.dispatcher) {
+      root.recordStatus = "The other command cannot be moved"
+      return
+    }
+    root.recordHeld = {
+      action: row.action,
+      old_keys: row.keys,
+      new_keys: root.recordCaptured,
+      dispatcher: row.dispatcher,
+      arg: row.dispatchArg || row.arg || "",
+      because: ""
+    }
+    root.recordRow = {
+      keys: occ.keys,
+      action: occ.action,
+      dispatcher: occ.dispatcher,
+      dispatchArg: occ.arg || "",
+      arg: occ.arg || ""
+    }
+    root.recordCaptured = ""
+    root.recordOccupant = null
+    root.recordListening = true
+    root.recordStatus = "Press a new shortcut for “" + occ.action + "”"
+  }
+
+  function recordSave() {
+    if (!root.recordCanSave || root.recordBusy)
+      return
+    var steps = root.recordPending || []
+    if (!steps.length)
+      return
+    root.recordBusy = true
+    root.recordStatus = "Saving…"
     editProc.command = [
-      root.sourceDir + "/apply-edit", "remap",
-      "--old-keys", oldHypr,
-      "--old-action", root.captureAction,
-      "--new-keys", newHypr,
-      "--action", root.captureAction,
-      "--dispatcher", root.captureDispatcher,
-      "--arg", root.captureArg
+      root.sourceDir + "/apply-edit", "apply", "--json",
+      JSON.stringify({ note: "remap " + (root.recordOriginAction || ""), steps: steps })
     ]
     editProc.running = false
     editProc.running = true
   }
 
-  function setEditMode(on) {
-    if (!root.omarchyActive)
-      on = false
-    root.editMode = !!on
-    root.capturing = false
-    if (root.editMode) {
-      root.editStatus = "Edit: click a command, then press its new chord"
-      root.refreshEditHistory()
-    } else {
-      root.editStatus = ""
-    }
+  function recordRestoreDefault() {
+    var row = root.recordRow
+    if (!row || !row.action || root.recordBusy)
+      return
+    var related = KeymapData.relatedActions(row.action, root.chordMoves || [])
+    root.recordBusy = true
+    root.recordStatus = related.length > 1
+      ? "Restoring default and unwinding " + related.join(", ") + "…"
+      : "Restoring default…"
+    restoreProc.command = [root.sourceDir + "/apply-edit", "restore", "--action", row.action]
+    restoreProc.running = false
+    restoreProc.running = true
   }
 
   function focusWindow(address) {
@@ -1182,7 +1424,7 @@ Item {
   }
 
   function executeSelected() {
-    if (root.launching || !root.opened)
+    if (root.launching || !root.opened || root.recordOpen)
       return
     var item = root.navItems[root.selected]
     if (!item)
@@ -1223,10 +1465,7 @@ Item {
 
   function activateRow(keys, action) {
     root.selectKeys(keys, action)
-    if (root.editMode)
-      root.startCapture(keys, action)
-    else
-      root.executeSelected()
+    root.executeSelected()
   }
 
   function isSuperKey(event) {
@@ -1240,28 +1479,30 @@ Item {
   }
 
   function handleKey(event) {
-    if (root.capturing) {
+    if (root.recordOpen) {
       if (event.key === Qt.Key_Escape) {
-        root.capturing = false
-        root.editStatus = "Capture cancelled"
+        root.closeRecord()
         event.accepted = true
         return
       }
       if (event.key === Qt.Key_W
           && (event.modifiers & Qt.MetaModifier)
           && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier))) {
-        root.capturing = false
+        root.closeRecord()
         root.dismiss()
         event.accepted = true
         return
       }
-      var chord = root.eventToHyprChord(event)
-      if (chord) {
-        root.applyCapture(chord)
+      if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+        if (root.recordCanSave)
+          root.recordSave()
         event.accepted = true
-      } else {
-        event.accepted = true
+        return
       }
+      var chord = root.eventToHyprChord(event)
+      if (chord)
+        root.handleRecordChord(chord)
+      event.accepted = true
       return
     }
     if (event.key === Qt.Key_Escape) {
@@ -1456,7 +1697,7 @@ Item {
                   id: headerLabel
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  anchors.right: modeToggle.visible ? modeToggle.left : hintLabel.left
+                  anchors.right: hintLabel.left
                   anchors.rightMargin: Style.spacing.md
                   text: root.filterText || "OmarKEYS"
                   textFormat: Text.PlainText
@@ -1467,83 +1708,11 @@ Item {
                   elide: Text.ElideRight
                 }
 
-                Row {
-                  id: modeToggle
-                  visible: root.omarchyActive
-                  anchors.right: hintLabel.left
-                  anchors.rightMargin: Style.spacing.md
-                  anchors.verticalCenter: parent.verticalCenter
-                  spacing: 6
-
-                  Text {
-                    text: "View"
-                    textFormat: Text.PlainText
-                    color: root.editMode ? root.foreground : root.chipFg
-                    opacity: root.editMode ? 0.55 : 1
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                    font.bold: !root.editMode
-                    MouseArea {
-                      anchors.fill: parent
-                      anchors.margins: -4
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: root.setEditMode(false)
-                    }
-                  }
-
-                  Text {
-                    text: "|"
-                    textFormat: Text.PlainText
-                    color: root.foreground
-                    opacity: 0.35
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                  }
-
-                  Text {
-                    text: "Edit"
-                    textFormat: Text.PlainText
-                    color: root.editMode ? root.chipFg : root.foreground
-                    opacity: root.editMode ? 1 : 0.55
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                    font.bold: root.editMode
-                    MouseArea {
-                      anchors.fill: parent
-                      anchors.margins: -4
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: root.setEditMode(true)
-                    }
-                  }
-
-                  Text {
-                    visible: root.editMode && root.canRevert
-                    text: "Revert"
-                    textFormat: Text.PlainText
-                    color: root.foreground
-                    opacity: revertArea.containsMouse ? 1 : 0.6
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                    MouseArea {
-                      id: revertArea
-                      anchors.fill: parent
-                      anchors.margins: -4
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: root.revertLastEdit()
-                    }
-                  }
-                }
-
                 Text {
                   id: hintLabel
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
-                  text: root.capturing
-                    ? (root.editStatus || "Press a new chord, or Esc")
-                    : (root.editMode
-                      ? (root.editStatus || "Click a command, then press a new chord · Esc cancels")
-                      : "↑↓ command · Ctrl+1–9 window · type to search · Enter run")
+                  text: "↑↓ command · Ctrl+1–9 window · type to search · Enter run · ● record"
                   textFormat: Text.PlainText
                   color: root.foreground
                   opacity: 0.72
@@ -1641,6 +1810,11 @@ Item {
             anchors.bottom: buildInfo.top
             anchors.rightMargin: Style.spacing.sm
             anchors.bottomMargin: Style.space(4)
+          }
+
+          KeymapRecordPopup {
+            host: root
+            anchors.fill: parent
           }
         }
       }

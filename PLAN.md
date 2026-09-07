@@ -74,7 +74,7 @@ intentional "jump to this app" action. Not building this.
 - [x] `apply-edit remap` writes `omarkeys-edits.lua`
 - [x] Backup + git history per working version; restore on reload error
 - [x] Lua-escape bind strings; refuse chords that are not Hyprland-like
-- [x] Capture/remap functions in `Keymap.qml` (`setEditMode`, `startCapture`)
+- [x] Capture/remap functions in `Keymap.qml` (per-row record popup)
 
 ### Phase 2 — Sidebar tree UI
 
@@ -186,20 +186,23 @@ rewrite the overlay chrome in the same pass.
 
 ## Future
 
-### Finish Phase 3 — View | Edit UI
+### Finish Phase 3 — Record / restore chords
 
-- [x] (cursor) Header toggle View | Edit (Omarchy branch only)
-- [x] (cursor) Dim non-editable rows; “press a new chord or Esc”
-- [x] (cursor) Enter stays View-only
-- [x] (cursor) Surface `apply-edit revert` / history in the overlay
-- [x] (cursor) `install.sh` wires `omarkeys-edits.lua` on first install (first edit already appends the dofile)
+- [x] (cursor) Record icon next to each editable Omarchy key (no header View|Edit)
+- [x] (cursor) Record popup: listen, then Save; Enter still runs the row
+- [x] (cursor) Conflict if the captured chord is already in use; Save stays off until Swap or Move the other
+- [x] (cursor) Factory chord remembered in `omarkeys-chords.json`; never overwritten by later dumps
+- [x] (cursor) Restore default unwinds that remap and any displaced chain
+- [x] (cursor) `install.sh` wires `omarkeys-edits.lua` on first install
 
 Chord remap writes `~/.config/hypr/omarkeys-edits.lua` using Omarchy's
 own override style (`hl.unbind` then `hl.bind` with the recovered
-dispatcher). That is allowed for an unsandboxed overlay plugin: it
-edits the user's Hyprland config, not the plugin git origin and not
-Omarchy's default bind modules. Super+K / hold / double-tap cannot be
-remapped. Dispatcher/args are not edited — only the chord.
+dispatcher). Factory keys and the remap log live in
+`~/.config/omarchy/omarkeys-chords.json`. That is allowed for an
+unsandboxed overlay plugin: it edits the user's Hyprland config, not
+the plugin git origin and not Omarchy's default bind modules. Super+K /
+hold / double-tap cannot be remapped. Dispatcher/args are not edited —
+only the chord.
 
 ### Later (out of the original three phases)
 

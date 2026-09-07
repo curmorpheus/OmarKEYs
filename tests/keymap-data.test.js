@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.rowRunnable = rowRunnable; this.rowEditable = rowEditable; this.isProtectedChord = isProtectedChord;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.rowRunnable = rowRunnable; this.rowEditable = rowEditable; this.isProtectedChord = isProtectedChord; this.normalizeChord = normalizeChord; this.findOccupant = findOccupant; this.relatedActions = relatedActions; this.restorePlan = restorePlan; this.setChordIndex = setChordIndex; this.rowRemapped = rowRemapped; this.defaultKeysFor = defaultKeysFor;", context)
 
 function hasLiveDump() {
   const { execFileSync } = require("node:child_process")
@@ -333,4 +333,74 @@ test("rowEditable is chord remap of a recovered action, never OmarKEYS summons",
   assert.equal(context.rowEditable({
     keys: "Super + 1-9, 0", dispatcher: "lua", arg: "hl.dsp.workspace(1)"
   }), false)
+})
+
+test("normalizeChord treats Super + Return and SUPER + RETURN as the same", () => {
+  assert.equal(context.normalizeChord("Super + Return"), "SUPER + RETURN")
+  assert.equal(context.normalizeChord("SUPER + RETURN"), "SUPER + RETURN")
+  assert.equal(context.normalizeChord("Shift + Super + T"), "SUPER + SHIFT + T")
+  assert.equal(context.normalizeChord("Ctrl + Alt + Super + Q"), "SUPER + CTRL + ALT + Q")
+})
+
+test("findOccupant reports a live conflict and ignores the row being edited", () => {
+  const sections = [{
+    title: "Main",
+    rows: [
+      { keys: "Super + Return", action: "Terminal", dispatcher: "exec", arg: "ghostty" },
+      { keys: "Super + T", action: "New terminal tab", dispatcher: "exec", arg: "ghostty -e" },
+    ]
+  }]
+  const hit = context.findOccupant("SUPER + T", "Terminal", sections, [])
+  assert.equal(hit.action, "New terminal tab")
+  assert.equal(context.findOccupant("SUPER + T", "New terminal tab", sections, []), null)
+  const afterMove = context.findOccupant("SUPER + T", "Terminal", sections, [{
+    action: "New terminal tab",
+    new_keys: "SUPER + N",
+    dispatcher: "exec",
+    arg: "ghostty -e"
+  }])
+  assert.equal(afterMove, null)
+})
+
+test("restorePlan unwinds a swap and a displaced chain back to factory keys", () => {
+  const defaults = {
+    Terminal: { keys: "Super + Return", dispatcher: "exec", arg: "ghostty" },
+    Browser: { keys: "Super + Shift + Return", dispatcher: "exec", arg: "chromium" },
+    Files: { keys: "Super + F", dispatcher: "exec", arg: "nautilus" },
+  }
+  const swap = [
+    { action: "Browser", from: "Super + Shift + Return", to: "Super + Return", because: "Terminal" },
+    { action: "Terminal", from: "Super + Return", to: "Super + Shift + Return", because: "" },
+  ]
+  const swapPlan = context.restorePlan("Terminal", defaults, swap)
+  assert.equal(JSON.stringify(swapPlan.map((s) => s.action).sort()), JSON.stringify(["Browser", "Terminal"]))
+  const terminal = swapPlan.find((s) => s.action === "Terminal")
+  assert.equal(terminal.new_keys, "Super + Return")
+
+  const chain = [
+    { action: "Browser", from: "Super + Shift + Return", to: "Super + F", because: "Terminal" },
+    { action: "Files", from: "Super + F", to: "Super + N", because: "Terminal" },
+    { action: "Terminal", from: "Super + Return", to: "Super + Shift + Return", because: "" },
+  ]
+  const chainPlan = context.restorePlan("Terminal", defaults, chain)
+  assert.equal(JSON.stringify(chainPlan.map((s) => s.action).sort()), JSON.stringify(["Browser", "Files", "Terminal"]))
+  assert.equal(chainPlan.find((s) => s.action === "Files").new_keys, "Super + F")
+})
+
+test("rowRemapped follows the stored factory chord", () => {
+  context.setChordIndex({
+    defaults: { Terminal: { keys: "Super + Return" } },
+    current: { Terminal: "Super + T" },
+    remapped: { Terminal: "Super + T" },
+    moves: [{ action: "Terminal", from: "Super + Return", to: "Super + T", because: "" }],
+  })
+  assert.equal(context.defaultKeysFor("Terminal"), "Super + Return")
+  assert.equal(context.rowRemapped("Terminal"), true)
+  context.setChordIndex({
+    defaults: { Terminal: { keys: "Super + Return" } },
+    current: { Terminal: "Super + Return" },
+    remapped: {},
+    moves: [],
+  })
+  assert.equal(context.rowRemapped("Terminal"), false)
 })

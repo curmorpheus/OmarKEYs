@@ -57,9 +57,11 @@ Flickable {
     rowLayout: host.rowLayout
     fontScale: host.fontScale
     iconScale: host.iconScale
-    editMode: host.editMode
+    omarchyActive: host.omarchyActive
     onRowClicked: function(keys, action) { host.activateRow(keys, action) }
     onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
+    onRecordRequested: function(item) { host.openRecord(item) }
+    onRestoreRequested: function(item) { host.restoreRecord(item) }
   }
 
   Row {

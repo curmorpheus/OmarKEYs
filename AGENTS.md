@@ -12,6 +12,7 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSidebar.qml` | The tree: Omarchy areas/groups and Active Apps |
 | `KeymapBoard.qml` | Two-column section grid |
 | `KeymapSection.qml` | One topic card |
+| `KeymapRecordPopup.qml` | Record popup: capture, conflict, restore default |
 | `KeymapRow.qml` | One command row |
 | `KeymapOptionsMenu.qml` | Options popup: display, modifiers, gestures |
 | `KeymapHideButton.qml` | Show/Hide control used at every level of the tree |
@@ -19,7 +20,7 @@ so `omarchy plugin add <git-url>` works.
 | `hyprland.lua` | Super double-tap / hold / Super+K |
 | `run-shortcut` | Run a selected row after the overlay closes (`--dispatch` for Hyprland binds; chord replay for app sheets) |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
-| `apply-edit` | Remap a chord; required at runtime by edit mode |
+| `apply-edit` | Remap a chord; remember factory keys and unwind restore |
 | `plugin-git` | Channel picker state: switch + sync |
 | `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
 | `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
