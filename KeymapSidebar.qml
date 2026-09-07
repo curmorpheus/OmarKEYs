@@ -51,21 +51,26 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
-          ToggleSwitch {
+          Text {
             id: omarchySwitch
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
             visible: host && host.omarchyActive
-            checked: host ? host.allGroupsVisible : true
-            foreground: side.foreground
-            accent: side.chipFg
-            trackHeight: 16
-            activeFocusOnTab: false
-            onToggled: {
-              var h = side.host
-              if (h)
-                h.setAllGroupsVisible(!h.allGroupsVisible)
+            text: host && host.allGroupsVisible ? "hide" : "show"
+            textFormat: Text.PlainText
+            color: side.foreground
+            opacity: 0.7
+            font.family: side.fontFamily
+            font.pixelSize: side.rootFontSize
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var h = side.host
+                if (h)
+                  h.setAllGroupsVisible(!h.allGroupsVisible)
+              }
             }
           }
 
@@ -149,26 +154,30 @@ Rectangle {
                 opacity: 0.35
               }
 
-              ToggleSwitch {
+              Text {
                 id: areaSwitch
                 anchors.right: parent.right
                 anchors.rightMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
-                checked: areaCol.allVisible
-                foreground: side.foreground
-                accent: side.chipFg
-                trackHeight: 12
-                activeFocusOnTab: false
-                onToggled: {
-                  var h = side.host
-                  if (!h)
-                    return
-                  var titles = []
-                  var groups = areaCol.modelData.groups || []
-                  for (var ti = 0; ti < groups.length; ti++)
-                    titles.push(groups[ti].title)
-                  var show = !areaCol.allVisible
-                  h.setGroupsVisible(titles, show)
+                text: areaCol.allVisible ? "hide" : "show"
+                textFormat: Text.PlainText
+                color: side.foreground
+                opacity: 0.7
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = side.host
+                    if (!h)
+                      return
+                    var titles = []
+                    var groups = areaCol.modelData.groups || []
+                    for (var ti = 0; ti < groups.length; ti++)
+                      titles.push(groups[ti].title)
+                    h.setGroupsVisible(titles, !areaCol.allVisible)
+                  }
                 }
               }
 
@@ -227,20 +236,25 @@ Rectangle {
                   opacity: 0.35
                 }
 
-                ToggleSwitch {
+                Text {
                   id: groupSwitch
                   anchors.right: parent.right
                   anchors.rightMargin: 2
                   anchors.verticalCenter: parent.verticalCenter
-                  checked: !modelData.hidden
-                  foreground: side.foreground
-                  accent: side.chipFg
-                  trackHeight: 11
-                  activeFocusOnTab: false
-                  onToggled: {
-                    var h = side.host
-                    if (h)
-                      h.toggleGroup(modelData.title)
+                  text: modelData.hidden ? "show" : "hide"
+                  textFormat: Text.PlainText
+                  color: side.foreground
+                  opacity: 0.7
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var h = side.host
+                      if (h)
+                        h.toggleGroup(modelData.title)
+                    }
                   }
                 }
 
