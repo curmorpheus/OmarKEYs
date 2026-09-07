@@ -18,6 +18,7 @@ Rectangle {
   property color selectedFg: Color.menu.selectedText
   property string chipStyle: "full"
   property string rowLayout: "keys"
+  property real fontScale: 1.0
   signal rowClicked(string keys, string action)
   signal rowActivated(string keys, string action)
   signal rowHighlighted(var item)
@@ -58,7 +59,7 @@ Rectangle {
           textFormat: Text.PlainText
           color: Color.menu.selectedText
           font.family: section.fontFamily
-          font.pixelSize: Style.font.caption
+          font.pixelSize: Math.round(Style.font.caption * section.fontScale)
           font.bold: true
           font.capitalization: Font.AllUppercase
         }
@@ -69,7 +70,7 @@ Rectangle {
           textFormat: Text.PlainText
           color: section.selectedFg
           font.family: section.fontFamily
-          font.pixelSize: Style.font.caption
+          font.pixelSize: Math.round(Style.font.caption * section.fontScale)
           font.bold: true
           opacity: 0.8
         }
@@ -91,6 +92,7 @@ Rectangle {
         selectedFg: section.selectedFg
         chipStyle: section.chipStyle
         rowLayout: section.rowLayout
+        fontScale: section.fontScale
         onClicked: function(keys, action) { section.rowClicked(keys, action) }
         onActivated: function(keys, action) { section.rowActivated(keys, action) }
         onHighlighted: function(item) { section.rowHighlighted(item) }

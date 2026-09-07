@@ -17,6 +17,13 @@ Rectangle {
   // "full" | "short" chips, and whether keys or the action leads the row.
   property string chipStyle: "full"
   property string rowLayout: "keys"
+  property real fontScale: 1.0
+  readonly property bool keysFirst: rowLayout !== "action"
+  // Geometry, not toggled anchors: assigning undefined to an anchor does
+  // not clear one already set, so swapping the columns left both sides
+  // anchored and squeezed the description to nothing.
+  readonly property real keysWidth: Math.max(0, width * 0.46 - 8)
+  readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm)
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
   signal highlighted(var item)
@@ -56,26 +63,22 @@ Rectangle {
 
   Row {
     id: keysRow
-    anchors.left: row.rowLayout === "keys" ? parent.left : undefined
-    anchors.leftMargin: row.rowLayout === "keys" ? 8 : 0
-    anchors.right: row.rowLayout === "keys" ? undefined : parent.right
-    anchors.rightMargin: row.rowLayout === "keys" ? 0 : 8
+    x: row.keysFirst ? 8 : row.width - row.keysWidth - 8
     anchors.verticalCenter: parent.verticalCenter
-    // Chips rarely fill this column, and every pixel reserved past the last
-    // chip is one the action label elides instead. 0.56 left a wide dead gap
-    // on most rows while "Toggle window transparency" truncated; 0.46 still
-    // clears the longest real chord (Super+Shift+Ctrl+Alt+Tab).
-    width: parent.width * 0.46 - 8
+    width: row.keysWidth
     spacing: 4
 
     Repeater {
       model: KeymapData.displayKeys(row.modelData.keys, row.chipStyle)
       delegate: Rectangle {
-        implicitWidth: chipText.implicitWidth + 10
+        // A glyph is its own shape; boxing it fights the icon and squeezes
+        // it smaller than the text it sits beside.
+        readonly property bool isIcon: String(modelData).codePointAt(0) >= 0xF0000
+        implicitWidth: chipText.implicitWidth + (isIcon ? 4 : 10)
         implicitHeight: Math.max(Style.space(18), chipText.implicitHeight + 4)
         radius: 4
-        color: row.chipBg
-        border.width: 1
+        color: isIcon ? "transparent" : row.chipBg
+        border.width: isIcon ? 0 : 1
         border.color: row.borderColor
 
         Text {
@@ -85,7 +88,9 @@ Rectangle {
           textFormat: Text.PlainText
           color: row.chipFg
           font.family: row.fontFamily
-          font.pixelSize: Style.font.caption
+          // Icons read smaller than letters at the same pixel size.
+          font.pixelSize: Math.round(Style.font.caption * row.fontScale
+            * (parent.isIcon ? 1.35 : 1))
           font.bold: true
         }
       }
@@ -94,16 +99,14 @@ Rectangle {
 
   Text {
     id: actionLabel
-    anchors.left: row.rowLayout === "keys" ? keysRow.right : parent.left
-    anchors.right: row.rowLayout === "keys" ? parent.right : keysRow.left
+    x: row.keysFirst ? row.keysWidth + 8 + Style.spacing.sm : 8
+    width: row.actionWidth
     anchors.verticalCenter: parent.verticalCenter
-    anchors.leftMargin: row.rowLayout === "keys" ? Style.spacing.sm : 8
-    anchors.rightMargin: row.rowLayout === "keys" ? 0 : Style.spacing.sm
     text: row.modelData.action
     textFormat: Text.PlainText
     color: row.selected ? row.selectedFg : row.foreground
     font.family: row.fontFamily
-    font.pixelSize: Style.font.body
+    font.pixelSize: Math.round(Style.font.body * row.fontScale)
     elide: Text.ElideRight
   }
 
