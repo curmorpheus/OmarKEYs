@@ -19,7 +19,7 @@ Rectangle {
   readonly property int labelSize: Style.font.caption
 
   width: Style.space(300)
-  height: Math.min(Style.space(420), content.implicitHeight + Style.spacing.sm * 2)
+  height: Math.min(Style.space(460), content.implicitHeight + Style.spacing.md * 2)
   radius: 6
   color: host ? host.background : Color.menu.background
   border.width: 1
@@ -29,14 +29,37 @@ Rectangle {
   // and dismiss the overlay.
   MouseArea { anchors.fill: parent; onClicked: {} }
 
+  Text {
+    id: closeButton
+    anchors.right: parent.right
+    anchors.top: parent.top
+    anchors.margins: Style.spacing.sm
+    text: "✕"
+    textFormat: Text.PlainText
+    color: menu.foreground
+    opacity: closeArea.containsMouse ? 1 : 0.5
+    font.family: menu.fontFamily
+    font.pixelSize: menu.labelSize
+
+    MouseArea {
+      id: closeArea
+      anchors.fill: parent
+      anchors.margins: -Style.space(4)
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: if (menu.host) menu.host.optionsMenuOpen = false
+    }
+  }
+
   Column {
     id: content
     anchors.fill: parent
-    anchors.margins: Style.spacing.sm
-    spacing: Style.space(6)
+    anchors.margins: Style.spacing.md
+    spacing: Style.space(7)
 
     Text {
       width: parent.width
+      horizontalAlignment: Text.AlignHCenter
       text: "Display"
       textFormat: Text.PlainText
       color: menu.chipFg
@@ -120,24 +143,36 @@ Rectangle {
       width: content.width
       height: Math.max(Style.space(22), textSizeLabel.implicitHeight + 4)
 
+      // Click to return to default, which is also the middle of the range
+      // so the knob's position reads as "normal" at a glance.
       Text {
         id: textSizeLabel
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        text: "Text size"
+        text: (menu.host && Math.abs(menu.host.fontScale - 1) > 0.001)
+          ? "Text size · reset" : "Text size"
         textFormat: Text.PlainText
-        color: menu.foreground
+        color: sizeResetArea.containsMouse ? menu.chipFg : menu.foreground
         opacity: 0.75
         font.family: menu.fontFamily
         font.pixelSize: menu.labelSize
+
+        MouseArea {
+          id: sizeResetArea
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: if (menu.host) menu.host.setFontScale(1.0)
+        }
       }
 
       PanelSlider {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         width: Style.space(130)
-        minimum: 0.8
-        maximum: 1.8
+        // Symmetric about 1.0 so the default is the centre of the track.
+        minimum: 0.6
+        maximum: 1.4
         step: 0.05
         activeFocusOnTab: false
         value: menu.host ? menu.host.fontScale : 1.0
@@ -159,6 +194,7 @@ Rectangle {
 
     Text {
       width: parent.width
+      horizontalAlignment: Text.AlignHCenter
       text: "Modifiers"
       textFormat: Text.PlainText
       color: menu.chipFg
@@ -292,6 +328,7 @@ Rectangle {
 
     Text {
       width: parent.width
+      horizontalAlignment: Text.AlignHCenter
       text: "Opening"
       textFormat: Text.PlainText
       color: menu.chipFg
