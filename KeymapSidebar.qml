@@ -180,6 +180,27 @@ Rectangle {
           }
         }
 
+        Item {
+          visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
+          width: treeCol.width
+          height: visible ? Math.max(Style.space(22), noWindowsLabel.implicitHeight + 4) : 0
+
+          Text {
+            id: noWindowsLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            text: "No windows detected"
+            textFormat: Text.PlainText
+            color: side.foreground
+            opacity: 0.5
+            font.family: side.fontFamily
+            font.pixelSize: Style.font.caption
+            font.italic: true
+          }
+        }
+
         Repeater {
           model: side.windowsOpen && host ? host.clients : []
           delegate: Item {

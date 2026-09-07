@@ -175,6 +175,15 @@ Item {
   }
 
   property string sheetPath: ""
+  property string activeLabel: ""
+
+  function emptySheetSections(label) {
+    var name = label || "this window"
+    return [{
+      title: label || "This app",
+      rows: [{ keys: "—", action: "No bundled keymap sheet for \"" + name + "\" yet" }]
+    }]
+  }
 
   FileView {
     id: sheetFile
@@ -188,20 +197,14 @@ Item {
         else
           throw new Error("empty")
       } catch (e) {
-        KeymapData.setSections([{
-          title: "This app",
-          rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-        }])
+        KeymapData.setSections(root.emptySheetSections(root.activeLabel))
       }
       root.rebuild()
     }
     onLoadFailed: {
       if (!root.sheetPath)
         return
-      KeymapData.setSections([{
-        title: "This app",
-        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-      }])
+      KeymapData.setSections(root.emptySheetSections(root.activeLabel))
       root.rebuild()
     }
   }
@@ -389,18 +392,18 @@ Item {
       return
     }
     var sheet = ""
+    var label = id
     var list = root.clients
     for (var i = 0; i < list.length; i++) {
       if (list[i].class === id) {
         sheet = list[i].sheet || ""
+        label = list[i].label || id
         break
       }
     }
+    root.activeLabel = label
     if (!sheet) {
-      KeymapData.setSections([{
-        title: "This app",
-        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-      }])
+      KeymapData.setSections(root.emptySheetSections(label))
       root.rebuild()
       return
     }

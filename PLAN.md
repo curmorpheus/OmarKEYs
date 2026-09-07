@@ -25,6 +25,16 @@ window, so that bind would kill the app behind the overlay. While the
 layer is up, Super+W is **temporarily remapped** to close OmarKEYS.
 The original "Close window" bind is restored when the overlay hides.
 
+User comment (auto-select focused window):
+
+- Should opening the "Open windows" branch auto-load the currently
+  focused window's sheet instead of requiring a click?
+
+Dealt with: kept v1's click-to-open. Auto-loading on open (or on every
+focus change) would silently swap the sheet under you while Omarchy
+stays the deliberate default landing view; a click stays the
+intentional "jump to this app" action. Not building this.
+
 ## Done
 
 ### Overlay (Super+K replacement)
@@ -65,21 +75,17 @@ The original "Close window" bind is restored when the overlay hides.
 - [x] Lua-escape bind strings; refuse chords that are not Hyprland-like
 - [x] Capture/remap functions in `Keymap.qml` (`setEditMode`, `startCapture`)
 
-## In progress
-
 ### Phase 2 — Sidebar tree UI
 
 - [x] Omarchy as the default expanded branch, with current groups under it
 - [x] Open windows branch from live clients; click loads that app’s sheet
 - [x] Focused window marked in the tree
 - [x] Groups / modifiers still apply to the active branch
+- [x] Empty-state copy names the app when a window has no bundled sheet
+- [x] Empty-state row ("No windows detected") when no clients are open
+- [x] Auto-select the focused window — decided against, see note above
 
 ## Future
-
-### Finish Phase 2
-
-- [ ] Empty-state copy when a window has no sheet
-- [ ] Optional: auto-select the focused window (plan said v1 is click-to-open)
 
 ### Finish Phase 3 — View | Edit UI
 
