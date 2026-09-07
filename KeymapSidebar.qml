@@ -86,7 +86,7 @@ Rectangle {
             Text {
               anchors.verticalCenter: parent.verticalCenter
               width: 12
-              text: side.omarchyOpen ? "▾" : "▸"
+              text: (side.omarchyOpen && !(host && host.allGroupsHidden)) ? "▾" : "▸"
               color: side.chipFg
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
@@ -164,14 +164,33 @@ Rectangle {
 
               HoverHandler { id: areaHover }
 
-              Rectangle {
+              // A branch marks itself with a caret rather than the trunk
+              // line its children use: collapsed when everything under it
+              // is hidden, expanded while any of it still shows.
+              Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 6
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 1
-                color: side.borderColor
-                opacity: 0.35
+                anchors.leftMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                width: 12
+                text: areaCol.allHidden ? "▸" : "▾"
+                color: side.chipFg
+                opacity: 0.7
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = side.host
+                    if (!h)
+                      return
+                    var titles = []
+                    var groups = areaCol.modelData.groups || []
+                    for (var ci = 0; ci < groups.length; ci++)
+                      titles.push(groups[ci].title)
+                    h.setGroupsVisible(titles, areaCol.allHidden)
+                  }
+                }
               }
 
               KeymapHideButton {
@@ -356,7 +375,7 @@ Rectangle {
             Text {
               anchors.verticalCenter: parent.verticalCenter
               width: 12
-              text: side.windowsOpen ? "▾" : "▸"
+              text: (side.windowsOpen && !(host && host.allAppsHidden)) ? "▾" : "▸"
               color: side.chipFg
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
@@ -434,14 +453,30 @@ Rectangle {
 
               HoverHandler { id: kindHover }
 
-              Rectangle {
+              Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 6
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 1
-                color: side.borderColor
-                opacity: 0.35
+                anchors.leftMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                width: 12
+                text: kindCol.modelData.hidden ? "▸" : "▾"
+                color: side.chipFg
+                opacity: 0.7
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = side.host
+                    if (!h)
+                      return
+                    var classes = []
+                    var apps = kindCol.modelData.apps || []
+                    for (var ci = 0; ci < apps.length; ci++)
+                      classes.push(apps[ci].class)
+                    h.setAppsVisible(classes, kindCol.modelData.hidden)
+                  }
+                }
               }
 
               KeymapHideButton {
