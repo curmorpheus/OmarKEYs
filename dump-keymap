@@ -610,19 +610,35 @@ def sheet_for(cls: str) -> str | None:
     return None
 
 
-def client_label(cls: str, sheet: str | None) -> str:
+def app_name_from_title(title: str) -> str:
+    """The app's own name out of a window title.
+
+    Chrome-style titles put it last ("<page> - <App>", "<page> | <App>"),
+    and a PWA whose title is just its name has no separator at all.
+    """
+    parts = [p.strip() for p in re.split(r" [-|—] ", title or "") if p.strip()]
+    return parts[-1] if parts else ""
+
+
+def client_label(cls: str, sheet: str | None, title: str = "") -> str:
+    # A Chrome PWA's class is a 32-character extension id, which tells a
+    # human nothing ("Chromium · fmpnliohjhemenmnlpbf"). The window title
+    # carries the real name, so prefer it and keep the class as the fallback.
+    if cls.startswith("chrome-") and cls.lower() != "chromium":
+        slug = cls[7:].split("__")[0].replace("-Default", "")
+        name = app_name_from_title(title)
+        if name:
+            return name[:24]
+        if slug and slug.lower() != "chromium":
+            return slug[:24]
     if sheet:
         try:
             meta = json.loads((SHEETS_DIR / sheet).read_text())
-            title = str(meta.get("title") or "").strip()
+            sheet_title = str(meta.get("title") or "").strip()
         except (OSError, json.JSONDecodeError):
-            title = ""
-        if title:
-            if cls.startswith("chrome-") and cls.lower() != "chromium":
-                slug = cls[7:].split("__")[0].replace("-Default", "")
-                if slug and slug.lower() != "chromium":
-                    return f"{title} · {slug[:20]}"
-            return title
+            sheet_title = ""
+        if sheet_title:
+            return sheet_title
     if cls.startswith("chrome-"):
         return cls[7:].split("__")[0][:24] or "Chromium"
     if "." in cls:
@@ -647,7 +663,7 @@ def dump_clients() -> list[dict]:
             sheet = sheet_for(cls)
             grouped[cls] = {
                 "class": cls,
-                "label": client_label(cls, sheet),
+                "label": client_label(cls, sheet, title),
                 "title": title,
                 "focused": focused,
                 "count": 1,
@@ -663,6 +679,7 @@ def dump_clients() -> list[dict]:
             if focused:
                 entry["title"] = title
                 entry["address"] = address
+                entry["label"] = client_label(cls, entry["sheet"], title)
     return sorted(grouped.values(), key=lambda c: (not c["focused"], c["label"].lower()))
 
 
