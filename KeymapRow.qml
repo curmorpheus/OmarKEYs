@@ -20,10 +20,18 @@ Rectangle {
   property real fontScale: 1.0
   property real iconScale: 1.35
   readonly property bool keysFirst: rowLayout !== "action"
+  // Both renderings of the same chord, index for index: collapseMouse runs
+  // for either style, so a chip and its full name share a position.
+  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle)
+  readonly property var chipNames: KeymapData.displayKeys(modelData.keys, "full")
+  // An icon says what key it is only once you know the glyph, so hovering
+  // the line spells it out. The column widens to hold the words rather
+  // than letting them spill over the description.
+  readonly property bool namingKeys: rowHover.hovered && chipStyle === "icons"
   // Geometry, not toggled anchors: assigning undefined to an anchor does
   // not clear one already set, so swapping the columns left both sides
   // anchored and squeezed the description to nothing.
-  readonly property real keysWidth: Math.max(0, width * 0.46 - 8)
+  readonly property real keysWidth: Math.max(0, width * (namingKeys ? 0.72 : 0.46) - 8)
   readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm)
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
@@ -43,6 +51,8 @@ Rectangle {
   border.width: selected ? 1 : 0
   border.color: selected ? row.selectedFg : row.borderColor
   opacity: runnable ? 1 : 0.55
+
+  HoverHandler { id: rowHover }
 
   onSelectedChanged: {
     if (!selected)
@@ -70,11 +80,13 @@ Rectangle {
     spacing: 4
 
     Repeater {
-      model: KeymapData.displayKeys(row.modelData.keys, row.chipStyle)
+      model: row.chipLabels
       delegate: Rectangle {
         // A glyph is its own shape; boxing it fights the icon and squeezes
         // it smaller than the text it sits beside.
+        required property int index
         readonly property bool isIcon: String(modelData).codePointAt(0) >= 0xF0000
+        readonly property string fullName: row.chipNames[index] || ""
         implicitWidth: chipText.implicitWidth + (isIcon ? 4 : 10)
         implicitHeight: Math.max(Style.space(18), chipText.implicitHeight + 4)
         radius: 4
@@ -85,7 +97,9 @@ Rectangle {
         Text {
           id: chipText
           anchors.centerIn: parent
-          text: modelData
+          text: (parent.isIcon && row.namingKeys && parent.fullName)
+            ? modelData + "  " + parent.fullName
+            : modelData
           textFormat: Text.PlainText
           color: row.chipFg
           font.family: row.fontFamily
