@@ -39,6 +39,10 @@ Rectangle {
       clip: true
       contentWidth: width
       contentHeight: treeCol.height
+      // Scrollable content will always clip somewhere; this keeps the cut
+      // from landing flush against the divider below, where a half-drawn
+      // row reads as broken rather than as "there is more".
+      bottomMargin: Style.space(6)
       boundsBehavior: Flickable.StopAtBounds
       activeFocusOnTab: false
 

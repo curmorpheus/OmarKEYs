@@ -56,7 +56,11 @@ Rectangle {
     anchors.left: parent.left
     anchors.leftMargin: 8
     anchors.verticalCenter: parent.verticalCenter
-    width: parent.width * 0.56 - 8
+    // Chips rarely fill this column, and every pixel reserved past the last
+    // chip is one the action label elides instead. 0.56 left a wide dead gap
+    // on most rows while "Toggle window transparency" truncated; 0.46 still
+    // clears the longest real chord (Super+Shift+Ctrl+Alt+Tab).
+    width: parent.width * 0.46 - 8
     spacing: 4
 
     Repeater {
