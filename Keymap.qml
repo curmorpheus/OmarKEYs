@@ -36,7 +36,7 @@ Item {
   property var hiddenGroups: []
   // Layout experiments, switchable from the settings bar so they can be
   // compared against each other rather than rebuilt to try.
-  property string chipStyle: "full"     // full | short
+  property string chipStyle: "full"     // full | short | icons
   property string rowLayout: "keys"     // keys | action
   property string sortBy: "section"     // section | action
   property string searchMode: "all"     // all | keys | action
@@ -154,7 +154,7 @@ Item {
           root.hiddenGroups = cfg.hiddenGroups.slice()
         if (Object.prototype.toString.call(cfg.hiddenApps) === "[object Array]")
           root.hiddenApps = cfg.hiddenApps.slice()
-        if (cfg.chipStyle === "short" || cfg.chipStyle === "full")
+        if (cfg.chipStyle === "short" || cfg.chipStyle === "full" || cfg.chipStyle === "icons")
           root.chipStyle = cfg.chipStyle
         if (cfg.rowLayout === "action" || cfg.rowLayout === "keys")
           root.rowLayout = cfg.rowLayout
@@ -821,7 +821,8 @@ Item {
   }
 
   function cycleChipStyle() {
-    root.chipStyle = root.chipStyle === "full" ? "short" : "full"
+    root.chipStyle = root.chipStyle === "full" ? "short"
+      : (root.chipStyle === "short" ? "icons" : "full")
     root.saveConfig()
   }
 

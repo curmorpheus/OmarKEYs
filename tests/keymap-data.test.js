@@ -235,6 +235,19 @@ test("display options: short chips, action sort, and the two search modes", () =
   context.setConfig({})
 })
 
+test("icon chips use in-font glyphs and fall back to text when unmapped", () => {
+  // Nerd Font glyphs, not emoji: they live in the overlay's own font, so
+  // they need no fallback family with different metrics.
+  const vol = context.displayKeys("XF86AudioRaiseVolume", "icons")
+  assert.equal(vol.length, 1)
+  assert.ok(vol[0].codePointAt(0) >= 0xF0000, "expected a Nerd Font glyph")
+  // A mouse button keeps its side, which a bare mouse glyph would lose.
+  assert.ok(context.displayKeys("Super + Left + Mouse + Button", "icons")[1].endsWith("L"))
+  // Ordinary keys have no icon and keep short text rather than going blank.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Return", "icons")),
+    JSON.stringify(["Sup", "Shft", "Ret"]))
+})
+
 test("a mouse bind is one chip, and only real arrow keys become arrows", () => {
   // Hyprland reports "Super + Left + Mouse + Button" as four words; left as
   // four chips the button reads as an arrow key, and short mode abbreviated

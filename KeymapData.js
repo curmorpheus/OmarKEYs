@@ -235,6 +235,43 @@ function collapseMouse(parts) {
   return out
 }
 
+// Nerd Font glyphs, which matter because they live in the overlay's own
+// font (Omarchy's monospace resolves to JetBrainsMono Nerd Font). Emoji
+// would come from Noto Color Emoji as a *fallback*: a colour font with
+// different metrics, which sits badly in a row of monospace chips. These
+// are opt-in via the "icons" chip style, so a setup without a Nerd Font
+// simply never selects it.
+var KEY_ICONS = {
+  XF86AudioRaiseVolume: "\udb81\udd7e",
+  XF86AudioLowerVolume: "\udb81\udd7f",
+  XF86AudioMute: "\udb81\udd81",
+  XF86AudioMicMute: "\udb80\udf6d",
+  XF86MonBrightnessUp: "\udb80\udcdf",
+  XF86MonBrightnessDown: "\udb80\udcde",
+  XF86KbdBrightnessUp: "\udb80\udf0c",
+  XF86KbdBrightnessDown: "\udb80\udf0c",
+  XF86KbdLightOnOff: "\udb81\udddc",
+  XF86AudioPlay: "\udb80\udfe4",
+  XF86AudioPause: "\udb80\udfe4",
+  XF86AudioNext: "\udb81\udcad",
+  XF86AudioPrev: "\udb81\udcae",
+  XF86PowerOff: "\udb81\udc25",
+  XF86Calculator: "\udb80\udcec",
+  XF86Eject: "\udb82\udc39",
+  XF86TouchpadToggle: "\udb80\udd68",
+  XF86TouchpadOn: "\udb80\udd68",
+  XF86TouchpadOff: "\udb80\udd68",
+  LMB: "\udb80\udf7dL",
+  RMB: "\udb80\udf7dR",
+  MMB: "\udb80\udf7dM",
+  "Wheel\u2193": "\udb80\udf5d",
+  "Wheel\u2191": "\udb80\udf5e"
+}
+
+function iconKey(name) {
+  return KEY_ICONS[String(name || "")] || ""
+}
+
 function shortKey(name) {
   var key = String(name || "")
   if (SHORT_KEYS[key])
@@ -248,6 +285,15 @@ function shortKey(name) {
 
 function displayKeys(keys, style) {
   var parts = collapseMouse(splitKeys(keys))
+  if (style === "icons") {
+    var iconed = []
+    for (var j = 0; j < parts.length; j++) {
+      // Anything without an icon keeps its short text, so the row stays
+      // readable rather than half-blank.
+      iconed.push(iconKey(parts[j]) || shortKey(parts[j]))
+    }
+    return iconed
+  }
   if (style !== "short")
     return parts
   var out = []
@@ -273,7 +319,8 @@ function setConfig(cfg) {
       Ctrl: normalizeModifierMode(modsIn.Ctrl),
       Alt: normalizeModifierMode(modsIn.Alt)
     },
-    chipStyle: (cfg && cfg.chipStyle === "short") ? "short" : "full",
+    chipStyle: (cfg && (cfg.chipStyle === "short" || cfg.chipStyle === "icons"))
+      ? cfg.chipStyle : "full",
     rowLayout: (cfg && cfg.rowLayout === "action") ? "action" : "keys",
     sortBy: (cfg && cfg.sortBy === "action") ? "action" : "section",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
