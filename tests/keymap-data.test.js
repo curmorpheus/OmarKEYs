@@ -281,3 +281,18 @@ test("hovering an icon names it in words, not in raw key tokens", () => {
   const keys = "Super + Shift + XF86MonBrightnessUp"
   assert.equal(context.displayNames(keys).length, context.displayKeys(keys, "icons").length)
 })
+
+test("a gesture shows the key it applies to, at every chip style", () => {
+  // "Double-tap Super" is one token, so abbreviating it cut the key off and
+  // left "Doubl" - a gesture with nothing to perform it on.
+  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "full")),
+    JSON.stringify(["Double-tap", "Super"]))
+  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "short")),
+    JSON.stringify(["Double-tap", "Sup"]))
+  // The hold time stays with the gesture, and follows the configured value.
+  assert.equal(JSON.stringify(context.displayKeys("Hold Super 8s", "icons")),
+    JSON.stringify(["Hold 8s", "Sup"]))
+  // Gestures are still not dispatchable; splitting them is display only.
+  assert.equal(context.isRunnable("Double-tap Super"), false)
+  assert.equal(context.isRunnable("Hold Super 5s"), false)
+})
