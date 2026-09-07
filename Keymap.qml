@@ -103,6 +103,7 @@ Item {
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
+    root.refreshGitInfo()
     root.rebuild()
     root.opened = true
   }
@@ -253,7 +254,40 @@ Item {
     }
   }
 
-  Component.onCompleted: root.refreshKeymap()
+  property string gitBranch: ""
+  property string gitHash: ""
+
+  function refreshGitInfo() {
+    if (gitBranchProc.running)
+      gitBranchProc.running = false
+    gitBranchProc.running = true
+    if (gitHashProc.running)
+      gitHashProc.running = false
+    gitHashProc.running = true
+  }
+
+  Process {
+    id: gitBranchProc
+    command: ["git", "-C", root.sourceDir, "rev-parse", "--abbrev-ref", "HEAD"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.gitBranch = String(text || "").trim()
+    }
+  }
+
+  Process {
+    id: gitHashProc
+    command: ["git", "-C", root.sourceDir, "rev-parse", "--short", "HEAD"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.gitHash = String(text || "").trim()
+    }
+  }
+
+  Component.onCompleted: {
+    root.refreshKeymap()
+    root.refreshGitInfo()
+  }
 
   Timer {
     id: runTimer
@@ -938,6 +972,20 @@ Item {
                 width: parent.width
               }
             }
+          }
+
+          Text {
+            id: buildInfo
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: Style.spacing.sm
+            visible: !!(root.gitBranch || root.gitHash)
+            textFormat: Text.PlainText
+            text: root.gitBranch + (root.gitHash ? " @ " + root.gitHash : "")
+            color: root.foreground
+            opacity: 0.35
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
           }
         }
       }
