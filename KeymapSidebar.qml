@@ -13,6 +13,12 @@ Rectangle {
   readonly property color borderColor: host ? host.border : Color.menu.border
   readonly property string fontFamily: host ? host.fontFamily : Style.font.menuFamily
 
+  // Tree depth sizing: root branches sit at the theme's caption size,
+  // everything nested under them steps down proportionally so it keeps
+  // scaling with the user's base font size.
+  readonly property int rootFontSize: Style.font.caption
+  readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
+
   width: Style.space(200)
   radius: 6
   color: "transparent"
@@ -45,8 +51,23 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
+          ToggleSwitch {
+            id: omarchySwitch
+            anchors.right: parent.right
+            anchors.rightMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            visible: host && host.omarchyActive
+            checked: host ? host.allGroupsVisible : true
+            foreground: side.foreground
+            accent: side.chipFg
+            trackHeight: 16
+            activeFocusOnTab: false
+            onToggled: if (host) host.setAllGroupsVisible(!host.allGroupsVisible)
+          }
+
           Row {
             anchors.fill: parent
+            anchors.rightMargin: omarchySwitch.visible ? omarchySwitch.width + 8 : 4
             spacing: 4
 
             Text {
@@ -55,7 +76,7 @@ Rectangle {
               text: side.omarchyOpen ? "▾" : "▸"
               color: side.chipFg
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: side.rootFontSize
               MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -66,12 +87,12 @@ Rectangle {
             Text {
               id: omarchyLabel
               anchors.verticalCenter: parent.verticalCenter
-              width: parent.width - 70
+              width: parent.width - 16
               text: "Omarchy"
               textFormat: Text.PlainText
               color: host && host.omarchyActive ? side.chipFg : side.foreground
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: side.rootFontSize
               font.bold: true
               elide: Text.ElideRight
               MouseArea {
@@ -86,17 +107,6 @@ Rectangle {
                   host.setAllGroupsVisible(true)
                 }
               }
-            }
-
-            ToggleSwitch {
-              anchors.verticalCenter: parent.verticalCenter
-              visible: host && host.omarchyActive
-              checked: host ? host.allGroupsVisible : true
-              foreground: side.foreground
-              accent: side.chipFg
-              trackHeight: 16
-              activeFocusOnTab: false
-              onToggled: if (host) host.setAllGroupsVisible(!host.allGroupsVisible)
             }
           }
         }
@@ -122,7 +132,7 @@ Rectangle {
             // the tree — its group rows below share the same trunk x.
             Item {
               width: areaCol.width
-              height: Math.max(Style.space(20), areaLabel.implicitHeight + 4)
+              height: Math.max(Style.space(18), areaLabel.implicitHeight + 3)
 
               Rectangle {
                 anchors.left: parent.left
@@ -134,57 +144,57 @@ Rectangle {
                 opacity: 0.35
               }
 
-              Row {
-                anchors.fill: parent
-                anchors.leftMargin: 14
-                spacing: 4
-
-                Text {
-                  id: areaLabel
-                  anchors.verticalCenter: parent.verticalCenter
-                  width: parent.width - 40
-                  text: areaCol.modelData.title
-                  textFormat: Text.PlainText
-                  color: side.foreground
-                  opacity: 0.75
-                  font.family: side.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.bold: true
-                  font.capitalization: Font.AllUppercase
-                  elide: Text.ElideRight
-                  MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    // Show only this area's groups on the board.
-                    onClicked: {
-                      if (!host)
-                        return
-                      if (!host.omarchyActive)
-                        host.selectSource("omarchy")
-                      var titles = []
-                      var groups = areaCol.modelData.groups || []
-                      for (var ci = 0; ci < groups.length; ci++)
-                        titles.push(groups[ci].title)
-                      host.soloGroups(titles)
-                    }
-                  }
+              ToggleSwitch {
+                id: areaSwitch
+                anchors.right: parent.right
+                anchors.rightMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                checked: areaCol.allVisible
+                foreground: side.foreground
+                accent: side.chipFg
+                trackHeight: 12
+                activeFocusOnTab: false
+                onToggled: {
+                  if (!host)
+                    return
+                  var titles = []
+                  var groups = areaCol.modelData.groups || []
+                  for (var ti = 0; ti < groups.length; ti++)
+                    titles.push(groups[ti].title)
+                  host.setGroupsVisible(titles, !areaCol.allVisible)
                 }
+              }
 
-                ToggleSwitch {
-                  anchors.verticalCenter: parent.verticalCenter
-                  checked: areaCol.allVisible
-                  foreground: side.foreground
-                  accent: side.chipFg
-                  trackHeight: 13
-                  activeFocusOnTab: false
-                  onToggled: {
+              Text {
+                id: areaLabel
+                anchors.left: parent.left
+                anchors.leftMargin: 14
+                anchors.right: areaSwitch.left
+                anchors.rightMargin: 6
+                anchors.verticalCenter: parent.verticalCenter
+                text: areaCol.modelData.title
+                textFormat: Text.PlainText
+                color: side.foreground
+                opacity: 0.75
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                font.bold: true
+                font.capitalization: Font.AllUppercase
+                elide: Text.ElideRight
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  // Show only this area's groups on the board.
+                  onClicked: {
                     if (!host)
                       return
+                    if (!host.omarchyActive)
+                      host.selectSource("omarchy")
                     var titles = []
                     var groups = areaCol.modelData.groups || []
-                    for (var ti = 0; ti < groups.length; ti++)
-                      titles.push(groups[ti].title)
-                    host.setGroupsVisible(titles, !areaCol.allVisible)
+                    for (var ci = 0; ci < groups.length; ci++)
+                      titles.push(groups[ci].title)
+                    host.soloGroups(titles)
                   }
                 }
               }
@@ -197,7 +207,7 @@ Rectangle {
               delegate: Item {
                 required property var modelData
                 width: areaCol.width
-                height: Math.max(Style.space(22), groupLabel.implicitHeight + 4)
+                height: Math.max(Style.space(18), groupLabel.implicitHeight + 3)
 
                 Rectangle {
                   anchors.left: parent.left
@@ -209,45 +219,45 @@ Rectangle {
                   opacity: 0.35
                 }
 
-                Row {
-                  anchors.fill: parent
+                ToggleSwitch {
+                  id: groupSwitch
+                  anchors.right: parent.right
+                  anchors.rightMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  checked: !modelData.hidden
+                  foreground: side.foreground
+                  accent: side.chipFg
+                  trackHeight: 11
+                  activeFocusOnTab: false
+                  onToggled: if (host) host.toggleGroup(modelData.title)
+                }
+
+                Text {
+                  id: groupLabel
+                  anchors.left: parent.left
                   anchors.leftMargin: 26
-                  spacing: 6
-
-                  ToggleSwitch {
-                    anchors.verticalCenter: parent.verticalCenter
-                    checked: !modelData.hidden
-                    foreground: side.foreground
-                    accent: side.chipFg
-                    trackHeight: 14
-                    activeFocusOnTab: false
-                    onToggled: if (host) host.toggleGroup(modelData.title)
-                  }
-
-                  Text {
-                    id: groupLabel
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 36
-                    text: modelData.title
-                    textFormat: Text.PlainText
-                    color: host && host.omarchyActive && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
-                    opacity: modelData.hidden ? 0.4 : 1
-                    font.family: side.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: host && host.omarchyActive && modelData.title === host.selectedSectionTitle
-                    elide: Text.ElideRight
-                    MouseArea {
-                      anchors.fill: parent
-                      cursorShape: Qt.PointingHandCursor
-                      // Show only this group's table on the board.
-                      onClicked: {
-                        if (!host)
-                          return
-                        if (!host.omarchyActive)
-                          host.selectSource("omarchy")
-                        host.soloGroups([modelData.title])
-                        host.focusGroup(modelData.title)
-                      }
+                  anchors.right: groupSwitch.left
+                  anchors.rightMargin: 6
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: modelData.title
+                  textFormat: Text.PlainText
+                  color: host && host.omarchyActive && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
+                  opacity: modelData.hidden ? 0.4 : 1
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: host && host.omarchyActive && modelData.title === host.selectedSectionTitle
+                  elide: Text.ElideRight
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    // Show only this group's table on the board.
+                    onClicked: {
+                      if (!host)
+                        return
+                      if (!host.omarchyActive)
+                        host.selectSource("omarchy")
+                      host.soloGroups([modelData.title])
+                      host.focusGroup(modelData.title)
                     }
                   }
                 }
@@ -270,7 +280,7 @@ Rectangle {
               text: side.windowsOpen ? "▾" : "▸"
               color: side.chipFg
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: side.rootFontSize
               MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -285,7 +295,7 @@ Rectangle {
               textFormat: Text.PlainText
               color: side.chipFg
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: side.rootFontSize
               font.bold: true
               font.capitalization: Font.AllUppercase
             }
@@ -295,7 +305,7 @@ Rectangle {
         Item {
           visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
           width: treeCol.width
-          height: visible ? Math.max(Style.space(22), noWindowsLabel.implicitHeight + 4) : 0
+          height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
 
           Rectangle {
             anchors.left: parent.left
@@ -318,7 +328,7 @@ Rectangle {
             color: side.foreground
             opacity: 0.5
             font.family: side.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: side.subFontSize
             font.italic: true
           }
         }
@@ -328,7 +338,7 @@ Rectangle {
           delegate: Item {
             required property var modelData
             width: treeCol.width
-            height: Math.max(Style.space(22), winLabel.implicitHeight + 4)
+            height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
 
             Rectangle {
               anchors.left: parent.left
@@ -352,7 +362,7 @@ Rectangle {
               color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
               opacity: modelData.sheet ? 1 : 0.55
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: side.subFontSize
               font.bold: host && host.activeSource === modelData.class
               elide: Text.ElideRight
               MouseArea {
