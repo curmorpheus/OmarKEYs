@@ -61,16 +61,17 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
-            shown: side.omarchyOpen
+            shown: side.omarchyOpen && !(host && host.allGroupsHidden)
             foreground: side.foreground
             accent: side.chipFg
             fontFamily: side.fontFamily
             fontSize: side.subFontSize
             onToggled: {
               var h = side.host
-              side.omarchyOpen = !side.omarchyOpen
+              var reveal = !(side.omarchyOpen && !(h && h.allGroupsHidden))
+              side.omarchyOpen = reveal
               if (h)
-                h.setAllGroupsVisible(side.omarchyOpen)
+                h.setAllGroupsVisible(reveal)
             }
           }
 
@@ -380,7 +381,7 @@ Rectangle {
         }
 
         Item {
-          visible: side.windowsOpen && host && (!host.visibleClients || host.visibleClients.length === 0)
+          visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
           width: treeCol.width
           height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
 
@@ -400,9 +401,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            text: (host && host.clients && host.clients.length)
-              ? "All apps hidden — Show to bring them back"
-              : "No windows detected"
+            text: "No windows detected"
             textFormat: Text.PlainText
             color: side.foreground
             opacity: 0.5
@@ -442,7 +441,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.rightMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
-                shown: true
+                shown: !kindCol.modelData.hidden
                 foreground: side.foreground
                 accent: side.chipFg
                 fontFamily: side.fontFamily
@@ -455,7 +454,7 @@ Rectangle {
                   var apps = kindCol.modelData.apps || []
                   for (var ci = 0; ci < apps.length; ci++)
                     classes.push(apps[ci].class)
-                  h.setAppsVisible(classes, false)
+                  h.setAppsVisible(classes, kindCol.modelData.hidden)
                 }
               }
 
@@ -479,7 +478,7 @@ Rectangle {
             }
 
             Repeater {
-              model: kindCol.modelData.apps
+              model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
               delegate: Item {
                 required property var modelData
                 width: kindCol.width
@@ -495,27 +494,10 @@ Rectangle {
                   opacity: 0.35
                 }
 
-                KeymapHideButton {
-                  id: winToggle
-                  anchors.right: parent.right
-                  anchors.rightMargin: 2
-                  anchors.verticalCenter: parent.verticalCenter
-                  shown: true
-                  foreground: side.foreground
-                  accent: side.chipFg
-                  fontFamily: side.fontFamily
-                  fontSize: side.subFontSize
-                  onToggled: {
-                    var h = side.host
-                    if (h)
-                      h.toggleApp(modelData.class)
-                  }
-                }
-
                 Text {
                   id: winLabel
                   anchors.left: parent.left
-                  anchors.right: winToggle.left
+                  anchors.right: parent.right
                   anchors.leftMargin: 26
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
