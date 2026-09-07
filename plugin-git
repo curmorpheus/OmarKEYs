@@ -12,7 +12,7 @@ that a person (or another agent) may be working in.
 
   status            current branch/hash/dirty + selectable branches
   fetch             refresh remote refs first, then report status
-  switch <branch>   checkout an existing local or origin branch
+  switch <branch>   checkout a branch, then fast-forward it to the remote
   sync              fast-forward the current branch to its upstream
 """
 from __future__ import annotations
@@ -105,12 +105,28 @@ def checked_out_elsewhere() -> set[str]:
     return held
 
 
+def upstream_ref(branch: str) -> str:
+    """The branch's upstream, falling back to origin/<branch>.
+
+    A local branch is not always created with tracking info - `git branch`
+    without --track, or a checkout made by hand - and without this the
+    branch would silently report 0 behind and refuse to auto-sync.
+    """
+    up = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+    if up.returncode == 0 and out(up.stdout):
+        return out(up.stdout)
+    if branch:
+        remote = git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
+        if remote.returncode == 0:
+            return f"origin/{branch}"
+    return ""
+
+
 def divergence(branch: str) -> tuple[str, int, int]:
     """(upstream, ahead, behind) for branch, or ("", 0, 0) with no upstream."""
-    up = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
-    if up.returncode != 0:
+    upstream = upstream_ref(branch)
+    if not upstream:
         return "", 0, 0
-    upstream = out(up.stdout)
     counts = git("rev-list", "--left-right", "--count", f"{upstream}...HEAD")
     if counts.returncode != 0:
         return upstream, 0, 0
@@ -186,24 +202,42 @@ def cmd_switch(args: argparse.Namespace) -> dict:
         proc = git("checkout", "-b", branch, "--track", f"origin/{branch}")
     if proc.returncode != 0:
         return status_payload(git_error(proc))
-    return status_payload()
+    # Land on the newest commit of the branch, not whatever local tip was
+    # left behind the last time this channel was visited. Reported as a
+    # soft failure: the switch itself already happened, so a fetch that
+    # cannot reach the network should not read as "switch failed".
+    # Sync first, then report: building the payload before the
+    # fast-forward would hand the overlay the pre-sync hash and a stale
+    # "behind" count for a branch it had just brought up to date.
+    sync_error = fast_forward()
+    payload = status_payload()
+    payload["syncError"] = sync_error
+    return payload
+
+
+def fast_forward() -> str:
+    """Bring the current branch up to its upstream. Returns "" or an error."""
+    try:
+        fetched = git("fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return "fetch timed out"
+    if fetched.returncode != 0:
+        return git_error(fetched)
+    upstream = upstream_ref(current_branch())
+    if not upstream:
+        return "no upstream to sync from"
+    # --ff-only so a diverged branch reports instead of creating a merge.
+    proc = git("merge", "--ff-only", upstream)
+    if proc.returncode != 0:
+        return git_error(proc)
+    return ""
 
 
 def cmd_sync(_args: argparse.Namespace) -> dict:
     dirty = git("status", "--porcelain")
     if out(dirty.stdout):
         return status_payload("uncommitted changes - not syncing")
-    try:
-        fetched = git("fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        return status_payload("fetch timed out")
-    if fetched.returncode != 0:
-        return status_payload(git_error(fetched))
-    # --ff-only so a diverged branch reports instead of creating a merge.
-    proc = git("merge", "--ff-only", "@{upstream}")
-    if proc.returncode != 0:
-        return status_payload(git_error(proc))
-    return status_payload()
+    return status_payload(fast_forward())
 
 
 def main() -> int:

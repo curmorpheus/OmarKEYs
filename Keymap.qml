@@ -387,7 +387,9 @@ Item {
     root.gitDirty = data.dirty === true
     root.gitBehind = data.behind || 0
     root.gitUpdateAvailable = data.updateAvailable === true
-    root.gitError = data.error || data.fetchError || ""
+    // syncError is soft: the switch itself succeeded, only the follow-up
+    // fast-forward did not, so it must not block the reload below.
+    root.gitError = data.error || data.fetchError || data.syncError || ""
     // Only a clean switch/sync warrants restarting the shell; a refusal
     // leaves the checkout untouched, so there is nothing to reload.
     if (root.gitReloadPending && data.ok && !data.error) {
