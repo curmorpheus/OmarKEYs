@@ -54,10 +54,13 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
+          HoverHandler { id: omarchyHover }
+
           // Hiding a branch takes its whole subtree off the board and
           // collapses it here, so one control does both.
           KeymapHideButton {
             id: omarchyToggle
+            visible: omarchyHover.hovered || omarchyToggle.hovered
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
@@ -159,6 +162,8 @@ Rectangle {
               width: areaCol.width
               height: Math.max(Style.space(18), areaLabel.implicitHeight + 3)
 
+              HoverHandler { id: areaHover }
+
               Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: 6
@@ -171,6 +176,7 @@ Rectangle {
 
               KeymapHideButton {
                 id: areaSwitch
+                visible: areaHover.hovered || areaSwitch.hovered
                 anchors.right: parent.right
                 anchors.rightMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
@@ -236,6 +242,11 @@ Rectangle {
                 width: areaCol.width
                 height: Math.max(Style.space(18), groupLabel.implicitHeight + 3)
 
+                // Reveals this row's control. A HoverHandler rather than a
+                // MouseArea so it does not sit between the label and its
+                // own click handler.
+                HoverHandler { id: groupHover }
+
                 Rectangle {
                   anchors.left: parent.left
                   anchors.leftMargin: 6
@@ -251,6 +262,7 @@ Rectangle {
                   anchors.right: parent.right
                   anchors.rightMargin: 2
                   anchors.verticalCenter: parent.verticalCenter
+                  visible: groupHover.hovered || groupSwitch.hovered
                   shown: !modelData.hidden
                   foreground: side.foreground
                   accent: side.chipFg
@@ -307,38 +319,32 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
 
-          // Says what a click will do, not what state you are in: "Hide"
-          // while the branch is open, "Show" once it is collapsed.
-          Rectangle {
+          HoverHandler { id: windowsHover }
+
+          KeymapHideButton {
             id: windowsToggle
+            visible: windowsHover.hovered || windowsToggle.hovered
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
-            width: windowsToggleLabel.implicitWidth + Style.space(8)
-            height: windowsToggleLabel.implicitHeight + Style.space(4)
-            radius: 4
-            border.width: 1
-            border.color: side.borderColor
-            color: windowsToggleArea.containsMouse
-              ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
-              : "transparent"
-
-            Text {
-              id: windowsToggleLabel
-              anchors.centerIn: parent
-              text: side.windowsOpen ? "Hide" : "Show"
-              textFormat: Text.PlainText
-              color: side.foreground
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-            }
-
-            MouseArea {
-              id: windowsToggleArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: side.windowsOpen = !side.windowsOpen
+            // Tracks content, not just expansion: a branch whose apps are
+            // all hidden must still offer "Show", or hiding everything is
+            // a one-way door.
+            shown: side.windowsOpen && !(host && host.allAppsHidden)
+            foreground: side.foreground
+            accent: side.chipFg
+            fontFamily: side.fontFamily
+            fontSize: side.subFontSize
+            onToggled: {
+              var h = side.host
+              var reveal = !(side.windowsOpen && !(h && h.allAppsHidden))
+              side.windowsOpen = reveal
+              if (h) {
+                if (reveal)
+                  h.showAllApps()
+                else
+                  h.setAppsVisible(h.allAppClasses, false)
+              }
             }
           }
 
@@ -426,6 +432,8 @@ Rectangle {
               width: kindCol.width
               height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
 
+              HoverHandler { id: kindHover }
+
               Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: 6
@@ -438,6 +446,7 @@ Rectangle {
 
               KeymapHideButton {
                 id: kindToggle
+                visible: kindHover.hovered || kindToggle.hovered
                 anchors.right: parent.right
                 anchors.rightMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
