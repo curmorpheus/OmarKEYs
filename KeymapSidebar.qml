@@ -527,9 +527,14 @@ Rectangle {
 
             Repeater {
               model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
-              delegate: Item {
+              delegate: Column {
+                id: appCol
                 required property var modelData
                 width: kindCol.width
+                spacing: 2
+
+              Item {
+                width: appCol.width
                 height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
 
                 Rectangle {
@@ -575,6 +580,105 @@ Rectangle {
                     }
                   }
                 }
+              }
+
+              // One window is the app row itself; more than one and each
+              // gets its own line, named by what is running in it.
+              Repeater {
+                model: (appCol.modelData.windows && appCol.modelData.windows.length > 1)
+                  ? appCol.modelData.windows : []
+                delegate: Column {
+                  id: winCol
+                  required property var modelData
+                  width: appCol.width
+                  spacing: 2
+
+                  Item {
+                    width: winCol.width
+                    height: Math.max(Style.space(17), exeLabel.implicitHeight + 3)
+
+                    Rectangle {
+                      anchors.left: parent.left
+                      anchors.leftMargin: 6
+                      anchors.top: parent.top
+                      anchors.bottom: parent.bottom
+                      width: 1
+                      color: side.borderColor
+                      opacity: 0.35
+                    }
+
+                    Text {
+                      id: exeLabel
+                      anchors.left: parent.left
+                      anchors.right: parent.right
+                      anchors.leftMargin: 38
+                      anchors.rightMargin: 6
+                      anchors.verticalCenter: parent.verticalCenter
+                      // An idle shell has no program to name, so its title
+                      // takes this line instead of an empty one.
+                      text: (winCol.modelData.focused ? "· " : "")
+                        + (winCol.modelData.exe || winCol.modelData.title)
+                      textFormat: Text.PlainText
+                      color: side.foreground
+                      opacity: winCol.modelData.exe ? 1 : 0.8
+                      font.family: side.fontFamily
+                      font.pixelSize: side.subFontSize
+                      elide: Text.ElideRight
+                      MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onDoubleClicked: {
+                          var h = side.host
+                          if (h)
+                            h.focusWindow(winCol.modelData.address)
+                        }
+                      }
+                    }
+                  }
+
+                  // The window's own name, under the program running in it.
+                  Item {
+                    visible: !!winCol.modelData.exe
+                    width: winCol.width
+                    height: visible ? Math.max(Style.space(16), titleLabel.implicitHeight + 2) : 0
+
+                    Rectangle {
+                      anchors.left: parent.left
+                      anchors.leftMargin: 6
+                      anchors.top: parent.top
+                      anchors.bottom: parent.bottom
+                      width: 1
+                      color: side.borderColor
+                      opacity: 0.35
+                    }
+
+                    Text {
+                      id: titleLabel
+                      anchors.left: parent.left
+                      anchors.right: parent.right
+                      anchors.leftMargin: 50
+                      anchors.rightMargin: 6
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: winCol.modelData.title
+                      textFormat: Text.PlainText
+                      color: side.foreground
+                      opacity: 0.6
+                      font.family: side.fontFamily
+                      font.pixelSize: side.subFontSize
+                      elide: Text.ElideRight
+                      MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onDoubleClicked: {
+                          var h = side.host
+                          if (h)
+                            h.focusWindow(winCol.modelData.address)
+                        }
+                      }
+                    }
+                  }
+                }
+              }
               }
             }
           }
