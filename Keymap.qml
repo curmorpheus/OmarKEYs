@@ -466,6 +466,23 @@ Item {
     root.saveConfig()
   }
 
+  // Click a branch in the tree to show only that branch: every Omarchy
+  // group outside `titles` is hidden, so the board shows just the one
+  // area/group you picked. Clicking the Omarchy root shows them all again.
+  function soloGroups(titles) {
+    var keep = {}
+    for (var i = 0; i < titles.length; i++)
+      keep[titles[i]] = true
+    var next = []
+    var list = root.omarchyGroupList
+    for (var j = 0; j < list.length; j++) {
+      if (!keep[list[j].title])
+        next.push(list[j].title)
+    }
+    root.hiddenGroups = next
+    root.saveConfig()
+  }
+
   function setGroupsVisible(titles, show) {
     var set = {}
     for (var i = 0; i < titles.length; i++)

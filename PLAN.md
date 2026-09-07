@@ -100,6 +100,24 @@ per branch (Omarchy's areas/groups, and Active Apps' clients) so the
 nesting reads visually, not just by indent depth. Renamed "Open
 windows" to "Active Apps" to match how it's talked about.
 
+User comment (click to filter / click to run):
+
+- Clicking a branch in the tree should hide the tables in the other
+  branches.
+- Clicking a command should run it and close the overlay.
+
+Dealt with: clicking an area or a group now *solos* it — every other
+Omarchy group is hidden so the board shows only what you clicked
+(`soloGroups()`). Clicking the **Omarchy** root restores all of them,
+so it doubles as the reset. Solo writes through the normal
+`hiddenGroups` setting, so it persists like the toggles do. Active Apps
+was already exclusive: picking a window swaps the whole board to that
+app's sheet. Click-to-run-and-close already shipped in v1 (`activateRow`
+→ `executeSelected` → `dismiss()`, chord replayed by `run-shortcut`);
+only rows that can't be dispatched as one chord stay inert — ranges
+("Super + 1-9"), gestures (double-tap / hold), and descriptive rows
+("Volume keys", "Play / pause") — and those are dimmed to show it.
+
 ## Future
 
 ### Finish Phase 3 — View | Edit UI

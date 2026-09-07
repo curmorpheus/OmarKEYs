@@ -77,7 +77,14 @@ Rectangle {
               MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: if (host) host.selectSource("omarchy")
+                // Root of the branch: back to the whole Omarchy keymap,
+                // undoing any area/group solo from a previous click.
+                onClicked: {
+                  if (!host)
+                    return
+                  host.selectSource("omarchy")
+                  host.setAllGroupsVisible(true)
+                }
               }
             }
 
@@ -145,6 +152,22 @@ Rectangle {
                   font.bold: true
                   font.capitalization: Font.AllUppercase
                   elide: Text.ElideRight
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    // Show only this area's groups on the board.
+                    onClicked: {
+                      if (!host)
+                        return
+                      if (!host.omarchyActive)
+                        host.selectSource("omarchy")
+                      var titles = []
+                      var groups = areaCol.modelData.groups || []
+                      for (var ci = 0; ci < groups.length; ci++)
+                        titles.push(groups[ci].title)
+                      host.soloGroups(titles)
+                    }
+                  }
                 }
 
                 ToggleSwitch {
@@ -216,11 +239,13 @@ Rectangle {
                     MouseArea {
                       anchors.fill: parent
                       cursorShape: Qt.PointingHandCursor
+                      // Show only this group's table on the board.
                       onClicked: {
                         if (!host)
                           return
                         if (!host.omarchyActive)
                           host.selectSource("omarchy")
+                        host.soloGroups([modelData.title])
                         host.focusGroup(modelData.title)
                       }
                     }
