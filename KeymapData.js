@@ -265,7 +265,20 @@ var KEY_ICONS = {
   RMB: "\udb80\udf7d R",
   MMB: "\udb80\udf7d M",
   "Wheel\u2193": "\udb80\udf5d",
-  "Wheel\u2191": "\udb80\udf5e"
+  "Wheel\u2191": "\udb80\udf5e",
+  Left: "\udb80\udc4d",
+  Right: "\udb80\udc54",
+  Up: "\udb80\udc5d",
+  Down: "\udb80\udc45",
+  Return: "\udb80\udf11",
+  Enter: "\udb80\udf11",
+  Tab: "\udb80\udf12",
+  Space: "\udb84\udc50",
+  Escape: "\udb84\udeb7",
+  Backspace: "\udb80\udc6e",
+  Delete: "\udb80\udd56",
+  Home: "\udb80\udedc",
+  Print: "\udb81\udc2a"
 }
 
 function iconKey(name) {
@@ -319,10 +332,10 @@ function setConfig(cfg) {
       Ctrl: normalizeModifierMode(modsIn.Ctrl),
       Alt: normalizeModifierMode(modsIn.Alt)
     },
-    chipStyle: (cfg && (cfg.chipStyle === "short" || cfg.chipStyle === "icons"))
-      ? cfg.chipStyle : "full",
-    rowLayout: (cfg && cfg.rowLayout === "action") ? "action" : "keys",
-    sortBy: (cfg && cfg.sortBy === "action") ? "action" : "section",
+    chipStyle: (cfg && (cfg.chipStyle === "short" || cfg.chipStyle === "full"))
+      ? cfg.chipStyle : "icons",
+    rowLayout: (cfg && cfg.rowLayout === "keys") ? "keys" : "action",
+    sortBy: (cfg && cfg.sortBy === "section") ? "section" : "action",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
       ? cfg.searchMode : "all"
   }

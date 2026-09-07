@@ -19,7 +19,8 @@ Rectangle {
   readonly property int labelSize: Style.font.caption
 
   width: Style.space(300)
-  height: Math.min(Style.space(460), content.implicitHeight + Style.spacing.md * 2)
+  height: Math.min(Style.space(520),
+    content.implicitHeight + Style.spacing.md * 2 + restoreButton.height + Style.space(4))
   radius: 6
   color: host ? host.background : Color.menu.background
   border.width: 1
@@ -51,10 +52,33 @@ Rectangle {
     }
   }
 
+  Text {
+    id: restoreButton
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    anchors.margins: Style.spacing.sm
+    text: "Restore defaults"
+    textFormat: Text.PlainText
+    color: restoreArea.containsMouse ? menu.chipFg : menu.foreground
+    opacity: restoreArea.containsMouse ? 1 : 0.5
+    font.family: menu.fontFamily
+    font.pixelSize: menu.labelSize
+
+    MouseArea {
+      id: restoreArea
+      anchors.fill: parent
+      anchors.margins: -Style.space(3)
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: if (menu.host) menu.host.restoreDefaults()
+    }
+  }
+
   Column {
     id: content
     anchors.fill: parent
     anchors.margins: Style.spacing.md
+    anchors.bottomMargin: Style.spacing.md + restoreButton.height
     spacing: Style.space(7)
 
     Text {
@@ -182,6 +206,45 @@ Rectangle {
         tickColor: menu.color
         onMoved: function(v) { if (menu.host) menu.host.fontScale = v }
         onReleased: function(v) { if (menu.host) menu.host.setFontScale(v) }
+      }
+    }
+
+    Item {
+      readonly property bool live: !!(menu.host && menu.host.chipStyle === "icons")
+      width: content.width
+      height: Math.max(Style.space(22), iconSizeLabel.implicitHeight + 4)
+      // Shown always, dimmed when it would do nothing, so the control does
+      // not appear and disappear as the chip style cycles.
+      opacity: live ? 1 : 0.35
+
+      Text {
+        id: iconSizeLabel
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: parent.live ? "Icon size" : "Icon size (icons off)"
+        textFormat: Text.PlainText
+        color: menu.foreground
+        opacity: 0.75
+        font.family: menu.fontFamily
+        font.pixelSize: menu.labelSize
+      }
+
+      PanelSlider {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        width: Style.space(130)
+        enabled: parent.live
+        minimum: 1.0
+        maximum: 2.0
+        step: 0.05
+        activeFocusOnTab: false
+        value: menu.host ? menu.host.iconScale : 1.35
+        fillColor: menu.chipFg
+        knobColor: menu.chipFg
+        trackColor: Qt.rgba(menu.chipFg.r, menu.chipFg.g, menu.chipFg.b, 0.22)
+        tickColor: menu.color
+        onMoved: function(v) { if (menu.host) menu.host.iconScale = v }
+        onReleased: function(v) { if (menu.host) menu.host.setIconScale(v) }
       }
     }
 

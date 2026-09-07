@@ -243,9 +243,14 @@ test("icon chips use in-font glyphs and fall back to text when unmapped", () => 
   assert.ok(vol[0].codePointAt(0) >= 0xF0000, "expected a Nerd Font glyph")
   // A mouse button keeps its side, which a bare mouse glyph would lose.
   assert.ok(context.displayKeys("Super + Left + Mouse + Button", "icons")[1].endsWith("L"))
-  // Ordinary keys have no icon and keep short text rather than going blank.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Return", "icons")),
-    JSON.stringify(["Sup", "Shft", "Ret"]))
+  // Named keys are glyphs too, so a row does not mix icons with text arrows.
+  const named = context.displayKeys("Super + Shift + Return", "icons")
+  assert.ok(named[2].codePointAt(0) >= 0xF0000, "Return should be a glyph")
+  assert.ok(context.displayKeys("Super + Left", "icons")[1].codePointAt(0) >= 0xF0000,
+    "arrow keys should be glyphs, not text arrows")
+  // A letter has no icon and keeps its short text rather than going blank.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + B", "icons")),
+    JSON.stringify(["Sup", "Shft", "B"]))
 })
 
 test("a mouse bind is one chip, and only real arrow keys become arrows", () => {

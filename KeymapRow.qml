@@ -18,6 +18,7 @@ Rectangle {
   property string chipStyle: "full"
   property string rowLayout: "keys"
   property real fontScale: 1.0
+  property real iconScale: 1.35
   readonly property bool keysFirst: rowLayout !== "action"
   // Geometry, not toggled anchors: assigning undefined to an anchor does
   // not clear one already set, so swapping the columns left both sides
@@ -90,7 +91,7 @@ Rectangle {
           font.family: row.fontFamily
           // Icons read smaller than letters at the same pixel size.
           font.pixelSize: Math.round(Style.font.caption * row.fontScale
-            * (parent.isIcon ? 1.35 : 1))
+            * (parent.isIcon ? row.iconScale : 1))
           font.bold: true
         }
       }
