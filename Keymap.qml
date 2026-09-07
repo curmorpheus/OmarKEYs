@@ -36,12 +36,15 @@ Item {
   property var hiddenGroups: []
   // Layout experiments, switchable from the settings bar so they can be
   // compared against each other rather than rebuilt to try.
-  property string chipStyle: "full"     // full | short | icons
-  property string rowLayout: "keys"     // keys | action
-  property string sortBy: "section"     // section | action
+  property string chipStyle: "icons"    // full | short | icons
+  property string rowLayout: "action"   // keys | action
+  property string sortBy: "action"      // section | action
   property string searchMode: "all"     // all | keys | action
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
+  // Icons carry their own size: a glyph reads smaller than a letter, and
+  // how much smaller depends on the font, so it is worth its own control.
+  property real iconScale: 1.35
   // Apps switched off in the tree, by window class. A hidden app leaves the
   // list rather than sitting there dimmed: this is a live window list, so a
   // permanent dimmed entry is just clutter of a different kind. Showing the
@@ -112,6 +115,7 @@ Item {
       sortBy: root.sortBy,
       searchMode: root.searchMode,
       fontScale: root.fontScale,
+      iconScale: root.iconScale,
       modifiers: {
         Super: root.modSuper,
         Shift: root.modShift,
@@ -169,6 +173,9 @@ Item {
         var scale = Number(cfg.fontScale)
         if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
+        var icons = Number(cfg.iconScale)
+        if (icons >= 1.0 && icons <= 2.0)
+          root.iconScale = icons
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
           root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
@@ -859,6 +866,37 @@ Item {
     if (next === root.fontScale)
       return
     root.fontScale = next
+    root.saveConfig()
+  }
+
+  function setIconScale(value) {
+    var next = Math.max(1.0, Math.min(2.0, Math.round(Number(value) * 20) / 20))
+    if (next === root.iconScale)
+      return
+    root.iconScale = next
+    root.saveConfig()
+  }
+
+  // Everything the options panel can change, back to how it ships - the
+  // filters and hidden branches included, since those are the settings
+  // most likely to leave the board looking broken.
+  function restoreDefaults() {
+    root.chipStyle = "icons"
+    root.rowLayout = "action"
+    root.sortBy = "action"
+    root.searchMode = "all"
+    root.fontScale = 1.0
+    root.iconScale = 1.35
+    root.modSuper = "any"
+    root.modShift = "any"
+    root.modCtrl = "any"
+    root.modAlt = "any"
+    root.hiddenGroups = []
+    root.hiddenApps = []
+    root.preSoloHidden = null
+    root.doubleTap = true
+    root.holdSeconds = 5
+    root.filterText = ""
     root.saveConfig()
   }
 
