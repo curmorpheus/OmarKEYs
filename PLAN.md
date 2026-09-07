@@ -78,12 +78,27 @@ intentional "jump to this app" action. Not building this.
 ### Phase 2 — Sidebar tree UI
 
 - [x] Omarchy as the default expanded branch, with current groups under it
-- [x] Open windows branch from live clients; click loads that app’s sheet
+- [x] Active Apps branch from live clients; click loads that app’s sheet
 - [x] Focused window marked in the tree
 - [x] Groups / modifiers still apply to the active branch
 - [x] Empty-state copy names the app when a window has no bundled sheet
 - [x] Empty-state row ("No windows detected") when no clients are open
 - [x] Auto-select the focused window — decided against, see note above
+
+User comment (tree structure):
+
+- The sidebar wasn't really reading as a tree — groups sat flat under
+  Omarchy with no visual hierarchy, and Active Apps needed to clearly
+  read as Omarchy's sibling branch rather than an afterthought below it.
+
+Dealt with: Omarchy's ~14 topic groups are now bucketed into 5 areas
+(`KeymapData.groupedCatalog`, kept in sync with `dump-keymap`'s
+`SECTION_RULES`) — Launch & navigate, Windows & workspaces, Clipboard &
+capture, System & media, Apps — each with its own bulk show/hide toggle
+alongside the per-group ones. Sidebar rows now draw a trunk guide line
+per branch (Omarchy's areas/groups, and Active Apps' clients) so the
+nesting reads visually, not just by indent depth. Renamed "Open
+windows" to "Active Apps" to match how it's talked about.
 
 ## Future
 

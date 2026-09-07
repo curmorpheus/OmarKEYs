@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -136,4 +136,27 @@ test("hiding every group empties the grid", () => {
   assert.equal(context.filtered("").length, 0)
   assert.equal(context.catalog().length, titles.length)
   context.setConfig({ doubleTap: true, holdSeconds: 5, hiddenGroups: [] })
+})
+
+test("groupedCatalog buckets every section into exactly 5 areas, none dropped", () => {
+  const areas = context.groupedCatalog(context.sections)
+  assert.equal(areas.length, 5)
+  const flatTitles = context.catalogFor(context.sections).map((g) => g.title).sort()
+  const groupedTitles = areas.flatMap((a) => a.groups.map((g) => g.title)).sort()
+  assert.deepEqual(groupedTitles, flatTitles)
+})
+
+test("groupedCatalog carries hidden flags through to nested groups", () => {
+  context.setConfig({ doubleTap: true, holdSeconds: 5, hiddenGroups: ["Workspaces"] })
+  const areas = context.groupedCatalog(context.sections)
+  const workspaces = areas.flatMap((a) => a.groups).find((g) => g.title === "Workspaces")
+  assert.equal(workspaces.hidden, true)
+  context.setConfig({ doubleTap: true, holdSeconds: 5, hiddenGroups: [] })
+})
+
+test("groupedCatalog still buckets everything when a section list omits Other", () => {
+  const withoutOther = context.sections.filter((s) => s.title !== "Other")
+  const areas = context.groupedCatalog(withoutOther)
+  const groupedTitles = areas.flatMap((a) => a.groups.map((g) => g.title)).sort()
+  assert.deepEqual(groupedTitles, context.catalogFor(withoutOther).map((g) => g.title).sort())
 })

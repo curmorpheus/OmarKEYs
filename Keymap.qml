@@ -28,6 +28,7 @@ Item {
   property var hiddenGroups: []
   property var groupList: []
   property var omarchyGroupList: []
+  property var omarchyTree: []
   property string modSuper: "any"
   property string modShift: "any"
   property string modCtrl: "any"
@@ -395,9 +396,9 @@ Item {
     var keepAction = root.selectedAction
     root.applyConfigToData()
     root.groupList = KeymapData.catalog()
-    root.omarchyGroupList = KeymapData.catalogFor(
-      (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
-    )
+    var omarchySource = (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
+    root.omarchyGroupList = KeymapData.catalogFor(omarchySource)
+    root.omarchyTree = KeymapData.groupedCatalog(omarchySource)
     var cols = KeymapData.columns(root.filterText)
     root.leftSections = cols.left
     root.rightSections = cols.right
@@ -461,6 +462,23 @@ Item {
     }
     if (hiding)
       next.push(title)
+    root.hiddenGroups = next
+    root.saveConfig()
+  }
+
+  function setGroupsVisible(titles, show) {
+    var set = {}
+    for (var i = 0; i < titles.length; i++)
+      set[titles[i]] = true
+    var next = []
+    for (var j = 0; j < root.hiddenGroups.length; j++) {
+      if (!set[root.hiddenGroups[j]])
+        next.push(root.hiddenGroups[j])
+    }
+    if (!show) {
+      for (var k = 0; k < titles.length; k++)
+        next.push(titles[k])
+    }
     root.hiddenGroups = next
     root.saveConfig()
   }
