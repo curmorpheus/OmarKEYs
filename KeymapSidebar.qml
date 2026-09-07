@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Commons
-import qs.Ui
 
 Rectangle {
   id: side
@@ -55,63 +54,30 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
-          // Same control as Active Apps: collapsing a root branch takes its
-          // whole subtree with it.
-          Rectangle {
+          // Hiding a branch takes its whole subtree off the board and
+          // collapses it here, so one control does both.
+          KeymapHideButton {
             id: omarchyToggle
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
-            width: omarchyToggleLabel.implicitWidth + Style.space(8)
-            height: omarchyToggleLabel.implicitHeight + Style.space(4)
-            radius: 4
-            border.width: 1
-            border.color: side.borderColor
-            color: omarchyToggleArea.containsMouse
-              ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
-              : "transparent"
-
-            Text {
-              id: omarchyToggleLabel
-              anchors.centerIn: parent
-              text: side.omarchyOpen ? "Hide" : "Show"
-              textFormat: Text.PlainText
-              color: side.foreground
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-            }
-
-            MouseArea {
-              id: omarchyToggleArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: side.omarchyOpen = !side.omarchyOpen
-            }
-          }
-
-          ToggleSwitch {
-            id: omarchySwitch
-            anchors.right: omarchyToggle.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            visible: host && host.omarchyActive && side.omarchyOpen
-            checked: host ? host.allGroupsVisible : true
+            shown: side.omarchyOpen
             foreground: side.foreground
             accent: side.chipFg
-            trackHeight: 16
-            activeFocusOnTab: false
+            borderColor: side.borderColor
+            fontFamily: side.fontFamily
+            fontSize: side.subFontSize
             onToggled: {
               var h = side.host
+              side.omarchyOpen = !side.omarchyOpen
               if (h)
-                h.setAllGroupsVisible(!h.allGroupsVisible)
+                h.setAllGroupsVisible(side.omarchyOpen)
             }
           }
 
           Row {
             anchors.fill: parent
-            anchors.rightMargin: omarchyToggle.width
-              + (omarchySwitch.visible ? omarchySwitch.width + 6 : 0) + 8
+            anchors.rightMargin: omarchyToggle.width + 8
             spacing: 4
 
             Text {
@@ -173,6 +139,20 @@ Rectangle {
               return true
             }
 
+            // Hiding an area takes its groups off the board; collapsing the
+            // rows here follows from that rather than being separate state,
+            // so the tree cannot disagree with what the board is showing.
+            readonly property bool allHidden: {
+              var groups = areaCol.modelData.groups || []
+              if (!groups.length)
+                return false
+              for (var hi = 0; hi < groups.length; hi++) {
+                if (!groups[hi].hidden)
+                  return false
+              }
+              return true
+            }
+
             // Area header (depth 1): the trunk line for this branch of
             // the tree — its group rows below share the same trunk x.
             Item {
@@ -189,16 +169,17 @@ Rectangle {
                 opacity: 0.35
               }
 
-              ToggleSwitch {
+              KeymapHideButton {
                 id: areaSwitch
                 anchors.right: parent.right
                 anchors.rightMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
-                checked: areaCol.allVisible
+                shown: !areaCol.allHidden
                 foreground: side.foreground
                 accent: side.chipFg
-                trackHeight: 12
-                activeFocusOnTab: false
+                borderColor: side.borderColor
+                fontFamily: side.fontFamily
+                fontSize: side.subFontSize
                 onToggled: {
                   var h = side.host
                   if (!h)
@@ -207,8 +188,7 @@ Rectangle {
                   var groups = areaCol.modelData.groups || []
                   for (var ti = 0; ti < groups.length; ti++)
                     titles.push(groups[ti].title)
-                  var show = !areaCol.allVisible
-                  h.setGroupsVisible(titles, show)
+                  h.setGroupsVisible(titles, areaCol.allHidden)
                 }
               }
 
@@ -251,7 +231,7 @@ Rectangle {
             // Group rows (depth 2): same trunk x as the header above,
             // content indented past it.
             Repeater {
-              model: areaCol.modelData.groups
+              model: areaCol.allHidden ? [] : areaCol.modelData.groups
               delegate: Item {
                 required property var modelData
                 width: areaCol.width
@@ -267,16 +247,17 @@ Rectangle {
                   opacity: 0.35
                 }
 
-                ToggleSwitch {
+                KeymapHideButton {
                   id: groupSwitch
                   anchors.right: parent.right
                   anchors.rightMargin: 2
                   anchors.verticalCenter: parent.verticalCenter
-                  checked: !modelData.hidden
+                  shown: !modelData.hidden
                   foreground: side.foreground
                   accent: side.chipFg
-                  trackHeight: 11
-                  activeFocusOnTab: false
+                  borderColor: side.borderColor
+                  fontFamily: side.fontFamily
+                  fontSize: side.subFontSize
                   onToggled: {
                     var h = side.host
                     if (h)
@@ -402,7 +383,7 @@ Rectangle {
         }
 
         Item {
-          visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
+          visible: side.windowsOpen && host && (!host.visibleClients || host.visibleClients.length === 0)
           width: treeCol.width
           height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
 
@@ -422,7 +403,9 @@ Rectangle {
             anchors.right: parent.right
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            text: "No windows detected"
+            text: (host && host.clients && host.clients.length)
+              ? "All apps hidden — Show to bring them back"
+              : "No windows detected"
             textFormat: Text.PlainText
             color: side.foreground
             opacity: 0.5
@@ -433,7 +416,7 @@ Rectangle {
         }
 
         Repeater {
-          model: side.windowsOpen && host ? host.clients : []
+          model: side.windowsOpen && host ? host.visibleClients : []
           delegate: Item {
             required property var modelData
             width: treeCol.width
@@ -449,11 +432,30 @@ Rectangle {
               opacity: 0.35
             }
 
+            KeymapHideButton {
+              id: winToggle
+              anchors.right: parent.right
+              anchors.rightMargin: 2
+              anchors.verticalCenter: parent.verticalCenter
+              shown: true
+              foreground: side.foreground
+              accent: side.chipFg
+              borderColor: side.borderColor
+              fontFamily: side.fontFamily
+              fontSize: side.subFontSize
+              onToggled: {
+                var h = side.host
+                if (h)
+                  h.toggleApp(modelData.class)
+              }
+            }
+
             Text {
               id: winLabel
               anchors.left: parent.left
-              anchors.right: parent.right
+              anchors.right: winToggle.left
               anchors.leftMargin: 14
+              anchors.rightMargin: 6
               anchors.verticalCenter: parent.verticalCenter
               text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
                 + (modelData.count > 1 ? " (" + modelData.count + ")" : "")

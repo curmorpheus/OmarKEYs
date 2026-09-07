@@ -14,6 +14,7 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSection.qml` | One topic card |
 | `KeymapRow.qml` | One command row |
 | `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
+| `KeymapHideButton.qml` | Show/Hide control used at every level of the tree |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |
 | `run-shortcut` | Run a selected row after the overlay closes (`--dispatch` for Hyprland binds; chord replay for app sheets) |
