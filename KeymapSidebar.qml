@@ -35,7 +35,7 @@ Rectangle {
 
     Flickable {
       width: parent.width
-      height: Math.max(40, parent.height - modBlock.height - parent.spacing)
+      height: Math.max(40, parent.height - modBlock.height - modDivider.height - parent.spacing * 2)
       clip: true
       contentWidth: width
       contentHeight: treeCol.height
@@ -395,6 +395,21 @@ Rectangle {
             }
           }
         }
+      }
+    }
+
+    Item {
+      id: modDivider
+      width: parent.width
+      height: Style.space(9)
+
+      Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        height: 1
+        color: side.borderColor
+        opacity: 0.5
       }
     }
 
