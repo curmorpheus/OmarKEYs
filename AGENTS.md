@@ -19,6 +19,8 @@ so `omarchy plugin add <git-url>` works.
 | `run-shortcut` | Replay a selected chord after the overlay closes |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
+| `plugin-git` | Branch/update state for the corner picker; switch + sync |
+| `KeymapBranchMenu.qml` | Corner branch picker: switch branch, sync to latest |
 | `sheets/` | Bundled per-app keymap JSON; required for app sources |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
 

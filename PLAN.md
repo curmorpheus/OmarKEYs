@@ -118,6 +118,15 @@ only rows that can't be dispatched as one chord stay inert — ranges
 ("Super + 1-9"), gestures (double-tap / hold), and descriptive rows
 ("Volume keys", "Play / pause") — and those are dimmed to show it.
 
+### Branch picker / update check
+
+- [x] `plugin-git` reports branch, hash, dirty, upstream, ahead/behind
+- [x] Corner label is a dropdown: pick a branch, see when one is behind
+- [x] Sync button fast-forwards to the remote and restarts the shell
+- [x] Refuses rather than discards: no switch/sync with a dirty tree, no
+      force, no `reset --hard`, `merge --ff-only` so divergence reports
+- [x] Branches held by another worktree are left out (git would refuse)
+
 ## Future
 
 ### Finish Phase 3 — View | Edit UI

@@ -101,6 +101,7 @@ Item {
     root.launching = false
     root.contextArmed = false
     root.contextToplevel = ToplevelManager.activeToplevel
+    root.branchMenuOpen = false
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
@@ -257,31 +258,100 @@ Item {
 
   property string gitBranch: ""
   property string gitHash: ""
+  property var gitBranches: []
+  property bool gitDirty: false
+  property bool gitUpdateAvailable: false
+  property int gitBehind: 0
+  property string gitError: ""
+  property bool gitBusy: false
+  property bool branchMenuOpen: false
+  // Set when a switch/sync succeeds: the QML on disk changed, so the
+  // shell has to restart for it to take effect.
+  property bool gitReloadPending: false
 
   function refreshGitInfo() {
-    if (gitBranchProc.running)
-      gitBranchProc.running = false
-    gitBranchProc.running = true
-    if (gitHashProc.running)
-      gitHashProc.running = false
-    gitHashProc.running = true
+    root.runGit(["status"], false)
   }
 
-  Process {
-    id: gitBranchProc
-    command: ["git", "-C", root.sourceDir, "rev-parse", "--abbrev-ref", "HEAD"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.gitBranch = String(text || "").trim()
+  function toggleBranchMenu() {
+    root.branchMenuOpen = !root.branchMenuOpen
+    // Opening is the moment the branch list matters, so refresh it then
+    // rather than paying for git on every overlay open.
+    if (root.branchMenuOpen)
+      root.refreshGitInfo()
+    else
+      root.gitError = ""
+  }
+
+  function checkForUpdates() {
+    root.gitError = ""
+    root.runGit(["fetch"], false)
+  }
+
+  function switchBranch(name) {
+    if (!name || name === root.gitBranch)
+      return
+    root.gitError = ""
+    root.runGit(["switch", String(name)], true)
+  }
+
+  function syncBranch() {
+    root.gitError = ""
+    root.runGit(["sync"], true)
+  }
+
+  function runGit(args, reloadOnSuccess) {
+    if (root.gitBusy)
+      return
+    root.gitBusy = true
+    root.gitReloadPending = !!reloadOnSuccess
+    gitProc.command = [root.sourceDir + "/plugin-git"].concat(args)
+    gitProc.running = true
+  }
+
+  function applyGitPayload(text) {
+    var data = null
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      root.gitError = "could not read git status"
+      return
     }
+    if (!data)
+      return
+    root.gitBranch = data.branch || ""
+    root.gitHash = data.hash || ""
+    root.gitBranches = data.branches || []
+    root.gitDirty = data.dirty === true
+    root.gitBehind = data.behind || 0
+    root.gitUpdateAvailable = data.updateAvailable === true
+    root.gitError = data.error || data.fetchError || ""
+    // Only a clean switch/sync warrants restarting the shell; a refusal
+    // leaves the checkout untouched, so there is nothing to reload.
+    if (root.gitReloadPending && data.ok && !data.error) {
+      root.gitReloadPending = false
+      // Through a login shell: omarchy lives in /usr/share/omarchy/bin,
+      // which is on the user's PATH but not necessarily on the shell
+      // process's. Detached, so it survives the restart it triggers.
+      Quickshell.execDetached(["bash", "-lc", "omarchy restart shell"])
+    }
+    root.gitReloadPending = false
   }
 
   Process {
-    id: gitHashProc
-    command: ["git", "-C", root.sourceDir, "rev-parse", "--short", "HEAD"]
+    id: gitProc
+    command: [root.sourceDir + "/plugin-git", "status"]
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.gitHash = String(text || "").trim()
+      onStreamFinished: {
+        root.gitBusy = false
+        root.applyGitPayload(text)
+      }
+    }
+    onExited: function(code) {
+      root.gitBusy = false
+      if (code !== 0 && !root.gitError)
+        root.gitError = "plugin-git failed (" + code + ")"
     }
   }
 
@@ -370,6 +440,7 @@ Item {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.branchMenuOpen = false
     root.clearSolo()
   }
 
@@ -377,6 +448,7 @@ Item {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.branchMenuOpen = false
     root.clearSolo()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
@@ -804,7 +876,9 @@ Item {
       return
     }
     if (event.key === Qt.Key_Escape) {
-      if (root.filterText)
+      if (root.branchMenuOpen)
+        root.branchMenuOpen = false
+      else if (root.filterText)
         root.setFilter("")
       else
         root.dismiss()
@@ -1050,11 +1124,31 @@ Item {
             anchors.margins: Style.spacing.sm
             visible: !!(root.gitBranch || root.gitHash)
             textFormat: Text.PlainText
-            text: root.gitBranch + (root.gitHash ? " @ " + root.gitHash : "")
-            color: root.foreground
-            opacity: 0.35
+            text: (root.branchMenuOpen ? "▾ " : "▴ ")
+              + root.gitBranch
+              + (root.gitHash ? " @ " + root.gitHash : "")
+              + (root.gitUpdateAvailable ? " •" : "")
+            color: root.gitUpdateAvailable ? root.chipFg : root.foreground
+            opacity: buildInfoArea.containsMouse || root.branchMenuOpen ? 0.9 : 0.35
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
+
+            MouseArea {
+              id: buildInfoArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleBranchMenu()
+            }
+          }
+
+          KeymapBranchMenu {
+            host: root
+            visible: root.branchMenuOpen
+            anchors.right: parent.right
+            anchors.bottom: buildInfo.top
+            anchors.rightMargin: Style.spacing.sm
+            anchors.bottomMargin: Style.space(4)
           }
         }
       }
