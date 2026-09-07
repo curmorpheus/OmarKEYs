@@ -561,10 +561,17 @@ Rectangle {
                   MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    // Click shows the app's keymap; double-click goes to the
+                    // window itself.
                     onClicked: {
                       var h = side.host
                       if (h)
                         h.selectSource(modelData.class)
+                    }
+                    onDoubleClicked: {
+                      var h = side.host
+                      if (h)
+                        h.focusWindow(modelData.address)
                     }
                   }
                 }

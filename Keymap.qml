@@ -25,6 +25,7 @@ Item {
   property string pendingKey: ""
   property string pendingDispatcher: ""
   property string pendingArg: ""
+  property string pendingFocus: ""
   // The window that was focused when the overlay opened. Rows that send
   // keys are aimed at it explicitly, so a chord lands in the app you were
   // using rather than wherever focus drifted by the time we replay it.
@@ -439,7 +440,9 @@ Item {
     onTriggered: {
       var script = root.sourceDir + "/run-shortcut"
       var target = root.contextAddress ? "address:" + root.contextAddress : ""
-      if (root.pendingDispatcher)
+      if (root.pendingFocus)
+        Quickshell.execDetached([script, "--focus", "address:" + root.pendingFocus])
+      else if (root.pendingDispatcher)
         Quickshell.execDetached([script, "--dispatch", root.pendingDispatcher, root.pendingArg, target])
       else
         Quickshell.execDetached([script, root.pendingMods, root.pendingKey, target])
@@ -981,6 +984,19 @@ Item {
       root.editStatus = ""
   }
 
+  function focusWindow(address) {
+    if (!address || root.launching)
+      return
+    root.pendingFocus = address
+    root.pendingDispatcher = ""
+    root.pendingArg = ""
+    root.pendingMods = ""
+    root.pendingKey = ""
+    root.launching = true
+    root.dismiss()
+    runTimer.restart()
+  }
+
   function executeSelected() {
     if (root.editMode) {
       var editItem = root.navItems[root.selected]
@@ -1002,6 +1018,7 @@ Item {
     // binds - a synthetic key sent to a window never reaches Hyprland's
     // bind matcher, so dispatching by chord silently did nothing.
     if (item.dispatcher) {
+      root.pendingFocus = ""
       root.pendingDispatcher = item.dispatcher
       root.pendingArg = item.dispatchArg || ""
       root.pendingMods = ""
@@ -1016,6 +1033,7 @@ Item {
       sc = KeymapData.shortcut(item.keys)
     if (!sc || !sc.key)
       return
+    root.pendingFocus = ""
     root.pendingDispatcher = ""
     root.pendingArg = ""
     root.pendingMods = sc.mods || ""

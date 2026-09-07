@@ -10,6 +10,11 @@
 #       and the binding never fires. Same dispatch path Omarchy's own
 #       omarchy-menu-keybindings uses.
 #
+#   run-shortcut --focus <window>
+#       Raise a window, for double-clicking an app in the tree. Hyprland's
+#       classic `focuswindow address:0x...` no longer parses - hyprctl reads
+#       dispatch arguments as Lua - so this goes through hl.dsp.focus.
+#
 #   run-shortcut <mods> <key> [window]
 #       An app sheet row (Chromium, Ghostty, ...). These are the app's own
 #       shortcuts, not Hyprland binds, so sending the keys to a window is
@@ -94,6 +99,13 @@ dispatch_binding() {
       ;;
   esac
 }
+
+if [[ ${1-} == "--focus" ]]; then
+  target="${2-}"
+  [[ -n $target ]] || exit 1
+  dispatch_lua "hl.dsp.focus({ window = $(lua_string "$target") })"
+  exit $?
+fi
 
 if [[ ${1-} == "--dispatch" ]]; then
   dispatch_binding "${2-}" "${3-}" "${4-}"
