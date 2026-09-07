@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -272,18 +273,162 @@ def load_hypr_binds() -> dict[str, list[dict]]:
         key = str(bind.get("key") or "").strip()
         if not desc or not key or bind.get("mouse"):
             continue
-        mods = MODMASK_TEXT.get(int(bind.get("modmask") or 0), "")
-        by_desc.setdefault(desc, []).append({"mods": mods, "bindKey": key})
+        modmask = int(bind.get("modmask") or 0)
+        mods = MODMASK_TEXT.get(modmask, "")
+        by_desc.setdefault(desc, []).append(
+            {"mods": mods, "bindKey": key, "modmask": modmask}
+        )
     return by_desc
 
 
-def attach_hypr_keys(rows: list[dict], binds: dict[str, list[dict]]) -> None:
+# Hyprland's Lua config provider reports every Lua-defined bind as
+# dispatcher "__lua" with an opaque numeric arg (all 229 of Omarchy's
+# binds, in practice), and "__lua" is not callable from hyprctl. So the
+# real action has to come from the config itself: run it with a stubbed
+# `hl` where bind() records instead of binding. Same approach Omarchy's
+# own omarchy-menu-keybindings uses.
+LUA_SCAN = r"""
+local modifiers = { SHIFT = 1, CTRL = 4, CONTROL = 4, ALT = 8, SUPER = 64 }
+
+local function split_keys(keys)
+  local modmask, key = 0, ""
+  for part in string.gmatch(tostring(keys or ""), "[^+]+") do
+    local value = part:gsub("^%s+", ""):gsub("%s+$", "")
+    local modifier = modifiers[string.upper(value)]
+    if modifier then modmask = modmask + modifier else key = value end
+  end
+  return modmask, key
+end
+
+local function dispatcher(kind, arg, expr)
+  return { __omarkeys = true, kind = kind or "", arg = arg or "", expr = expr or "" }
+end
+
+local function lua_literal(value)
+  local t = type(value)
+  if t == "string" then return string.format("%q", value) end
+  if t == "number" or t == "boolean" then return tostring(value) end
+  return "nil"
+end
+
+local function dsp_proxy(path)
+  return setmetatable({ path = path }, {
+    __index = function(self, key) return dsp_proxy(self.path .. "." .. tostring(key)) end,
+    __call = function(self, ...)
+      local first = ...
+      local args = {}
+      for i = 1, select("#", ...) do args[i] = lua_literal(select(i, ...)) end
+      local expr = self.path .. "(" .. table.concat(args, ", ") .. ")"
+      if self.path == "hl.dsp.exec_cmd" and type(first) == "string" then
+        return dispatcher("exec", first, expr)
+      end
+      return dispatcher("lua", expr, expr)
+    end,
+  })
+end
+
+local noop
+noop = setmetatable({}, {
+  __index = function() return noop end,
+  __call = function() return noop end,
+})
+
+hl = setmetatable({
+  dsp = dsp_proxy("hl.dsp"),
+  bind = function(keys, bind_dispatcher, opts)
+    opts = type(opts) == "table" and opts or {}
+    if opts.description and opts.description ~= "" then
+      local modmask, key = split_keys(keys)
+      local kind, arg = "", ""
+      if type(bind_dispatcher) == "table" and bind_dispatcher.__omarkeys then
+        kind = bind_dispatcher.kind or ""
+        arg = bind_dispatcher.arg or bind_dispatcher.expr or ""
+      elseif type(bind_dispatcher) == "string" and bind_dispatcher ~= "" then
+        kind, arg = "exec", bind_dispatcher
+      end
+      print(table.concat({ tostring(modmask), opts.description, key, kind, arg }, "\t"))
+    end
+    return noop
+  end,
+  get_config = function() return nil end,
+}, { __index = function() return noop end })
+
+local config = os.getenv("HOME") .. "/.config/hypr/hyprland.lua"
+local file = io.open(config, "r")
+if file then
+  file:close()
+  pcall(dofile, config)
+end
+"""
+
+
+def load_lua_actions() -> dict[str, list[dict]]:
+    """description -> [{modmask, key, dispatcher, arg}] recovered from the config."""
+    if not shutil.which("lua"):
+        return {}
+    try:
+        proc = subprocess.run(
+            ["lua", "-"], input=LUA_SCAN, text=True,
+            capture_output=True, check=False, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    if proc.returncode != 0:
+        return {}
+    by_desc: dict[str, list[dict]] = {}
+    for line in proc.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 5:
+            continue
+        modmask, desc, key, kind, arg = parts
+        if not desc or not kind:
+            continue
+        try:
+            mask = int(modmask)
+        except ValueError:
+            continue
+        by_desc.setdefault(desc, []).append(
+            {"modmask": mask, "key": key, "dispatcher": kind, "arg": arg}
+        )
+    return by_desc
+
+
+def pick_action(entries: list[dict], modmask: int, key: str) -> dict | None:
+    """Prefer the entry matching this exact chord; fall back to the description."""
+    if not entries:
+        return None
+    upper = (key or "").upper()
+    for entry in entries:
+        if entry["modmask"] == modmask and entry["key"].upper() == upper:
+            return entry
+    # Hyprland resolves `code:NNN` binds to symbols, so the key can differ
+    # from what the config wrote; modmask alone still disambiguates most.
+    for entry in entries:
+        if entry["modmask"] == modmask:
+            return entry
+    return entries[0]
+
+
+def attach_hypr_keys(
+    rows: list[dict],
+    binds: dict[str, list[dict]],
+    actions: dict[str, list[dict]] | None = None,
+) -> None:
+    actions = actions or {}
     for row in rows:
         opts = binds.get(row["action"]) or []
         if not opts:
             continue
         row["mods"] = opts[0]["mods"]
         row["bindKey"] = opts[0]["bindKey"]
+        action = pick_action(
+            actions.get(row["action"]) or [], opts[0].get("modmask", 0), opts[0]["bindKey"]
+        )
+        # Without this the overlay can only replay the chord as a synthetic
+        # key, which Hyprland's bind matcher never sees.
+        if action:
+            row["dispatcher"] = action["dispatcher"]
+            row["arg"] = action["arg"]
 
 
 def parse_print(text: str) -> list[dict]:
@@ -480,7 +625,7 @@ def dump() -> dict:
     if proc.returncode != 0:
         raise SystemExit(proc.stderr or "omarchy-menu-keybindings --print failed")
     rows = parse_print(proc.stdout)
-    attach_hypr_keys(rows, load_hypr_binds())
+    attach_hypr_keys(rows, load_hypr_binds(), load_lua_actions())
     sections = group(rows)
     digest = hashlib.sha256(
         json.dumps(sections, sort_keys=True, separators=(",", ":")).encode()

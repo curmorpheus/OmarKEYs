@@ -491,7 +491,12 @@ function navList(query) {
         sectionTitle: all[s].title,
         keys: row.keys,
         action: row.action,
-        runnable: isRunnable(row.keys) && !!sc,
+        // A Hyprland bind's own action, when dump-keymap recovered it.
+        // Preferred over replaying the chord: synthetic keys sent to a
+        // window never reach Hyprland's bind matcher.
+        dispatcher: row.dispatcher || "",
+        dispatchArg: row.arg || "",
+        runnable: (isRunnable(row.keys) && !!sc) || !!row.dispatcher,
         shortcut: sc
       })
     }

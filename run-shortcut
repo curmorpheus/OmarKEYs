@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
-# Replay a Hyprland shortcut after OmarKEYS closes.
-# Same down/up send_key_state path as omarchy-menu-keybindings.
+# Run a selected OmarKEYS row after the overlay closes.
+#
+# Two modes, because there are two kinds of row:
+#
+#   run-shortcut --dispatch <kind> <arg>
+#       An Omarchy/Hyprland bind. Runs the binding's own action. Replaying
+#       the chord as a synthetic key does NOT work: keys sent to a window
+#       never reach Hyprland's bind matcher, so the app just swallows them
+#       and the binding never fires. Same dispatch path Omarchy's own
+#       omarchy-menu-keybindings uses.
+#
+#   run-shortcut <mods> <key>
+#       An app sheet row (Chromium, Ghostty, ...). These are the app's own
+#       shortcuts, not Hyprland binds, so sending the keys to the focused
+#       window is exactly right.
 set -euo pipefail
-
-mods="${1-}"
-key="${2-}"
-[[ -n $key ]] || exit 1
 
 lua_string() {
   python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"
@@ -18,15 +27,58 @@ dispatch_lua() {
   [[ -z $output || $output == ok ]]
 }
 
-window="activewindow"
-mods_lua=$(lua_string "$mods")
-key_lua=$(lua_string "$key")
-window_lua=$(lua_string "$window")
+send_keys() {
+  local mods="$1" key="$2" window="${3:-activewindow}"
+  [[ -n $key ]] || return 1
+  local mods_lua key_lua window_lua
+  mods_lua=$(lua_string "$mods")
+  key_lua=$(lua_string "$key")
+  window_lua=$(lua_string "$window")
+  if dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"down\", window = ${window_lua} })"; then
+    sleep 0.05
+    dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"up\", window = ${window_lua} })" || true
+    return 0
+  fi
+  hyprctl dispatch sendshortcut "${mods},${key}," >/dev/null
+}
 
-if dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"down\", window = ${window_lua} })"; then
-  sleep 0.05
-  dispatch_lua "hl.dsp.send_key_state({ mods = ${mods_lua}, key = ${key_lua}, state = \"up\", window = ${window_lua} })" || true
-  exit 0
+dispatch_binding() {
+  local kind="$1" arg="$2"
+  case "$kind" in
+    exec)
+      [[ -n $arg ]] || return 1
+      dispatch_lua "hl.dsp.exec_cmd($(lua_string "$arg"))" || hyprctl dispatch exec "$arg" >/dev/null
+      ;;
+    lua)
+      # arg is already a hl.dsp.* call expression.
+      [[ -n $arg ]] || return 1
+      hyprctl dispatch "$arg" >/dev/null
+      ;;
+    sendshortcut)
+      # Hyprland's own "forward this chord to a window" bind.
+      local mods key window rest
+      IFS=, read -r mods key window rest <<<"$arg"
+      send_keys "${mods// /}" "$key" "${window:-activewindow}"
+      ;;
+    "")
+      return 1
+      ;;
+    *)
+      if [[ -n $arg ]]; then
+        hyprctl dispatch "$kind" "$arg" >/dev/null
+      else
+        hyprctl dispatch "$kind" >/dev/null
+      fi
+      ;;
+  esac
+}
+
+if [[ ${1-} == "--dispatch" ]]; then
+  dispatch_binding "${2-}" "${3-}"
+  exit $?
 fi
 
-hyprctl dispatch sendshortcut "${mods},${key}," >/dev/null
+mods="${1-}"
+key="${2-}"
+[[ -n $key ]] || exit 1
+send_keys "$mods" "$key"

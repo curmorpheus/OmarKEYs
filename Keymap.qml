@@ -23,6 +23,8 @@ Item {
   property string selectedAction: ""
   property string pendingMods: ""
   property string pendingKey: ""
+  property string pendingDispatcher: ""
+  property string pendingArg: ""
   property bool doubleTap: true
   property int holdSeconds: 5
   property var hiddenGroups: []
@@ -366,9 +368,10 @@ Item {
     repeat: false
     onTriggered: {
       var script = root.sourceDir + "/run-shortcut"
-      // TEMP diagnostics: confirm the spawn actually happens.
-      console.warn("omarkeys: spawn " + script + " '" + root.pendingMods + "' '" + root.pendingKey + "'")
-      Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
+      if (root.pendingDispatcher)
+        Quickshell.execDetached([script, "--dispatch", root.pendingDispatcher, root.pendingArg])
+      else
+        Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
     }
   }
 
@@ -814,25 +817,32 @@ Item {
         root.startCapture(editItem.keys, editItem.action)
       return
     }
-    // TEMP diagnostics: tracking why rows do not fire on click/Enter.
-    if (root.launching || !root.opened) {
-      console.warn("omarkeys: blocked launching=" + root.launching + " opened=" + root.opened)
+    if (root.launching || !root.opened)
       return
-    }
     var item = root.navItems[root.selected]
-    if (!item) {
-      console.warn("omarkeys: blocked no-item selected=" + root.selected
-        + " navItems=" + root.navItems.length)
+    if (!item)
+      return
+    // Prefer the binding's own action. Replaying the chord only works for
+    // app sheet rows, which are the app's shortcuts rather than Hyprland
+    // binds - a synthetic key sent to a window never reaches Hyprland's
+    // bind matcher, so dispatching by chord silently did nothing.
+    if (item.dispatcher) {
+      root.pendingDispatcher = item.dispatcher
+      root.pendingArg = item.dispatchArg || ""
+      root.pendingMods = ""
+      root.pendingKey = ""
+      root.launching = true
+      root.dismiss()
+      runTimer.restart()
       return
     }
     var sc = item.shortcut
     if (!sc || !sc.key)
       sc = KeymapData.shortcut(item.keys)
-    if (!sc || !sc.key) {
-      console.warn("omarkeys: blocked not-runnable keys=" + item.keys + " action=" + item.action)
+    if (!sc || !sc.key)
       return
-    }
-    console.warn("omarkeys: running " + item.keys + " mods=" + (sc.mods || "") + " key=" + sc.key)
+    root.pendingDispatcher = ""
+    root.pendingArg = ""
     root.pendingMods = sc.mods || ""
     root.pendingKey = sc.key
     root.launching = true
