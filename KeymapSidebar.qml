@@ -419,6 +419,8 @@ Rectangle {
       spacing: Style.space(3)
 
       Text {
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
         text: "Modifiers"
         textFormat: Text.PlainText
         color: side.chipFg
@@ -429,7 +431,8 @@ Rectangle {
       }
 
       Row {
-        spacing: 8
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Style.space(8)
 
         Repeater {
           model: ["any", "must", "hide"]
@@ -471,9 +474,9 @@ Rectangle {
 
       Grid {
         id: modGrid
-        anchors.horizontalCenter: parent.horizontalCenter
+        width: modBlock.width
         columns: 2
-        columnSpacing: Style.space(4)
+        columnSpacing: 0
         rowSpacing: Style.space(4)
 
         Repeater {
@@ -488,13 +491,18 @@ Rectangle {
               : side.host.modAlt
             readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
 
-            width: keyCap.width + Style.space(3) + markLabel.implicitWidth
+            // Half the sidebar each, so the two columns split it evenly.
+            width: modGrid.width / 2
             height: keyCap.height
             opacity: cell.mode === "hide" ? 0.55 : 1
 
             Rectangle {
               id: keyCap
-              anchors.left: parent.left
+              // Centres the key *and* its state letter as one group inside
+              // the half-column: shifting the cap left by half of what
+              // follows it puts the pair's midpoint on the cell's centre.
+              anchors.horizontalCenter: parent.horizontalCenter
+              anchors.horizontalCenterOffset: -(Style.space(3) + markLabel.implicitWidth) / 2
               anchors.verticalCenter: parent.verticalCenter
               width: capMetric.implicitWidth + Style.space(12)
               height: capMetric.implicitHeight + Style.space(8)
