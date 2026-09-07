@@ -442,13 +442,16 @@ Rectangle {
               : modelData === "any" ? host.allModsAny
               : modelData === "must" ? host.allModsMust
               : host.allModsHide
-            text: modelData === "any" ? "A all" : (modelData === "must" ? "M all" : "H all")
-            textFormat: Text.PlainText
+            // Bold initial ties each word to the A / M / H shown on the
+            // keys below. StyledText only because of that markup - the
+            // strings are literals here, nothing interpolated.
+            text: modelData === "any" ? "<b>A</b>ll"
+              : (modelData === "must" ? "<b>M</b>ust" : "<b>H</b>ide")
+            textFormat: Text.StyledText
             color: active ? side.chipFg : side.foreground
             opacity: active ? 1 : 0.55
             font.family: side.fontFamily
             font.pixelSize: side.subFontSize
-            font.bold: active
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
