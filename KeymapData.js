@@ -218,10 +218,27 @@ var SHORT_KEYS = {
 // Mouse + Button" arrives as four chips - and the "Left" would then be
 // abbreviated to an arrow, which reads as the arrow key. Collapse the
 // whole button into one chip before anything else touches it.
+function splitGesture(part) {
+  var text = String(part || "")
+  var hold = text.match(/^Hold (.+) (\d+s)$/)
+  if (hold)
+    return ["Hold " + hold[2], hold[1]]
+  var tap = text.match(/^(Double-tap) (.+)$/)
+  if (tap)
+    return [tap[1], tap[2]]
+  return null
+}
+
 function collapseMouse(parts) {
   var out = []
   for (var i = 0; i < parts.length; i++) {
     var name = parts[i]
+    var gesture = splitGesture(name)
+    if (gesture) {
+      out.push(gesture[0])
+      out.push(gesture[1])
+      continue
+    }
     if (parts[i + 1] === "Mouse" && parts[i + 2] === "Button"
         && (name === "Left" || name === "Right" || name === "Middle")) {
       out.push(name === "Left" ? "LMB" : (name === "Right" ? "RMB" : "MMB"))
@@ -316,6 +333,10 @@ function keyName(name) {
   return KEY_NAMES[key] || key
 }
 
+function gestureLabel(part) {
+  return splitGesture(part)
+}
+
 function displayNames(keys) {
   var parts = collapseMouse(splitKeys(keys))
   var out = []
@@ -332,6 +353,8 @@ function shortKey(name) {
   var key = String(name || "")
   if (SHORT_KEYS[key])
     return SHORT_KEYS[key]
+  if (/^(Hold \d+s|Double-tap)$/.test(key))
+    return key
   // XF86AudioRaiseVolume -> Volume, XF86PowerOff -> Power
   var xf86 = key.match(/^XF86(?:Audio|Mon|Kbd)?([A-Za-z]+)/)
   if (xf86)
