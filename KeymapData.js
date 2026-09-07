@@ -261,9 +261,9 @@ var KEY_ICONS = {
   XF86TouchpadToggle: "\udb80\udd68",
   XF86TouchpadOn: "\udb80\udd68",
   XF86TouchpadOff: "\udb80\udd68",
-  LMB: "\udb80\udf7dL",
-  RMB: "\udb80\udf7dR",
-  MMB: "\udb80\udf7dM",
+  LMB: "\udb80\udf7d L",
+  RMB: "\udb80\udf7d R",
+  MMB: "\udb80\udf7d M",
   "Wheel\u2193": "\udb80\udf5d",
   "Wheel\u2191": "\udb80\udf5e"
 }

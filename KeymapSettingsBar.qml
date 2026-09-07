@@ -106,6 +106,31 @@ Item {
       font.pixelSize: Style.font.caption
     }
 
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      text: "Text"
+      textFormat: Text.PlainText
+      color: bar.foreground
+      font.family: bar.fontFamily
+      font.pixelSize: Style.font.caption
+    }
+
+    PanelSlider {
+      anchors.verticalCenter: parent.verticalCenter
+      width: Style.space(110)
+      minimum: 0.8
+      maximum: 1.8
+      step: 0.05
+      activeFocusOnTab: false
+      value: host ? host.fontScale : 1.0
+      fillColor: bar.chipFg
+      knobColor: bar.chipFg
+      trackColor: Qt.rgba(bar.chipFg.r, bar.chipFg.g, bar.chipFg.b, 0.22)
+      tickColor: bar.background
+      onMoved: function(v) { if (host) host.fontScale = v }
+      onReleased: function(v) { if (host) host.setFontScale(v) }
+    }
+
     PanelSlider {
       anchors.verticalCenter: parent.verticalCenter
       width: Style.space(180)

@@ -40,6 +40,8 @@ Item {
   property string rowLayout: "keys"     // keys | action
   property string sortBy: "section"     // section | action
   property string searchMode: "all"     // all | keys | action
+  // Text size for the board, now that the overlay fills more of the screen.
+  property real fontScale: 1.0
   // Apps switched off in the tree, by window class. A hidden app leaves the
   // list rather than sitting there dimmed: this is a live window list, so a
   // permanent dimmed entry is just clutter of a different kind. Showing the
@@ -109,6 +111,7 @@ Item {
       rowLayout: root.rowLayout,
       sortBy: root.sortBy,
       searchMode: root.searchMode,
+      fontScale: root.fontScale,
       modifiers: {
         Super: root.modSuper,
         Shift: root.modShift,
@@ -162,6 +165,9 @@ Item {
           root.sortBy = cfg.sortBy
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
+        var scale = Number(cfg.fontScale)
+        if (scale >= 0.8 && scale <= 1.8)
+          root.fontScale = scale
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
           root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
@@ -833,6 +839,14 @@ Item {
 
   function cycleSortBy() {
     root.sortBy = root.sortBy === "section" ? "action" : "section"
+    root.saveConfig()
+  }
+
+  function setFontScale(value) {
+    var next = Math.max(0.8, Math.min(1.8, Math.round(Number(value) * 20) / 20))
+    if (next === root.fontScale)
+      return
+    root.fontScale = next
     root.saveConfig()
   }
 
