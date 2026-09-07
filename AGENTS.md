@@ -45,11 +45,42 @@ hyprctl configerrors
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
 
+## Working copies — read this first
+
+**`~/Work/omarkeys` is no longer a workspace. Do not edit or commit in it.**
+
+It is now the **deploy slot**: the directory
+`~/.config/omarchy/plugins/io.github.romills.omarkeys` symlinks to, i.e. the
+copy Hyprland actually loads. It only ever switches branches and pulls —
+increasingly from the overlay's own corner branch picker, which refuses to
+switch or sync when the tree is dirty. **A stray edit there is not just
+untidy: it blocks the picker.** Keep it clean.
+
+Work in your own clone instead. One per agent, so two of us can hold the
+same branch at once — a branch can only be checked out in one working tree,
+and that collision repeatedly cost us real time:
+
+```sh
+git clone https://github.com/romills/OmarKEYs.git ~/Work/omarkeys-<agent>
+```
+
+| Path | Who | Purpose |
+|---|---|---|
+| `~/Work/omarkeys` | nobody | Deploy slot: symlink target, what actually runs. No edits. |
+| `~/Work/omarkeys-claude` | Claude | |
+| `~/Work/omarkeys-cursor` | Cursor | |
+| `~/Work/omarkeys-grok` | Grok | |
+
+Push to GitHub to hand work off; that is how it reaches the other agents
+and the deploy slot. To test a branch live, point the deploy slot at it
+(corner picker in the overlay, or `git -C ~/Work/omarkeys checkout <branch>`)
+and `omarchy restart shell`. Only one branch can be loaded at a time —
+that part is unavoidable, so say which branch you are testing.
+
 ## Branches
 
-Multiple agents work this repo in parallel on one machine, each in its own
-git worktree so branch switches never yank files out from under another
-tool's open buffers.
+Each agent works in its own clone (above), so branch switches never yank
+files out from under another tool's open buffers.
 
 | Branch | Owner | Role |
 |---|---|---|
