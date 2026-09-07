@@ -3,6 +3,24 @@
 Grok writes this file when promoting a finished **beta** (Claude) into
 **main**. Cursor does not land on `main`.
 
+## 1.6.0 — 2026-09-07
+
+Promoted from `beta`. Cursor not included.
+
+- Active Apps groups by kind: apps sharing a keymap sheet sit together,
+  so five Chrome PWAs are one **Web apps** branch rather than five
+  entries repeating Chromium's shortcuts. Apps with no sheet are listed
+  under **No keymap sheet**.
+- Chrome PWAs are named from their window title, not their extension id
+  (`Claude Code`, not `Chromium · fmpnliohjhemenmnlpbf`).
+- Show/Hide replaces the toggle switches at every level of the tree.
+  Plain text, revealed on row hover, and a hidden branch keeps its label
+  and greys out, so hiding can always be undone.
+- Every parent carries a caret: collapsed when everything under it is
+  hidden, expanded while any of it still shows.
+- Double-click an app to focus its window.
+- Command rows give more width to the action, so fewer labels truncate.
+
 ## 1.5.1 — 2026-09-07
 
 Promoted from `beta` (`9db25ad`). Cursor not included.

@@ -2,11 +2,13 @@
   "schemaVersion": 1,
   "id": "io.github.romills.omarkeys",
   "name": "OmarKEYS",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "author": "romills",
   "license": "MIT",
   "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super (default 5s), or Super+K to show the live Hyprland keymap. Type to search, arrows and Ctrl+1–9 pick a window, Enter runs a shortcut. Double-tap and hold time are configurable on the overlay.",
-  "kinds": ["overlay"],
+  "kinds": [
+    "overlay"
+  ],
   "keepLoaded": true,
   "entryPoints": {
     "overlay": "Keymap.qml"
