@@ -43,6 +43,25 @@ hyprctl configerrors
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
 
+## Branches
+
+Multiple agents work this repo in parallel on one machine, each in its own
+git worktree so branch switches never yank files out from under another
+tool's open buffers.
+
+| Branch | Owner | Role |
+|---|---|---|
+| `main` | human | Released/stable |
+| `develop` | Claude (this agent) | Integration branch; owned here, merged into `main` when stable |
+| `develop-cursor` | Cursor | Cursor's own integration branch; opens a PR into `develop` when ready to hand work back |
+| `feature/phase2-sidebar-tree` | Claude | Off `develop` |
+| `feature/phase3-view-edit-ui` | Claude (second session) | Off `develop` |
+
+Rules: only the branch owner commits directly to it. Everyone else lands
+changes via PR. Cursor never pushes straight to `develop` or `main` — it
+PRs from `develop-cursor`. Claim a PLAN.md item by prefixing it with the
+owner (e.g. `(cursor)`) before starting so two agents don't duplicate work.
+
 ## Install on this machine
 
 ```sh
