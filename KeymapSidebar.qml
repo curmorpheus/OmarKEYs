@@ -412,63 +412,131 @@ Rectangle {
           }
         }
 
+        // Apps grouped by the sheet that gives them their bindings, so
+        // every Chrome PWA sits together under "Web apps" rather than
+        // repeating the same shortcut set once per window.
         Repeater {
-          model: side.windowsOpen && host ? host.visibleClients : []
-          delegate: Item {
+          model: side.windowsOpen && host ? host.appTree : []
+          delegate: Column {
+            id: kindCol
             required property var modelData
             width: treeCol.width
-            height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
+            spacing: 2
 
-            Rectangle {
-              anchors.left: parent.left
-              anchors.leftMargin: 6
-              anchors.top: parent.top
-              anchors.bottom: parent.bottom
-              width: 1
-              color: side.borderColor
-              opacity: 0.35
-            }
+            Item {
+              width: kindCol.width
+              height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
 
-            KeymapHideButton {
-              id: winToggle
-              anchors.right: parent.right
-              anchors.rightMargin: 2
-              anchors.verticalCenter: parent.verticalCenter
-              shown: true
-              foreground: side.foreground
-              accent: side.chipFg
-              fontFamily: side.fontFamily
-              fontSize: side.subFontSize
-              onToggled: {
-                var h = side.host
-                if (h)
-                  h.toggleApp(modelData.class)
+              Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: 6
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: side.borderColor
+                opacity: 0.35
+              }
+
+              KeymapHideButton {
+                id: kindToggle
+                anchors.right: parent.right
+                anchors.rightMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                shown: true
+                foreground: side.foreground
+                accent: side.chipFg
+                fontFamily: side.fontFamily
+                fontSize: side.subFontSize
+                onToggled: {
+                  var h = side.host
+                  if (!h)
+                    return
+                  var classes = []
+                  var apps = kindCol.modelData.apps || []
+                  for (var ci = 0; ci < apps.length; ci++)
+                    classes.push(apps[ci].class)
+                  h.setAppsVisible(classes, false)
+                }
+              }
+
+              Text {
+                id: kindLabel
+                anchors.left: parent.left
+                anchors.leftMargin: 14
+                anchors.right: kindToggle.left
+                anchors.rightMargin: 6
+                anchors.verticalCenter: parent.verticalCenter
+                text: kindCol.modelData.title
+                textFormat: Text.PlainText
+                color: side.foreground
+                opacity: 0.75
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                font.bold: true
+                font.capitalization: Font.AllUppercase
+                elide: Text.ElideRight
               }
             }
 
-            Text {
-              id: winLabel
-              anchors.left: parent.left
-              anchors.right: winToggle.left
-              anchors.leftMargin: 14
-              anchors.rightMargin: 6
-              anchors.verticalCenter: parent.verticalCenter
-              text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
-                + (modelData.count > 1 ? " (" + modelData.count + ")" : "")
-              textFormat: Text.PlainText
-              color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
-              opacity: modelData.sheet ? 1 : 0.55
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-              font.bold: host && host.activeSource === modelData.class
-              elide: Text.ElideRight
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  var h = side.host
-                  if (h)
-                    h.selectSource(modelData.class)
+            Repeater {
+              model: kindCol.modelData.apps
+              delegate: Item {
+                required property var modelData
+                width: kindCol.width
+                height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
+
+                Rectangle {
+                  anchors.left: parent.left
+                  anchors.leftMargin: 6
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
+                  width: 1
+                  color: side.borderColor
+                  opacity: 0.35
+                }
+
+                KeymapHideButton {
+                  id: winToggle
+                  anchors.right: parent.right
+                  anchors.rightMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  shown: true
+                  foreground: side.foreground
+                  accent: side.chipFg
+                  fontFamily: side.fontFamily
+                  fontSize: side.subFontSize
+                  onToggled: {
+                    var h = side.host
+                    if (h)
+                      h.toggleApp(modelData.class)
+                  }
+                }
+
+                Text {
+                  id: winLabel
+                  anchors.left: parent.left
+                  anchors.right: winToggle.left
+                  anchors.leftMargin: 26
+                  anchors.rightMargin: 6
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
+                    + (modelData.count > 1 ? " (" + modelData.count + ")" : "")
+                  textFormat: Text.PlainText
+                  color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
+                  opacity: modelData.sheet ? 1 : 0.55
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: host && host.activeSource === modelData.class
+                  elide: Text.ElideRight
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var h = side.host
+                      if (h)
+                        h.selectSource(modelData.class)
+                    }
+                  }
                 }
               }
             }

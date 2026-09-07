@@ -1,35 +1,84 @@
 {
   "title": "Chromium",
-  "classes": ["chromium", "google-chrome"],
+  "kind": "Web apps",
+  "classes": [
+    "chromium",
+    "google-chrome"
+  ],
   "sections": [
     {
       "title": "Tabs",
       "rows": [
-        { "keys": "Ctrl + T", "action": "New tab" },
-        { "keys": "Ctrl + W", "action": "Close tab" },
-        { "keys": "Ctrl + Shift + T", "action": "Reopen closed tab" },
-        { "keys": "Ctrl + Tab", "action": "Next tab" },
-        { "keys": "Ctrl + Shift + Tab", "action": "Previous tab" },
-        { "keys": "Ctrl + 1-8", "action": "Jump to tab" },
-        { "keys": "Ctrl + 9", "action": "Last tab" }
+        {
+          "keys": "Ctrl + T",
+          "action": "New tab"
+        },
+        {
+          "keys": "Ctrl + W",
+          "action": "Close tab"
+        },
+        {
+          "keys": "Ctrl + Shift + T",
+          "action": "Reopen closed tab"
+        },
+        {
+          "keys": "Ctrl + Tab",
+          "action": "Next tab"
+        },
+        {
+          "keys": "Ctrl + Shift + Tab",
+          "action": "Previous tab"
+        },
+        {
+          "keys": "Ctrl + 1-8",
+          "action": "Jump to tab"
+        },
+        {
+          "keys": "Ctrl + 9",
+          "action": "Last tab"
+        }
       ]
     },
     {
       "title": "Page",
       "rows": [
-        { "keys": "Ctrl + L", "action": "Focus address bar" },
-        { "keys": "Ctrl + R", "action": "Reload" },
-        { "keys": "Ctrl + Shift + R", "action": "Hard reload" },
-        { "keys": "Ctrl + F", "action": "Find" },
-        { "keys": "F11", "action": "Fullscreen" }
+        {
+          "keys": "Ctrl + L",
+          "action": "Focus address bar"
+        },
+        {
+          "keys": "Ctrl + R",
+          "action": "Reload"
+        },
+        {
+          "keys": "Ctrl + Shift + R",
+          "action": "Hard reload"
+        },
+        {
+          "keys": "Ctrl + F",
+          "action": "Find"
+        },
+        {
+          "keys": "F11",
+          "action": "Fullscreen"
+        }
       ]
     },
     {
       "title": "Clipboard",
       "rows": [
-        { "keys": "Ctrl + C", "action": "Copy" },
-        { "keys": "Ctrl + X", "action": "Cut" },
-        { "keys": "Ctrl + V", "action": "Paste" }
+        {
+          "keys": "Ctrl + C",
+          "action": "Copy"
+        },
+        {
+          "keys": "Ctrl + X",
+          "action": "Cut"
+        },
+        {
+          "keys": "Ctrl + V",
+          "action": "Paste"
+        }
       ]
     }
   ]

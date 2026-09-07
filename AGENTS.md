@@ -22,7 +22,7 @@ so `omarchy plugin add <git-url>` works.
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Channel picker state: switch + sync |
 | `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
-| `sheets/` | Bundled per-app keymap JSON |
+| `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
 | `RELEASE.md` | Release notes. Grok updates this when promoting `beta` → `main`. |
 

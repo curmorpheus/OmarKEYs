@@ -612,6 +612,42 @@ Item {
     return out
   }
 
+  // Apps bucketed by the sheet they answer to, because that is what
+  // decides their keybindings: every Chrome PWA is one "Web apps" entry.
+  // Kind order follows first appearance, and the dump sorts the focused
+  // window first, so the app you came from leads the list.
+  readonly property var appTree: {
+    var out = []
+    var index = ({})
+    var list = root.visibleClients || []
+    for (var i = 0; i < list.length; i++) {
+      var kind = list[i].kind || "No keymap sheet"
+      if (index[kind] === undefined) {
+        index[kind] = out.length
+        out.push({ title: kind, apps: [] })
+      }
+      out[index[kind]].apps.push(list[i])
+    }
+    return out
+  }
+
+  function setAppsVisible(classes, show) {
+    var set = ({})
+    for (var i = 0; i < classes.length; i++)
+      set[classes[i]] = true
+    var next = []
+    for (var j = 0; j < root.hiddenApps.length; j++) {
+      if (!set[root.hiddenApps[j]])
+        next.push(root.hiddenApps[j])
+    }
+    if (!show) {
+      for (var k = 0; k < classes.length; k++)
+        next.push(classes[k])
+    }
+    root.hiddenApps = next
+    root.saveConfig()
+  }
+
   function toggleApp(cls) {
     var next = []
     var hiding = !root.appIsHidden(cls)
