@@ -416,14 +416,14 @@ Rectangle {
     Column {
       id: modBlock
       width: parent.width
-      spacing: 2
+      spacing: Style.space(3)
 
       Text {
         text: "Modifiers"
         textFormat: Text.PlainText
         color: side.chipFg
         font.family: side.fontFamily
-        font.pixelSize: Style.font.caption
+        font.pixelSize: side.subFontSize
         font.bold: true
         font.capitalization: Font.AllUppercase
       }
@@ -439,12 +439,12 @@ Rectangle {
               : modelData === "any" ? host.allModsAny
               : modelData === "must" ? host.allModsMust
               : host.allModsHide
-            text: modelData === "any" ? "A any" : (modelData === "must" ? "M must" : "H hide")
+            text: modelData === "any" ? "A all" : (modelData === "must" ? "M all" : "H all")
             textFormat: Text.PlainText
             color: active ? side.chipFg : side.foreground
             opacity: active ? 1 : 0.55
             font.family: side.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: side.subFontSize
             font.bold: active
             MouseArea {
               anchors.fill: parent
@@ -455,52 +455,62 @@ Rectangle {
         }
       }
 
-      Repeater {
-        model: ["Super", "Shift", "Ctrl", "Alt"]
-        delegate: Item {
-          required property string modelData
-          readonly property string mode: !host ? "any"
-            : modelData === "Super" ? host.modSuper
-            : modelData === "Shift" ? host.modShift
-            : modelData === "Ctrl" ? host.modCtrl
-            : host.modAlt
-          width: modBlock.width
-          height: Math.max(Style.space(24), modLabel.implicitHeight + 6)
+      // Four boxed chips, 2 x 2: each shows its modifier and the state it
+      // is in, and clicking cycles A -> M -> H. Boxed because these are
+      // controls you press, unlike the labels in the tree above.
+      Grid {
+        id: modGrid
+        width: modBlock.width
+        columns: 2
+        columnSpacing: Style.space(4)
+        rowSpacing: Style.space(3)
 
-          Row {
-            anchors.fill: parent
-            spacing: 6
+        Repeater {
+          model: ["Super", "Shift", "Ctrl", "Alt"]
+          delegate: Rectangle {
+            required property string modelData
+            readonly property string mode: !side.host ? "any"
+              : modelData === "Super" ? side.host.modSuper
+              : modelData === "Shift" ? side.host.modShift
+              : modelData === "Ctrl" ? side.host.modCtrl
+              : side.host.modAlt
+            readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
+
+            width: Math.max(1, (modGrid.width - modGrid.columnSpacing) / 2)
+            height: Math.max(Style.space(18), chipLabel.implicitHeight + 5)
+            radius: 4
+            border.width: 1
+            border.color: mode === "any" ? side.borderColor : side.chipFg
+            color: modArea.containsMouse ? side.borderColor : "transparent"
+            opacity: mode === "hide" ? 0.55 : 1
 
             Text {
-              id: modLabel
+              id: chipLabel
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: 5
+              anchors.rightMargin: 5
               anchors.verticalCenter: parent.verticalCenter
-              width: parent.width - modeMark.implicitWidth - 8
-              text: modelData
+              text: modelData + " - " + parent.mark
               textFormat: Text.PlainText
-              color: mode === "must" ? side.chipFg : side.foreground
-              opacity: mode === "hide" ? 0.4 : 1
+              color: mode === "any" ? side.foreground : side.chipFg
               font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: mode === "must"
+              font.pixelSize: side.subFontSize
+              font.bold: mode !== "any"
+              elide: Text.ElideRight
             }
 
-            Text {
-              id: modeMark
-              anchors.verticalCenter: parent.verticalCenter
-              text: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
-              textFormat: Text.PlainText
-              color: mode === "must" ? side.chipFg : side.foreground
-              opacity: mode === "hide" ? 0.4 : 0.75
-              font.family: side.fontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
+            MouseArea {
+              id: modArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var h = side.host
+                if (h)
+                  h.cycleModifier(modelData)
+              }
             }
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: if (host) host.cycleModifier(modelData)
           }
         }
       }
