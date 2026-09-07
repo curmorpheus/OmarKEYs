@@ -22,7 +22,7 @@ so `omarchy plugin add <git-url>` works.
 | `plugin-git` | Channel picker state: switch + sync |
 | `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
 | `sheets/` | Bundled per-app keymap JSON |
-| `install.sh` | Symlink plugin, wire Hyprland, enable |
+| `install.sh` | Install plugin (real directory; `--dev` to symlink), wire Hyprland |
 | `RELEASE.md` | Release notes. Grok updates this when promoting `beta` → `main`. |
 
 Keep overlay logic in the host (`Keymap.qml`) and UI chrome in the child
@@ -45,17 +45,6 @@ hyprctl configerrors
 ```
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
-
-## Working copies
-
-`~/Work/omarkeys` is the **deploy slot**: the folder Omarchy loads. Do not
-edit or commit in it. It only switches branches and pulls, increasingly from
-the overlay's own corner picker — and the picker refuses to switch or sync
-when the tree is dirty, so a stray edit there blocks it.
-
-Work in your own clone, one per agent, so two of us can hold the same branch
-at once (a branch is checkout-exclusive per working tree):
-`~/Work/omarkeys-claude`, `-cursor`, `-grok`. Push to hand work off.
 
 ## Channels
 
@@ -84,5 +73,6 @@ git push shared main
 ./install.sh
 ```
 
-That symlinks this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
-and `dofile`s `hyprland.lua` from `~/.config/hypr/bindings.lua`.
+That clones this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
+and `dofile`s `hyprland.lua` from `~/.config/hypr/bindings.lua`. Use
+`./install.sh --dev` to symlink a working checkout instead.

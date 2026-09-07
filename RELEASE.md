@@ -3,6 +3,20 @@
 Grok writes this file when promoting a finished **beta** (Claude) into
 **main**. Cursor does not land on `main`.
 
+## 1.5.1 — 2026-09-07
+
+Promoted from `beta` (`9db25ad`). Cursor not included.
+
+- Modifier filters are a 2×2 key-chip grid, ruled off from the tree;
+  legend reads All / Must / Hide.
+- Switching a channel fetches and fast-forwards it first, so Beta/Main
+  do not silently load a stale local tip.
+- `install.sh` installs a real directory (symlink folders fail
+  `omarchy plugin update`); `--dev` keeps the symlink for local work.
+- Lua binds round-trip table args; un-issuable rows are dimmed.
+- Key-sending rows target the window that was focused before the overlay
+  opened.
+
 ## 1.5.0 — 2026-09-07
 
 Promoted from `beta` (`375da99`).
