@@ -555,7 +555,10 @@ Rectangle {
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
                   text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
-                    + (modelData.count > 1 ? " (" + modelData.count + ")" : "")
+                    // The count only says what the rows below already show,
+                    // so it is for the unexpanded case alone.
+                    + ((modelData.count > 1 && !(modelData.windows && modelData.windows.length > 1))
+                      ? " (" + modelData.count + ")" : "")
                   textFormat: Text.PlainText
                   color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
                   opacity: modelData.sheet ? 1 : 0.55
