@@ -46,6 +46,17 @@ hyprctl configerrors
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
 
+## Working copies
+
+`~/Work/omarkeys` is the **deploy slot**: the folder Omarchy loads. Do not
+edit or commit in it. It only switches branches and pulls, increasingly from
+the overlay's own corner picker — and the picker refuses to switch or sync
+when the tree is dirty, so a stray edit there blocks it.
+
+Work in your own clone, one per agent, so two of us can hold the same branch
+at once (a branch is checkout-exclusive per working tree):
+`~/Work/omarkeys-claude`, `-cursor`, `-grok`. Push to hand work off.
+
 ## Channels
 
 | Channel | Branch | Owner |
