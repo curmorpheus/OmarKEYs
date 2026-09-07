@@ -16,11 +16,11 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |
-| `run-shortcut` | Replay a selected chord after the overlay closes |
+| `run-shortcut` | Run a selected row: dispatch a bind's action, or replay a chord into the focused window for app sheets |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Branch/update state for the corner picker; switch + sync |
-| `KeymapBranchMenu.qml` | Corner branch picker: switch branch, sync to latest |
+| `KeymapBranchMenu.qml` | Corner channel picker: Main/Beta/Nightly, sync to latest |
 | `sheets/` | Bundled per-app keymap JSON; required for app sources |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
 
@@ -84,12 +84,29 @@ files out from under another tool's open buffers.
 
 | Branch | Owner | Role |
 |---|---|---|
-| `main` | Grok | Released/stable; Grok pulls `develop` into `main` |
+| `main` | Grok | **Main channel.** Released/stable; Grok promotes `beta` into `main` |
+| `beta` | Claude | **Beta channel.** Tested, ahead of stable; Claude promotes `develop` into `beta` |
 | `develop` | Claude (this agent) | Integration branch; only accepts approved merges from `develop-claude` and `develop-cursor` |
 | `develop-claude` | Claude | Claude's working integration branch; feature branches merge here first, brought into `develop` once approved |
 | `develop-cursor` | Cursor | Cursor's own integration branch; opens a PR into `develop` when ready to hand work back |
 | `feature/phase2-sidebar-tree` | Claude | Off `develop-claude` |
 | `feature/phase3-view-edit-ui` | Claude (second session) | Off `develop-claude` |
+
+### Release channels
+
+The overlay's corner picker exposes three channels, not raw branches, so
+someone who just wants a working keymap never has to reason about our
+branch names:
+
+| Channel | Branch | Who it is for |
+|---|---|---|
+| Main | `main` | Stable |
+| Beta | `beta` | Tested, ahead of stable |
+| Nightly | any other branch | Us — the list is behind a disclosure |
+
+Promotion runs one way: `develop` → `beta` (Claude) → `main` (Grok).
+Do not promote a branch into a channel you do not own, and do not point a
+channel at a working branch — Nightly already covers that case.
 
 Rules: only the branch owner commits directly to it. Everyone else lands
 changes via PR/merge after review. Claude's own feature work lands on

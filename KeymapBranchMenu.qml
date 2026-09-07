@@ -17,6 +17,9 @@ Rectangle {
   readonly property int labelSize: Style.font.caption
   readonly property bool busy: host ? host.gitBusy : false
   readonly property bool dirty: host ? host.gitDirty : false
+  // Open by default when already on a working branch, so you can see
+  // where you are without hunting for the disclosure.
+  property bool nightlyOpen: !!(host && host.gitChannel === "nightly")
 
   width: Style.space(280)
   height: Math.min(Style.space(320), content.implicitHeight + Style.spacing.sm * 2)
@@ -37,7 +40,7 @@ Rectangle {
 
     Text {
       width: parent.width
-      text: "Loaded branch"
+      text: "Loaded"
       textFormat: Text.PlainText
       color: menu.chipFg
       font.family: menu.fontFamily
@@ -48,7 +51,8 @@ Rectangle {
 
     Text {
       width: parent.width
-      text: (host && host.gitBranch ? host.gitBranch : "unknown")
+      text: (host ? host.channelLabel(host.gitChannel) : "unknown")
+        + (host && host.gitBranch ? "  ·  " + host.gitBranch : "")
         + (host && host.gitHash ? " @ " + host.gitHash : "")
       textFormat: Text.PlainText
       color: menu.foreground
@@ -132,7 +136,7 @@ Rectangle {
 
     Text {
       width: parent.width
-      text: "Switch to"
+      text: "Channel"
       textFormat: Text.PlainText
       color: menu.chipFg
       font.family: menu.fontFamily
@@ -141,9 +145,69 @@ Rectangle {
       font.capitalization: Font.AllUppercase
     }
 
+    // Main and Beta are one click. Nightly is a disclosure: it opens the
+    // full branch list rather than switching, so nobody lands on a working
+    // branch by accident, and picking one costs a single restart.
+    Repeater {
+      model: [
+        { id: "main", label: "Main", note: "stable" },
+        { id: "beta", label: "Beta", note: "tested, ahead of stable" },
+        { id: "nightly", label: "Nightly", note: "every working branch" }
+      ]
+      delegate: Rectangle {
+        required property var modelData
+        readonly property bool current: !!(host && host.gitChannel === modelData.id)
+        readonly property bool isNightly: modelData.id === "nightly"
+        width: content.width
+        height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
+        radius: 4
+        color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
+
+        Text {
+          id: channelLabel
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.leftMargin: 6
+          anchors.rightMargin: 6
+          anchors.verticalCenter: parent.verticalCenter
+          text: (current ? "• " : "  ")
+            + modelData.label
+            + (isNightly ? (menu.nightlyOpen ? "  ▾" : "  ▸") : "")
+            + "   " + modelData.note
+          textFormat: Text.PlainText
+          color: current ? menu.chipFg : menu.foreground
+          opacity: (menu.dirty && !current) ? 0.45 : 1
+          font.family: menu.fontFamily
+          font.pixelSize: menu.labelSize
+          font.bold: current
+          elide: Text.ElideRight
+        }
+
+        MouseArea {
+          id: channelArea
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            var h = menu.host
+            if (!h || h.gitBusy)
+              return
+            if (isNightly) {
+              menu.nightlyOpen = !menu.nightlyOpen
+              return
+            }
+            if (current)
+              return
+            h.switchChannel(modelData.id)
+          }
+        }
+      }
+    }
+
     Flickable {
       width: parent.width
-      height: Math.min(Style.space(170), branchCol.height)
+      visible: menu.nightlyOpen
+      height: visible ? Math.min(Style.space(150), branchCol.height) : 0
       clip: true
       contentWidth: width
       contentHeight: branchCol.height
@@ -156,7 +220,8 @@ Rectangle {
         spacing: 1
 
         Repeater {
-          model: host ? host.gitBranches : []
+          // Main and Beta already have their own rows above.
+          model: host ? host.nightlyBranches : []
           delegate: Rectangle {
             required property var modelData
             readonly property bool current: !!(host && modelData === host.gitBranch)
@@ -171,7 +236,7 @@ Rectangle {
               id: branchLabel
               anchors.left: parent.left
               anchors.right: parent.right
-              anchors.leftMargin: 6
+              anchors.leftMargin: 16
               anchors.rightMargin: 6
               anchors.verticalCenter: parent.verticalCenter
               text: (current ? "• " : "") + modelData
