@@ -203,6 +203,38 @@ function setSections(next) {
   liveSections = (next && next.length) ? next : null
 }
 
+// Long key names push the action column off the row, so a chip can be
+// abbreviated. Anything not listed falls back to its first 5 characters,
+// which keeps XF86-style names from running away.
+var SHORT_KEYS = {
+  Super: "Sup", Shift: "Shft", Control: "Ctrl", Ctrl: "Ctrl", Alt: "Alt",
+  Return: "Ret", Enter: "Ret", Escape: "Esc", Space: "Spc", Backspace: "Bksp",
+  Delete: "Del", Insert: "Ins", Print: "Prt", Home: "Home", End: "End",
+  PageUp: "PgUp", PageDown: "PgDn", Left: "←", Right: "→", Up: "↑", Down: "↓",
+  Tab: "Tab", Mouse: "Mous", Button: "Btn"
+}
+
+function shortKey(name) {
+  var key = String(name || "")
+  if (SHORT_KEYS[key])
+    return SHORT_KEYS[key]
+  // XF86AudioRaiseVolume -> Volume, XF86PowerOff -> Power
+  var xf86 = key.match(/^XF86(?:Audio|Mon|Kbd)?([A-Za-z]+)/)
+  if (xf86)
+    return xf86[1].slice(0, 5)
+  return key.length <= 5 ? key : key.slice(0, 5)
+}
+
+function displayKeys(keys, style) {
+  var parts = splitKeys(keys)
+  if (style !== "short")
+    return parts
+  var out = []
+  for (var i = 0; i < parts.length; i++)
+    out.push(shortKey(parts[i]))
+  return out
+}
+
 function setConfig(cfg) {
   var hidden = []
   if (cfg && cfg.hiddenGroups) {
@@ -219,8 +251,46 @@ function setConfig(cfg) {
       Shift: normalizeModifierMode(modsIn.Shift),
       Ctrl: normalizeModifierMode(modsIn.Ctrl),
       Alt: normalizeModifierMode(modsIn.Alt)
-    }
+    },
+    chipStyle: (cfg && cfg.chipStyle === "short") ? "short" : "full",
+    rowLayout: (cfg && cfg.rowLayout === "action") ? "action" : "keys",
+    sortBy: (cfg && cfg.sortBy === "action") ? "action" : "section",
+    searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
+      ? cfg.searchMode : "all"
   }
+}
+
+function chipStyle() {
+  return currentConfig.chipStyle || "full"
+}
+
+function rowLayout() {
+  return currentConfig.rowLayout || "keys"
+}
+
+function searchMode() {
+  return currentConfig.searchMode || "all"
+}
+
+function sortBy() {
+  return currentConfig.sortBy || "section"
+}
+
+// Which field the query is tested against. "Search by modifiers" means the
+// chord text, so Super+Shift narrows to those; "by description" means the
+// action, so typing a word never matches a stray key name.
+function rowMatchesQuery(row, sectionTitle, q) {
+  if (!q)
+    return true
+  var mode = searchMode()
+  var keys = String(row.keys).toLowerCase()
+  var action = String(row.action).toLowerCase()
+  if (mode === "keys")
+    return keys.indexOf(q) !== -1
+  if (mode === "action")
+    return action.indexOf(q) !== -1
+  return keys.indexOf(q) !== -1 || action.indexOf(q) !== -1
+    || String(sectionTitle).toLowerCase().indexOf(q) !== -1
 }
 
 function normalizeModifierMode(value) {
@@ -388,10 +458,14 @@ function filtered(query) {
       var row = section.rows[r]
       if (!rowMatchesModifiers(row))
         continue
-      if (!q || String(row.keys).toLowerCase().indexOf(q) !== -1
-          || String(row.action).toLowerCase().indexOf(q) !== -1
-          || String(section.title).toLowerCase().indexOf(q) !== -1)
+      if (rowMatchesQuery(row, section.title, q))
         rows.push(row)
+    }
+    if (sortBy() === "action") {
+      rows = rows.slice().sort(function (a, b) {
+        return String(a.action).toLowerCase() < String(b.action).toLowerCase() ? -1
+          : (String(a.action).toLowerCase() > String(b.action).toLowerCase() ? 1 : 0)
+      })
     }
     if (rows.length)
       out.push({ title: section.title, rows: rows })

@@ -58,6 +58,8 @@ Flickable {
           chipFg: host.chipFg
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
+          chipStyle: host.chipStyle
+          rowLayout: host.rowLayout
           onRowClicked: function(keys, action) { host.activateRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
           onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
@@ -88,6 +90,8 @@ Flickable {
           chipFg: host.chipFg
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
+          chipStyle: host.chipStyle
+          rowLayout: host.rowLayout
           onRowClicked: function(keys, action) { host.activateRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
           onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }

@@ -21,6 +21,57 @@ Item {
     anchors.right: parent.right
     spacing: Style.spacing.md
 
+    // Layout experiments, cycled in place so two arrangements can be
+    // compared without a rebuild between them.
+    Repeater {
+      model: [
+        { id: "chips",  label: "Keys" },
+        { id: "layout", label: "Order" },
+        { id: "sort",   label: "Sort" },
+        { id: "search", label: "Find" }
+      ]
+      delegate: Text {
+        required property var modelData
+        readonly property string value: {
+          if (!host)
+            return ""
+          if (modelData.id === "chips")
+            return host.chipStyle === "short" ? "short" : "full"
+          if (modelData.id === "layout")
+            return host.rowLayout === "action" ? "action first" : "keys first"
+          if (modelData.id === "sort")
+            return host.sortBy === "action" ? "by name" : "by group"
+          return host.searchMode === "keys" ? "keys"
+            : (host.searchMode === "action" ? "name" : "all")
+        }
+        anchors.verticalCenter: parent.verticalCenter
+        text: modelData.label + " " + value
+        textFormat: Text.PlainText
+        color: bar.chipFg
+        opacity: area.containsMouse ? 1 : 0.7
+        font.family: bar.fontFamily
+        font.pixelSize: Style.font.caption
+        MouseArea {
+          id: area
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            if (!host)
+              return
+            if (modelData.id === "chips")
+              host.cycleChipStyle()
+            else if (modelData.id === "layout")
+              host.cycleRowLayout()
+            else if (modelData.id === "sort")
+              host.cycleSortBy()
+            else
+              host.cycleSearchMode()
+          }
+        }
+      }
+    }
+
     Text {
       anchors.verticalCenter: parent.verticalCenter
       text: "Double-tap Super"
