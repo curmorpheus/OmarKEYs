@@ -458,16 +458,28 @@ Rectangle {
       // Four boxed chips, 2 x 2: each shows its modifier and the state it
       // is in, and clicking cycles A -> M -> H. Boxed because these are
       // controls you press, unlike the labels in the tree above.
+      // Measures the widest cap so all four are the same size: a keyboard
+      // has uniform keys, and content-sized chips would come out ragged
+      // ("Super - A" against "Alt - A").
+      Text {
+        id: capMetric
+        visible: false
+        text: "Super"
+        font.family: side.fontFamily
+        font.pixelSize: side.subFontSize
+      }
+
       Grid {
         id: modGrid
-        width: modBlock.width
+        anchors.horizontalCenter: parent.horizontalCenter
         columns: 2
         columnSpacing: Style.space(4)
-        rowSpacing: Style.space(3)
+        rowSpacing: Style.space(4)
 
         Repeater {
           model: ["Super", "Shift", "Ctrl", "Alt"]
-          delegate: Rectangle {
+          delegate: Item {
+            id: cell
             required property string modelData
             readonly property string mode: !side.host ? "any"
               : modelData === "Super" ? side.host.modSuper
@@ -476,28 +488,50 @@ Rectangle {
               : side.host.modAlt
             readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
 
-            width: Math.max(1, (modGrid.width - modGrid.columnSpacing) / 2)
-            height: Math.max(Style.space(18), chipLabel.implicitHeight + 5)
-            radius: 4
-            border.width: 1
-            border.color: mode === "any" ? side.borderColor : side.chipFg
-            color: modArea.containsMouse ? side.borderColor : "transparent"
-            opacity: mode === "hide" ? 0.55 : 1
+            width: keyCap.width + Style.space(3) + markLabel.implicitWidth
+            height: keyCap.height
+            opacity: cell.mode === "hide" ? 0.55 : 1
 
-            Text {
-              id: chipLabel
+            Rectangle {
+              id: keyCap
               anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.leftMargin: 5
-              anchors.rightMargin: 5
               anchors.verticalCenter: parent.verticalCenter
-              text: modelData + " - " + parent.mark
+              width: capMetric.implicitWidth + Style.space(12)
+              height: capMetric.implicitHeight + Style.space(8)
+              radius: 5
+              border.width: 1
+              border.color: cell.mode === "any" ? side.borderColor : side.chipFg
+              // A faint fill so the cap reads as a raised key rather than
+              // an outlined box, brightening under the cursor.
+              color: modArea.containsMouse
+                ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
+                : Qt.rgba(side.borderColor.r, side.borderColor.g, side.borderColor.b, 0.18)
+
+              Text {
+                anchors.centerIn: parent
+                text: cell.modelData
+                textFormat: Text.PlainText
+                color: cell.mode === "any" ? side.foreground : side.chipFg
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                font.bold: cell.mode !== "any"
+              }
+            }
+
+            // The state sits beside the key, not on it: the cap is the key
+            // you are filtering, the letter is what you are doing to it.
+            Text {
+              id: markLabel
+              anchors.left: keyCap.right
+              anchors.leftMargin: Style.space(3)
+              anchors.verticalCenter: parent.verticalCenter
+              text: cell.mark
               textFormat: Text.PlainText
-              color: mode === "any" ? side.foreground : side.chipFg
+              color: cell.mode === "any" ? side.foreground : side.chipFg
+              opacity: cell.mode === "any" ? 0.75 : 1
               font.family: side.fontFamily
               font.pixelSize: side.subFontSize
-              font.bold: mode !== "any"
-              elide: Text.ElideRight
+              font.bold: true
             }
 
             MouseArea {
@@ -508,7 +542,7 @@ Rectangle {
               onClicked: {
                 var h = side.host
                 if (h)
-                  h.cycleModifier(modelData)
+                  h.cycleModifier(cell.modelData)
               }
             }
           }
