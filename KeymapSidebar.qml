@@ -88,6 +88,7 @@ Rectangle {
               width: 12
               text: (side.omarchyOpen && !(host && host.allGroupsHidden)) ? "▾" : "▸"
               color: side.chipFg
+              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
               MouseArea {
@@ -104,6 +105,7 @@ Rectangle {
               text: "Omarchy"
               textFormat: Text.PlainText
               color: host && host.omarchyActive ? side.chipFg : side.foreground
+              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
               font.bold: true
@@ -174,7 +176,7 @@ Rectangle {
                 width: 12
                 text: areaCol.allHidden ? "▸" : "▾"
                 color: side.chipFg
-                opacity: 0.7
+                opacity: areaCol.allHidden ? 0.4 : 0.7
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 MouseArea {
@@ -226,7 +228,7 @@ Rectangle {
                 text: areaCol.modelData.title
                 textFormat: Text.PlainText
                 color: side.foreground
-                opacity: 0.75
+                opacity: areaCol.allHidden ? 0.4 : 0.75
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
@@ -377,6 +379,7 @@ Rectangle {
               width: 12
               text: (side.windowsOpen && !(host && host.allAppsHidden)) ? "▾" : "▸"
               color: side.chipFg
+              opacity: (host && host.allAppsHidden) ? 0.4 : 1
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
               MouseArea {
@@ -392,6 +395,7 @@ Rectangle {
               text: "Active Apps"
               textFormat: Text.PlainText
               color: side.chipFg
+              opacity: (host && host.allAppsHidden) ? 0.4 : 1
               font.family: side.fontFamily
               font.pixelSize: side.rootFontSize
               font.bold: true
@@ -460,7 +464,7 @@ Rectangle {
                 width: 12
                 text: kindCol.modelData.hidden ? "▸" : "▾"
                 color: side.chipFg
-                opacity: 0.7
+                opacity: kindCol.modelData.hidden ? 0.4 : 0.7
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 MouseArea {
@@ -512,7 +516,7 @@ Rectangle {
                 text: kindCol.modelData.title
                 textFormat: Text.PlainText
                 color: side.foreground
-                opacity: 0.75
+                opacity: kindCol.modelData.hidden ? 0.4 : 0.75
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
