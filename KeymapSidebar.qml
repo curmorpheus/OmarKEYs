@@ -62,7 +62,11 @@ Rectangle {
             accent: side.chipFg
             trackHeight: 16
             activeFocusOnTab: false
-            onToggled: if (host) host.setAllGroupsVisible(!host.allGroupsVisible)
+            onToggled: {
+              var h = side.host
+              if (h)
+                h.setAllGroupsVisible(!h.allGroupsVisible)
+            }
           }
 
           Row {
@@ -101,10 +105,11 @@ Rectangle {
                 // Root of the branch: back to the whole Omarchy keymap,
                 // undoing any area/group solo from a previous click.
                 onClicked: {
-                  if (!host)
+                  var h = side.host
+                  if (!h)
                     return
-                  host.selectSource("omarchy")
-                  host.setAllGroupsVisible(true)
+                  h.selectSource("omarchy")
+                  h.setAllGroupsVisible(true)
                 }
               }
             }
@@ -155,13 +160,15 @@ Rectangle {
                 trackHeight: 12
                 activeFocusOnTab: false
                 onToggled: {
-                  if (!host)
+                  var h = side.host
+                  if (!h)
                     return
                   var titles = []
                   var groups = areaCol.modelData.groups || []
                   for (var ti = 0; ti < groups.length; ti++)
                     titles.push(groups[ti].title)
-                  host.setGroupsVisible(titles, !areaCol.allVisible)
+                  var show = !areaCol.allVisible
+                  h.setGroupsVisible(titles, show)
                 }
               }
 
@@ -186,15 +193,16 @@ Rectangle {
                   cursorShape: Qt.PointingHandCursor
                   // Show only this area's groups on the board.
                   onClicked: {
-                    if (!host)
+                    var h = side.host
+                    if (!h)
                       return
-                    if (!host.omarchyActive)
-                      host.selectSource("omarchy")
                     var titles = []
                     var groups = areaCol.modelData.groups || []
                     for (var ci = 0; ci < groups.length; ci++)
                       titles.push(groups[ci].title)
-                    host.soloGroups(titles)
+                    if (!h.omarchyActive)
+                      h.selectSource("omarchy")
+                    h.soloGroups(titles)
                   }
                 }
               }
@@ -229,7 +237,11 @@ Rectangle {
                   accent: side.chipFg
                   trackHeight: 11
                   activeFocusOnTab: false
-                  onToggled: if (host) host.toggleGroup(modelData.title)
+                  onToggled: {
+                    var h = side.host
+                    if (h)
+                      h.toggleGroup(modelData.title)
+                  }
                 }
 
                 Text {
@@ -252,12 +264,18 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     // Show only this group's table on the board.
                     onClicked: {
-                      if (!host)
+                      // soloGroups() rebuilds the tree model, which destroys
+                      // this delegate mid-handler. Resolve everything we need
+                      // up front so the calls after it are not running in a
+                      // scope that no longer exists.
+                      var h = side.host
+                      if (!h)
                         return
-                      if (!host.omarchyActive)
-                        host.selectSource("omarchy")
-                      host.soloGroups([modelData.title])
-                      host.focusGroup(modelData.title)
+                      var title = modelData.title
+                      if (!h.omarchyActive)
+                        h.selectSource("omarchy")
+                      h.soloGroups([title])
+                      h.focusGroup(title)
                     }
                   }
                 }
@@ -368,7 +386,11 @@ Rectangle {
               MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: if (host) host.selectSource(modelData.class)
+                onClicked: {
+                  var h = side.host
+                  if (h)
+                    h.selectSource(modelData.class)
+                }
               }
             }
           }

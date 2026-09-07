@@ -296,6 +296,8 @@ Item {
     repeat: false
     onTriggered: {
       var script = root.sourceDir + "/run-shortcut"
+      // TEMP diagnostics: confirm the spawn actually happens.
+      console.warn("omarkeys: spawn " + script + " '" + root.pendingMods + "' '" + root.pendingKey + "'")
       Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
     }
   }
@@ -368,12 +370,14 @@ Item {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.clearSolo()
   }
 
   function dismiss() {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.clearSolo()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
   }
@@ -454,6 +458,7 @@ Item {
   }
 
   function toggleGroup(title) {
+    root.preSoloHidden = null
     var next = []
     var hiding = !root.groupIsHidden(title)
     for (var i = 0; i < root.hiddenGroups.length; i++) {
@@ -466,10 +471,18 @@ Item {
     root.saveConfig()
   }
 
+  // Snapshot of hiddenGroups taken before the first solo, so closing the
+  // overlay can put the user's real group settings back.
+  property var preSoloHidden: null
+
   // Click a branch in the tree to show only that branch: every Omarchy
   // group outside `titles` is hidden, so the board shows just the one
-  // area/group you picked. Clicking the Omarchy root shows them all again.
+  // area/group you picked. This is a *view* filter — deliberately not
+  // written to the config, and undone on close, so a stray click cannot
+  // leave the keymap permanently mostly-hidden.
   function soloGroups(titles) {
+    if (root.preSoloHidden === null)
+      root.preSoloHidden = root.hiddenGroups.slice()
     var keep = {}
     for (var i = 0; i < titles.length; i++)
       keep[titles[i]] = true
@@ -480,10 +493,21 @@ Item {
         next.push(list[j].title)
     }
     root.hiddenGroups = next
-    root.saveConfig()
+    root.applyConfigToData()
+    root.rebuild()
+  }
+
+  function clearSolo() {
+    if (root.preSoloHidden === null)
+      return
+    root.hiddenGroups = root.preSoloHidden.slice()
+    root.preSoloHidden = null
+    root.applyConfigToData()
+    root.rebuild()
   }
 
   function setGroupsVisible(titles, show) {
+    root.preSoloHidden = null
     var set = {}
     for (var i = 0; i < titles.length; i++)
       set[titles[i]] = true
@@ -528,6 +552,7 @@ Item {
   }
 
   function setAllGroupsVisible(show) {
+    root.preSoloHidden = null
     if (show) {
       root.hiddenGroups = []
     } else {
@@ -712,21 +737,30 @@ Item {
 
   function executeSelected() {
     if (root.editMode) {
-      var item = root.navItems[root.selected]
-      if (item)
-        root.startCapture(item.keys, item.action)
+      var editItem = root.navItems[root.selected]
+      if (editItem)
+        root.startCapture(editItem.keys, editItem.action)
       return
     }
-    if (root.launching || !root.opened)
+    // TEMP diagnostics: tracking why rows do not fire on click/Enter.
+    if (root.launching || !root.opened) {
+      console.warn("omarkeys: blocked launching=" + root.launching + " opened=" + root.opened)
       return
+    }
     var item = root.navItems[root.selected]
-    if (!item)
+    if (!item) {
+      console.warn("omarkeys: blocked no-item selected=" + root.selected
+        + " navItems=" + root.navItems.length)
       return
+    }
     var sc = item.shortcut
     if (!sc || !sc.key)
       sc = KeymapData.shortcut(item.keys)
-    if (!sc || !sc.key)
+    if (!sc || !sc.key) {
+      console.warn("omarkeys: blocked not-runnable keys=" + item.keys + " action=" + item.action)
       return
+    }
+    console.warn("omarkeys: running " + item.keys + " mods=" + (sc.mods || "") + " key=" + sc.key)
     root.pendingMods = sc.mods || ""
     root.pendingKey = sc.key
     root.launching = true
