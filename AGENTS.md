@@ -9,11 +9,11 @@ so `omarchy plugin add <git-url>` works.
 |---|---|
 | `manifest.json` | Plugin id `io.github.romills.omarkeys`, overlay entry |
 | `Keymap.qml` | Overlay host: config, dump, keyboard, execute |
-| `KeymapSidebar.qml` | Group visibility and modifier Any/Must/Hide |
+| `KeymapSidebar.qml` | The tree: Omarchy areas/groups and Active Apps |
 | `KeymapBoard.qml` | Two-column section grid |
 | `KeymapSection.qml` | One topic card |
 | `KeymapRow.qml` | One command row |
-| `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
+| `KeymapOptionsMenu.qml` | Options popup: display, modifiers, gestures |
 | `KeymapHideButton.qml` | Show/Hide control used at every level of the tree |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |

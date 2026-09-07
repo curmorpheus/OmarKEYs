@@ -34,13 +34,13 @@ Rectangle {
 
     Flickable {
       width: parent.width
-      height: Math.max(40, parent.height - modBlock.height - modDivider.height - parent.spacing * 2)
+      height: parent.height
       clip: true
       contentWidth: width
       contentHeight: treeCol.height
-      // Scrollable content will always clip somewhere; this keeps the cut
-      // from landing flush against the divider below, where a half-drawn
-      // row reads as broken rather than as "there is more".
+      // Scrollable content will always clip somewhere; the margin keeps a
+      // half-drawn row from sitting flush against the edge, where it reads
+      // as broken rather than as "there is more".
       bottomMargin: Style.space(6)
       boundsBehavior: Flickable.StopAtBounds
       activeFocusOnTab: false
@@ -689,167 +689,5 @@ Rectangle {
       }
     }
 
-    Item {
-      id: modDivider
-      width: parent.width
-      height: Style.space(9)
-
-      Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        height: 1
-        color: side.borderColor
-        opacity: 0.5
-      }
-    }
-
-    Column {
-      id: modBlock
-      width: parent.width
-      spacing: Style.space(3)
-
-      Text {
-        width: parent.width
-        horizontalAlignment: Text.AlignHCenter
-        text: "Modifiers"
-        textFormat: Text.PlainText
-        color: side.chipFg
-        font.family: side.fontFamily
-        font.pixelSize: side.subFontSize
-        font.bold: true
-        font.capitalization: Font.AllUppercase
-      }
-
-      Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Style.space(8)
-
-        Repeater {
-          model: ["any", "must", "hide"]
-          delegate: Text {
-            required property string modelData
-            readonly property bool active: !host ? false
-              : modelData === "any" ? host.allModsAny
-              : modelData === "must" ? host.allModsMust
-              : host.allModsHide
-            // Bold initial ties each word to the A / M / H shown on the
-            // keys below. StyledText only because of that markup - the
-            // strings are literals here, nothing interpolated.
-            text: modelData === "any" ? "<b>A</b>ll"
-              : (modelData === "must" ? "<b>M</b>ust" : "<b>H</b>ide")
-            textFormat: Text.StyledText
-            color: active ? side.chipFg : side.foreground
-            opacity: active ? 1 : 0.55
-            font.family: side.fontFamily
-            font.pixelSize: side.subFontSize
-            MouseArea {
-              anchors.fill: parent
-              cursorShape: Qt.PointingHandCursor
-              onClicked: if (host) host.setAllModifiers(modelData)
-            }
-          }
-        }
-      }
-
-      // Four boxed chips, 2 x 2: each shows its modifier and the state it
-      // is in, and clicking cycles A -> M -> H. Boxed because these are
-      // controls you press, unlike the labels in the tree above.
-      // Measures the widest cap so all four are the same size: a keyboard
-      // has uniform keys, and content-sized chips would come out ragged
-      // ("Super - A" against "Alt - A").
-      Text {
-        id: capMetric
-        visible: false
-        text: "Super"
-        font.family: side.fontFamily
-        font.pixelSize: side.subFontSize
-      }
-
-      Grid {
-        id: modGrid
-        width: modBlock.width
-        columns: 2
-        columnSpacing: 0
-        rowSpacing: Style.space(4)
-
-        Repeater {
-          model: ["Super", "Shift", "Ctrl", "Alt"]
-          delegate: Item {
-            id: cell
-            required property string modelData
-            readonly property string mode: !side.host ? "any"
-              : modelData === "Super" ? side.host.modSuper
-              : modelData === "Shift" ? side.host.modShift
-              : modelData === "Ctrl" ? side.host.modCtrl
-              : side.host.modAlt
-            readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
-
-            // Half the sidebar each, so the two columns split it evenly.
-            width: modGrid.width / 2
-            height: keyCap.height
-            opacity: cell.mode === "hide" ? 0.55 : 1
-
-            Rectangle {
-              id: keyCap
-              // Centres the key *and* its state letter as one group inside
-              // the half-column: shifting the cap left by half of what
-              // follows it puts the pair's midpoint on the cell's centre.
-              anchors.horizontalCenter: parent.horizontalCenter
-              anchors.horizontalCenterOffset: -(Style.space(3) + markLabel.implicitWidth) / 2
-              anchors.verticalCenter: parent.verticalCenter
-              width: capMetric.implicitWidth + Style.space(12)
-              height: capMetric.implicitHeight + Style.space(8)
-              radius: 5
-              border.width: 1
-              border.color: cell.mode === "any" ? side.borderColor : side.chipFg
-              // A faint fill so the cap reads as a raised key rather than
-              // an outlined box, brightening under the cursor.
-              color: modArea.containsMouse
-                ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
-                : Qt.rgba(side.borderColor.r, side.borderColor.g, side.borderColor.b, 0.18)
-
-              Text {
-                anchors.centerIn: parent
-                text: cell.modelData
-                textFormat: Text.PlainText
-                color: cell.mode === "any" ? side.foreground : side.chipFg
-                font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
-                font.bold: cell.mode !== "any"
-              }
-            }
-
-            // The state sits beside the key, not on it: the cap is the key
-            // you are filtering, the letter is what you are doing to it.
-            Text {
-              id: markLabel
-              anchors.left: keyCap.right
-              anchors.leftMargin: Style.space(3)
-              anchors.verticalCenter: parent.verticalCenter
-              text: cell.mark
-              textFormat: Text.PlainText
-              color: cell.mode === "any" ? side.foreground : side.chipFg
-              opacity: cell.mode === "any" ? 0.75 : 1
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-              font.bold: true
-            }
-
-            MouseArea {
-              id: modArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                var h = side.host
-                if (h)
-                  h.cycleModifier(cell.modelData)
-              }
-            }
-          }
-        }
-      }
-    }
   }
 }
