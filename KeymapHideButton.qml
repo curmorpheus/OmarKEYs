@@ -17,6 +17,9 @@ Item {
   property color accent: Color.menu.selectedText
   property string fontFamily: Style.font.menuFamily
   property int fontSize: Style.font.caption
+  // Callers reveal these on row hover, so they need the button's own hover
+  // too: without it the control can vanish as the cursor moves onto it.
+  readonly property alias hovered: area.containsMouse
   signal toggled()
 
   // Padding is click target, not decoration - the text alone is a small
