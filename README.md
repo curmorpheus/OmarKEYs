@@ -52,9 +52,49 @@ are stored in `~/.config/omarchy/omarkeys.json`. Remaps write
 `~/.config/hypr/omarkeys-edits.lua` and keep a git history under
 `~/.local/state/omarchy/omarkeys-history`.
 
+## Dependencies and privileges
+
+Omarchy plugins run unsandboxed inside the long-running shell process with
+your user's permissions, so here is everything OmarKEYS reaches for.
+
+**External commands**
+
+| Command | Used for |
+|---|---|
+| `hyprctl` | Read binds and clients; dispatch the action of a row you run |
+| `python3` | `dump-keymap`, `apply-edit`, `plugin-git`, and JSON quoting in `run-shortcut` |
+| `lua` | Read the real action of each bind out of your Hyprland Lua config |
+| `git` | Branch picker (status, fetch, checkout, fast-forward) and the edit history |
+| `bash` | `run-shortcut`, `install.sh`, and invoking `omarchy restart shell` |
+| `omarchy`, `omarchy-shell` | Enable/disable the plugin, rescan plugins, restart the shell |
+
+**Files it writes**
+
+| Path | What |
+|---|---|
+| `~/.config/omarchy/omarkeys.json` | Overlay settings (hidden groups, modifiers, gestures) |
+| `~/.config/hypr/omarkeys-edits.lua` | Chord remaps made in the overlay |
+| `~/.config/hypr/bindings.lua` | Installer appends one `dofile` line; backed up first |
+| `~/.local/state/omarchy/omarkeys-history` | Git history of remaps, so an edit can be reverted |
+
+**Privilege boundaries**
+
+- Running a row dispatches that binding's **own** action, taken from your
+  Hyprland config — an `exec` bind runs its command as you. OmarKEYS adds no
+  commands of its own; it can only trigger what you already bound.
+- Rows whose action cannot be recovered are shown dimmed and do nothing, so
+  the overlay never guesses at what a key might mean.
+- **Network:** only the branch picker, and only to the plugin's own git
+  remote, when you check for updates or sync. Nothing else phones home.
+- The picker can change which branch of this plugin is checked out and then
+  run `omarchy restart shell`. It never starts a second Quickshell process,
+  never force-pushes, never resets, and refuses to act on a dirty checkout.
+- No root, no setuid, no system services, no remote build step.
+
 ## Install
 
-Needs Omarchy Quattro (Hyprland Lua + `omarchy-shell` plugins).
+Needs Omarchy Quattro (Hyprland Lua + `omarchy-shell` plugins), plus
+`python3`, `lua`, and `git` on `PATH`.
 
 ```bash
 git clone <this-repo> ~/Work/omarkeys
