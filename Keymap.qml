@@ -652,12 +652,16 @@ Item {
   // decides their keybindings: every Chrome PWA is one "Web apps" entry.
   // Kind order follows first appearance, and the dump sorts the focused
   // window first, so the app you came from leads the list.
+  // dump-keymap's label for apps with no bindings of their own; kept here
+  // so the sort below and the fallback cannot drift apart.
+  readonly property string noSheetKind: "No keymap sheet"
+
   readonly property var appTree: {
     var out = []
     var index = ({})
     var list = root.clients || []
     for (var i = 0; i < list.length; i++) {
-      var kind = list[i].kind || "No keymap sheet"
+      var kind = list[i].kind || root.noSheetKind
       if (index[kind] === undefined) {
         index[kind] = out.length
         out.push({ title: kind, apps: [], hidden: true })
@@ -671,7 +675,17 @@ Item {
       if (!root.appIsHidden(list[i].class))
         entry.hidden = false
     }
-    return out
+    // Apps with no keymap are the least useful branch of a keymap overlay,
+    // so they sit last however recently one of them was focused.
+    var kinds = []
+    var noSheet = []
+    for (var k = 0; k < out.length; k++) {
+      if (out[k].title === root.noSheetKind)
+        noSheet.push(out[k])
+      else
+        kinds.push(out[k])
+    }
+    return kinds.concat(noSheet)
   }
 
   readonly property var allAppClasses: {
