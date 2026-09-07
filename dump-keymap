@@ -620,6 +620,22 @@ def app_name_from_title(title: str) -> str:
     return parts[-1] if parts else ""
 
 
+def sheet_kind(sheet: str | None) -> str:
+    """What family of app this sheet covers, for grouping the app list.
+
+    Apps sharing a sheet share their keybindings, so the sheet is the
+    honest grouping key - every Chrome PWA is one "Web app" because they
+    all answer to Chromium's shortcuts.
+    """
+    if not sheet:
+        return "No keymap sheet"
+    try:
+        meta = json.loads((SHEETS_DIR / sheet).read_text())
+    except (OSError, json.JSONDecodeError):
+        return "No keymap sheet"
+    return str(meta.get("kind") or meta.get("title") or "").strip() or "No keymap sheet"
+
+
 def client_label(cls: str, sheet: str | None, title: str = "") -> str:
     # A Chrome PWA's class is a 32-character extension id, which tells a
     # human nothing ("Chromium · fmpnliohjhemenmnlpbf"). The window title
@@ -668,6 +684,7 @@ def dump_clients() -> list[dict]:
                 "focused": focused,
                 "count": 1,
                 "sheet": sheet,
+                "kind": sheet_kind(sheet),
                 # Lets the overlay send keys back to the exact window that
                 # was focused when it opened, rather than whatever is
                 # active by the time the chord is replayed.
