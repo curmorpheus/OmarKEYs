@@ -25,6 +25,11 @@ Item {
   property string pendingKey: ""
   property string pendingDispatcher: ""
   property string pendingArg: ""
+  // The window that was focused when the overlay opened. Rows that send
+  // keys are aimed at it explicitly, so a chord lands in the app you were
+  // using rather than wherever focus drifted by the time we replay it.
+  property string contextAddress: ""
+  property bool contextAddressLatched: false
   property bool doubleTap: true
   property int holdSeconds: 5
   property var hiddenGroups: []
@@ -102,6 +107,8 @@ Item {
     root.launching = false
     root.contextArmed = false
     root.contextToplevel = ToplevelManager.activeToplevel
+    root.contextAddress = ""
+    root.contextAddressLatched = false
     root.branchMenuOpen = false
     root.selected = 0
     root.applyConfigToData()
@@ -156,8 +163,20 @@ Item {
     }
     if (!data)
       return
-    if (data.clients)
+    if (data.clients) {
       root.clients = data.clients
+      // Latch once per open: later refreshes must not re-point this at
+      // something that took focus while the overlay was already up.
+      if (!root.contextAddressLatched) {
+        for (var c = 0; c < data.clients.length; c++) {
+          if (data.clients[c].focused && data.clients[c].address) {
+            root.contextAddress = data.clients[c].address
+            root.contextAddressLatched = true
+            break
+          }
+        }
+      }
+    }
     var same = data.hash && data.hash === root.keymapHash
     if (data.sections && data.sections.length) {
       root.omarchySections = data.sections
@@ -409,10 +428,11 @@ Item {
     repeat: false
     onTriggered: {
       var script = root.sourceDir + "/run-shortcut"
+      var target = root.contextAddress ? "address:" + root.contextAddress : ""
       if (root.pendingDispatcher)
-        Quickshell.execDetached([script, "--dispatch", root.pendingDispatcher, root.pendingArg])
+        Quickshell.execDetached([script, "--dispatch", root.pendingDispatcher, root.pendingArg, target])
       else
-        Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
+        Quickshell.execDetached([script, root.pendingMods, root.pendingKey, target])
     }
   }
 

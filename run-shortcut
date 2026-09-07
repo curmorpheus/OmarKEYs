@@ -3,17 +3,23 @@
 #
 # Two modes, because there are two kinds of row:
 #
-#   run-shortcut --dispatch <kind> <arg>
+#   run-shortcut --dispatch <kind> <arg> [window]
 #       An Omarchy/Hyprland bind. Runs the binding's own action. Replaying
 #       the chord as a synthetic key does NOT work: keys sent to a window
 #       never reach Hyprland's bind matcher, so the app just swallows them
 #       and the binding never fires. Same dispatch path Omarchy's own
 #       omarchy-menu-keybindings uses.
 #
-#   run-shortcut <mods> <key>
+#   run-shortcut <mods> <key> [window]
 #       An app sheet row (Chromium, Ghostty, ...). These are the app's own
-#       shortcuts, not Hyprland binds, so sending the keys to the focused
-#       window is exactly right.
+#       shortcuts, not Hyprland binds, so sending the keys to a window is
+#       exactly right.
+#
+# [window] is a Hyprland window selector, normally address:0x... for the
+# window that was focused before the overlay opened. Keys go there rather
+# than to whatever is active by the time we run, which matters because the
+# overlay has just closed and focus may not have settled. Defaults to
+# activewindow when omitted or when the window is gone.
 set -euo pipefail
 
 lua_string() {
@@ -42,8 +48,21 @@ send_keys() {
   hyprctl dispatch sendshortcut "${mods},${key}," >/dev/null
 }
 
+# Only send to the remembered window if it still exists; a stale address
+# would silently swallow the keystroke.
+window_or_active() {
+  local want="$1"
+  [[ -n $want ]] || { echo "activewindow"; return; }
+  local addr="${want#address:}"
+  if hyprctl -j clients 2>/dev/null | grep -qF "\"$addr\""; then
+    echo "$want"
+  else
+    echo "activewindow"
+  fi
+}
+
 dispatch_binding() {
-  local kind="$1" arg="$2"
+  local kind="$1" arg="$2" fallback_window="$3"
   case "$kind" in
     exec)
       [[ -n $arg ]] || return 1
@@ -58,6 +77,9 @@ dispatch_binding() {
       # Hyprland's own "forward this chord to a window" bind.
       local mods key window rest
       IFS=, read -r mods key window rest <<<"$arg"
+      # An explicit window in the bind wins; otherwise aim at the window
+      # the overlay was opened from.
+      [[ -n $window ]] || window=$(window_or_active "$fallback_window")
       send_keys "${mods// /}" "$key" "${window:-activewindow}"
       ;;
     "")
@@ -74,11 +96,11 @@ dispatch_binding() {
 }
 
 if [[ ${1-} == "--dispatch" ]]; then
-  dispatch_binding "${2-}" "${3-}"
+  dispatch_binding "${2-}" "${3-}" "${4-}"
   exit $?
 fi
 
 mods="${1-}"
 key="${2-}"
 [[ -n $key ]] || exit 1
-send_keys "$mods" "$key"
+send_keys "$mods" "$key" "$(window_or_active "${3-}")"

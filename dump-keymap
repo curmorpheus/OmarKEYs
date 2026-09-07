@@ -641,6 +641,7 @@ def dump_clients() -> list[dict]:
         title = str(client.get("title") or cls)
         focused = bool(client.get("focusHistoryID") == 0) or bool(client.get("mapped") and client.get("focused"))
         # Hyprland marks the focused window with focusHistoryID 0.
+        address = str(client.get("address") or "")
         entry = grouped.get(cls)
         if not entry:
             sheet = sheet_for(cls)
@@ -651,12 +652,17 @@ def dump_clients() -> list[dict]:
                 "focused": focused,
                 "count": 1,
                 "sheet": sheet,
+                # Lets the overlay send keys back to the exact window that
+                # was focused when it opened, rather than whatever is
+                # active by the time the chord is replayed.
+                "address": address,
             }
         else:
             entry["count"] += 1
             entry["focused"] = entry["focused"] or focused
             if focused:
                 entry["title"] = title
+                entry["address"] = address
     return sorted(grouped.values(), key=lambda c: (not c["focused"], c["label"].lower()))
 
 
