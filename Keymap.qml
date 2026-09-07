@@ -602,16 +602,6 @@ Item {
     return false
   }
 
-  readonly property var visibleClients: {
-    var out = []
-    var list = root.clients || []
-    for (var i = 0; i < list.length; i++) {
-      if (!root.appIsHidden(list[i].class))
-        out.push(list[i])
-    }
-    return out
-  }
-
   // Apps bucketed by the sheet they answer to, because that is what
   // decides their keybindings: every Chrome PWA is one "Web apps" entry.
   // Kind order follows first appearance, and the dump sorts the focused
@@ -619,16 +609,51 @@ Item {
   readonly property var appTree: {
     var out = []
     var index = ({})
-    var list = root.visibleClients || []
+    var list = root.clients || []
     for (var i = 0; i < list.length; i++) {
       var kind = list[i].kind || "No keymap sheet"
       if (index[kind] === undefined) {
         index[kind] = out.length
-        out.push({ title: kind, apps: [] })
+        out.push({ title: kind, apps: [], hidden: true })
       }
-      out[index[kind]].apps.push(list[i])
+      var entry = out[index[kind]]
+      entry.apps.push(list[i])
+      // A kind is hidden only when every app under it is, so the row
+      // itself always survives to offer a way back.
+      if (!root.appIsHidden(list[i].class))
+        entry.hidden = false
     }
     return out
+  }
+
+  readonly property var allAppClasses: {
+    var out = []
+    var list = root.clients || []
+    for (var i = 0; i < list.length; i++)
+      out.push(list[i].class)
+    return out
+  }
+
+  readonly property bool allAppsHidden: {
+    var list = root.clients || []
+    if (!list.length)
+      return false
+    for (var i = 0; i < list.length; i++) {
+      if (!root.appIsHidden(list[i].class))
+        return false
+    }
+    return true
+  }
+
+  readonly property bool allGroupsHidden: {
+    var list = root.groupList
+    if (!list || !list.length)
+      return false
+    for (var i = 0; i < list.length; i++) {
+      if (!list[i].hidden)
+        return false
+    }
+    return true
   }
 
   function setAppsVisible(classes, show) {
