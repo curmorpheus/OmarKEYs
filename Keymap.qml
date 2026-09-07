@@ -620,7 +620,26 @@ Item {
         out.push({ title: kind, apps: [], hidden: true })
       }
       var entry = out[index[kind]]
-      entry.apps.push(list[i])
+      // One row per window. A terminal with two windows is two places you
+      // might want to go, and its class alone cannot tell them apart.
+      var app = list[i]
+      var windows = app.windows || []
+      if (windows.length > 1) {
+        for (var w = 0; w < windows.length; w++) {
+          entry.apps.push({
+            "class": app.class,
+            sheet: app.sheet,
+            focused: windows[w].focused,
+            address: windows[w].address,
+            count: 1,
+            // The running program names the window better than a repeated
+            // app name; an idle shell has none, so its title stands in.
+            label: app.label + " · " + (windows[w].exe || windows[w].title)
+          })
+        }
+      } else {
+        entry.apps.push(app)
+      }
       // A kind is hidden only when every app under it is, so the row
       // itself always survives to offer a way back.
       if (!root.appIsHidden(list[i].class))

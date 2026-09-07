@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -662,12 +663,99 @@ def client_label(cls: str, sheet: str | None, title: str = "") -> str:
     return cls
 
 
+SHELL_NAMES = {"bash", "zsh", "fish", "sh", "dash", "ksh", "tcsh"}
+
+
+def process_parents() -> dict[int, int]:
+    """pid -> ppid for every process, read once per dump."""
+    parents: dict[int, int] = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/status") as handle:
+                for line in handle:
+                    if line.startswith("PPid:"):
+                        parents[int(entry)] = int(line.split()[1])
+                        break
+        except OSError:
+            continue
+    return parents
+
+
+def foreground_exe(pid: int) -> str:
+    """What a shell is actually running, via its terminal's foreground pgid.
+
+    Field 8 of /proc/<pid>/stat is tpgid, the foreground process group of
+    the controlling terminal; the group leader's pid equals it, so its
+    comm names the running program. Returns "" for an idle shell.
+    """
+    try:
+        with open(f"/proc/{pid}/stat") as handle:
+            fields = handle.read().rsplit(") ", 1)[-1].split()
+        tpgid = int(fields[5])
+        if tpgid <= 0 or tpgid == pid:
+            return ""
+        with open(f"/proc/{tpgid}/comm") as handle:
+            name = handle.read().strip()
+    except (OSError, ValueError, IndexError):
+        return ""
+    return "" if name in SHELL_NAMES else name
+
+
+def shell_sessions(pid: int, parents: dict[int, int]) -> list[dict]:
+    """Shells running under a terminal process, with cwd and foreground exe."""
+    sessions = []
+    for child, parent in parents.items():
+        if parent != pid:
+            continue
+        try:
+            with open(f"/proc/{child}/comm") as handle:
+                comm = handle.read().strip()
+        except OSError:
+            continue
+        if comm not in SHELL_NAMES:
+            continue
+        try:
+            cwd = os.readlink(f"/proc/{child}/cwd")
+        except OSError:
+            cwd = ""
+        sessions.append({"cwd": cwd, "exe": foreground_exe(child)})
+    return sessions
+
+
+def attach_sessions(windows: list[dict], sessions: list[dict]) -> None:
+    """Attribute each shell to a window.
+
+    A terminal that multiplexes windows reports one pid for all of them, so
+    Hyprland cannot say which window runs what. The window title usually
+    carries the shell's cwd, which pairs most of them; whatever is left is
+    matched only when exactly one window and one shell remain, where the
+    answer is forced. Anything still ambiguous is left blank rather than
+    guessed.
+    """
+    home = os.environ.get("HOME", "")
+    free = list(sessions)
+    for window in windows:
+        title = window.get("title") or ""
+        expanded = title.replace("~", home, 1) if title.startswith("~") else title
+        for session in list(free):
+            if session["cwd"] and session["cwd"] == expanded:
+                window["exe"] = session["exe"]
+                free.remove(session)
+                break
+    unmatched = [w for w in windows if "exe" not in w]
+    if len(unmatched) == 1 and len(free) == 1:
+        unmatched[0]["exe"] = free[0]["exe"]
+
+
 def dump_clients() -> list[dict]:
     try:
         clients = json.loads(subprocess.check_output(["hyprctl", "-j", "clients"], text=True))
     except (OSError, json.JSONDecodeError, subprocess.CalledProcessError):
         return []
     grouped: dict[str, dict] = {}
+    parents = process_parents()
     for client in clients:
         cls = str(client.get("class") or "unknown").strip() or "unknown"
         title = str(client.get("title") or cls)
@@ -685,6 +773,10 @@ def dump_clients() -> list[dict]:
                 "count": 1,
                 "sheet": sheet,
                 "kind": sheet_kind(sheet),
+                "pid": int(client.get("pid") or 0),
+                # One row per window: a terminal with two windows is two
+                # things you might want to reach, not one with a count.
+                "windows": [],
                 # Lets the overlay send keys back to the exact window that
                 # was focused when it opened, rather than whatever is
                 # active by the time the chord is replayed.
@@ -697,6 +789,14 @@ def dump_clients() -> list[dict]:
                 entry["title"] = title
                 entry["address"] = address
                 entry["label"] = client_label(cls, entry["sheet"], title)
+        grouped[cls]["windows"].append(
+            {"address": address, "title": title, "focused": focused}
+        )
+    for entry in grouped.values():
+        if len(entry["windows"]) > 1 or entry["pid"]:
+            attach_sessions(entry["windows"], shell_sessions(entry["pid"], parents))
+        for window in entry["windows"]:
+            window.setdefault("exe", "")
     return sorted(grouped.values(), key=lambda c: (not c["focused"], c["label"].lower()))
 
 
