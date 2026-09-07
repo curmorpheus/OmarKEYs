@@ -3,6 +3,21 @@
 Grok writes this file when promoting a finished **beta** (Claude) into
 **main**. Cursor does not land on `main`.
 
+## 1.6.1 — 2026-09-07
+
+Promoted from `beta` (`85f10d0`). Cursor not included.
+
+- Each window of a multi-window app gets its own row, named by the
+  program running in it: `Ghostty` expands to `claude` and a shell,
+  rather than one row counted `(2)`. The program comes from the
+  terminal's foreground process group; where a terminal multiplexes
+  windows under one pid, attribution falls back to matching the shell's
+  working directory against the window title and declines to guess when
+  that is ambiguous.
+- Double-click an app to focus its window.
+- Chrome PWAs are named from the window title, so `Claude Code` and
+  `Grok` instead of extension ids.
+
 ## 1.6.0 — 2026-09-07
 
 Promoted from `beta`. Cursor not included.
