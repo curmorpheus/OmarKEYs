@@ -130,6 +130,7 @@ Item {
     root.contextAddress = ""
     root.contextAddressLatched = false
     root.branchMenuOpen = false
+    root.optionsMenuOpen = false
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
@@ -318,6 +319,7 @@ Item {
   property string gitError: ""
   property bool gitBusy: false
   property bool branchMenuOpen: false
+  property bool optionsMenuOpen: false
   // Set when a switch/sync succeeds: the QML on disk changed, so the
   // shell has to restart for it to take effect.
   property bool gitReloadPending: false
@@ -368,8 +370,16 @@ Item {
     return out
   }
 
+  function toggleOptionsMenu() {
+    root.optionsMenuOpen = !root.optionsMenuOpen
+    if (root.optionsMenuOpen)
+      root.branchMenuOpen = false
+  }
+
   function toggleBranchMenu() {
     root.branchMenuOpen = !root.branchMenuOpen
+    if (root.branchMenuOpen)
+      root.optionsMenuOpen = false
     // Opening is the moment the branch list matters, so refresh it then
     // rather than paying for git on every overlay open.
     if (root.branchMenuOpen)
@@ -542,6 +552,7 @@ Item {
     root.grabKeys = false
     root.opened = false
     root.branchMenuOpen = false
+    root.optionsMenuOpen = false
     root.clearSolo()
   }
 
@@ -550,6 +561,7 @@ Item {
     root.grabKeys = false
     root.opened = false
     root.branchMenuOpen = false
+    root.optionsMenuOpen = false
     root.clearSolo()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
@@ -1135,8 +1147,10 @@ Item {
       return
     }
     if (event.key === Qt.Key_Escape) {
-      if (root.branchMenuOpen)
+      if (root.branchMenuOpen || root.optionsMenuOpen) {
         root.branchMenuOpen = false
+        root.optionsMenuOpen = false
+      }
       else if (root.filterText)
         root.setFilter("")
       else
@@ -1357,7 +1371,7 @@ Item {
               Row {
                 id: mainRow
                 width: parent.width
-                height: parent.height - headerLabel.parent.height - settingsBar.height - body.spacing * 2
+                height: parent.height - headerLabel.parent.height - body.spacing
                 spacing: Style.spacing.md
 
                 KeymapSidebar {
@@ -1374,11 +1388,6 @@ Item {
                 }
               }
 
-              KeymapSettingsBar {
-                id: settingsBar
-                host: root
-                width: parent.width
-              }
             }
           }
 
@@ -1409,6 +1418,36 @@ Item {
               cursorShape: Qt.PointingHandCursor
               onClicked: root.toggleBranchMenu()
             }
+          }
+
+          Text {
+            id: optionsLabel
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.margins: Style.spacing.sm
+            textFormat: Text.PlainText
+            text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Options"
+            color: root.foreground
+            opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.35
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+
+            MouseArea {
+              id: optionsArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleOptionsMenu()
+            }
+          }
+
+          KeymapOptionsMenu {
+            host: root
+            visible: root.optionsMenuOpen
+            anchors.left: parent.left
+            anchors.bottom: optionsLabel.top
+            anchors.leftMargin: Style.spacing.sm
+            anchors.bottomMargin: Style.space(4)
           }
 
           KeymapBranchMenu {
