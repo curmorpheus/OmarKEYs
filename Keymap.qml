@@ -1219,8 +1219,14 @@ Item {
           : WlrKeyboardFocus.None
         exclusionMode: ExclusionMode.Ignore
 
-        readonly property int cardWidth: Math.min(Style.space(1100), width - Style.gapsOut * 2)
-        readonly property int cardHeight: Math.min(Style.space(760), height - Style.gapsOut * 2)
+        // Sized against the display rather than a fixed cap: 1100x760 was
+        // barely half of a 2048x1152 screen and under half of a 2560x1440
+        // one, which is why the board had to scroll so much. The caps stop
+        // it sprawling on an ultrawide.
+        readonly property int cardWidth: Math.min(Style.space(1700),
+          Math.max(Style.space(900), Math.round(width * 0.92) - Style.gapsOut * 2))
+        readonly property int cardHeight: Math.min(Style.space(1100),
+          Math.max(Style.space(620), Math.round(height * 0.90) - Style.gapsOut * 2))
         readonly property bool hasKeyboard: Hyprland.focusedMonitor && modelData
           && Hyprland.focusedMonitor.name === modelData.name
 
