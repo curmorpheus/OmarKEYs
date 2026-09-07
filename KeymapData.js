@@ -285,6 +285,51 @@ function catalog() {
   return catalogFor(withGestures(activeSections(), currentConfig))
 }
 
+// Five top-level areas the sidebar tree groups Omarchy's topic groups
+// under. Keep this in sync with SECTION_RULES in dump-keymap — every
+// title dump-keymap can emit (14 rules + its own "Other" fallback)
+// should appear exactly once below.
+var areaMap = [
+  { title: "Launch & navigate", groups: ["Main", "Menus and launchers", "Bar panels"] },
+  { title: "Windows & workspaces", groups: ["Windows", "Focus and move", "Workspaces", "Resize", "Groups and scratchpad"] },
+  { title: "Clipboard & capture", groups: ["Clipboard and text", "Capture and share"] },
+  { title: "System & media", groups: ["Notifications", "Display and look", "Media and hardware", "Other"] },
+  { title: "Apps", groups: ["Apps"] }
+]
+
+function groupedCatalog(sectionList) {
+  var flat = catalogFor(sectionList)
+  var byTitle = {}
+  for (var i = 0; i < flat.length; i++)
+    byTitle[flat[i].title] = flat[i]
+  var used = {}
+  var out = []
+  for (var a = 0; a < areaMap.length; a++) {
+    var groups = []
+    var names = areaMap[a].groups
+    for (var j = 0; j < names.length; j++) {
+      var entry = byTitle[names[j]]
+      if (entry) {
+        groups.push(entry)
+        used[names[j]] = true
+      }
+    }
+    if (groups.length)
+      out.push({ title: areaMap[a].title, groups: groups })
+  }
+  // Defensive: a group title not covered by areaMap above (e.g. one
+  // added to SECTION_RULES / sections without updating this map) still
+  // shows up here instead of silently vanishing from the tree.
+  var leftovers = []
+  for (var k = 0; k < flat.length; k++) {
+    if (!used[flat[k].title])
+      leftovers.push(flat[k])
+  }
+  if (leftovers.length)
+    out.push({ title: "Other", groups: leftovers })
+  return out
+}
+
 function activeSections() {
   return liveSections && liveSections.length ? liveSections : sections
 }
@@ -446,7 +491,12 @@ function navList(query) {
         sectionTitle: all[s].title,
         keys: row.keys,
         action: row.action,
-        runnable: isRunnable(row.keys) && !!sc,
+        // A Hyprland bind's own action, when dump-keymap recovered it.
+        // Preferred over replaying the chord: synthetic keys sent to a
+        // window never reach Hyprland's bind matcher.
+        dispatcher: row.dispatcher || "",
+        dispatchArg: row.arg || "",
+        runnable: (isRunnable(row.keys) && !!sc) || !!row.dispatcher,
         shortcut: sc
       })
     }

@@ -16,9 +16,11 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |
-| `run-shortcut` | Replay a selected chord after the overlay closes |
+| `run-shortcut` | Run a selected row after the overlay closes (`--dispatch` for Hyprland binds; chord replay for app sheets) |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
+| `plugin-git` | Branch/update state for the corner picker; switch + sync |
+| `KeymapBranchMenu.qml` | Corner branch picker: switch branch, sync to latest |
 | `sheets/` | Bundled per-app keymap JSON; required for app sources |
 | `install.sh` | Symlink plugin, wire Hyprland, enable |
 
@@ -45,28 +47,13 @@ QML changes need `omarchy restart shell` (keepLoaded overlay).
 
 ## Grok's repository
 
-This clone is **Grok's line**. Claude and Cursor do not commit here.
-
-| Path | Who | Purpose |
-|---|---|---|
-| `~/Work/omarkeys-grok` | Grok | This repo. Edit and commit here. |
-| `~/Work/omarkeys-claude` | Claude | Shared-repo clone |
-| `~/Work/omarkeys-cursor` | Cursor | Shared-repo clone |
-| `~/Work/omarkeys` | nobody | Deploy slot only (`~/.config/omarchy/plugins/io.github.romills.omarkeys`). Do not edit. |
+This clone is **Grok's line** (`~/Work/omarkeys-grok`). Claude and Cursor
+do not commit here.
 
 | Remote | URL | Role |
 |---|---|---|
 | `origin` | https://github.com/romills/OmarKEYs-grok.git | Grok's repo. `main` is Grok's released/stable line. |
 | `shared` | https://github.com/romills/OmarKEYs.git | Claude/Cursor repo. `develop` is their integration branch. |
-
-### Branches
-
-| Branch | Owner | Role |
-|---|---|---|
-| `main` (this repo) | Grok | Released/stable. Only Grok merges into it. |
-| `develop` (shared repo) | Claude (integration) | Approved Claude/Cursor work. Grok pulls this into `main` when ready. |
-| `develop-claude` (shared) | Claude | Claude's working branch |
-| `develop-cursor` (shared) | Cursor | Cursor's working branch |
 
 Grok is the only one who pulls `develop` into `main`:
 
@@ -78,7 +65,40 @@ git merge --no-ff shared/develop
 git push origin main
 ```
 
-Do not push Grok commits to `shared` unless handing a patch back. Local `develop` tracks `shared/develop` for inspection only.
+Do not push Grok commits to `shared` unless handing a patch back. Local
+`develop` tracks `shared/develop` for inspection only.
+
+## Working copies
+
+**`~/Work/omarkeys` is not a workspace. Do not edit or commit in it.**
+
+It is the **deploy slot**: `~/.config/omarchy/plugins/io.github.romills.omarkeys`
+symlinks here. It only switches branches and pulls. The overlay's corner
+branch picker refuses to switch or sync when this tree is dirty.
+
+| Path | Who | Purpose |
+|---|---|---|
+| `~/Work/omarkeys-grok` | Grok | This repo (`origin` = OmarKEYs-grok). Edit and commit here. |
+| `~/Work/omarkeys-claude` | Claude | Shared-repo clone |
+| `~/Work/omarkeys-cursor` | Cursor | Shared-repo clone |
+| `~/Work/omarkeys` | nobody | Deploy slot. No edits. |
+
+To test a branch live, point the deploy slot at it (corner picker, or
+`git -C ~/Work/omarkeys checkout <branch>`) and `omarchy restart shell`.
+
+## Branches
+
+| Branch | Owner | Role |
+|---|---|---|
+| `main` (this repo) | Grok | Released/stable. Only Grok merges into it. |
+| `develop` (shared) | Claude (integration) | Approved Claude/Cursor work. Grok pulls this into `main`. |
+| `develop-claude` (shared) | Claude | Claude's working branch; merges to `develop` once approved |
+| `develop-cursor` (shared) | Cursor | Cursor's working branch; PR into `develop` |
+| `feature/phase2-sidebar-tree` | Claude | Off `develop-claude` |
+| `feature/phase3-view-edit-ui` | Claude | Off `develop-claude` |
+
+Claim a PLAN.md item by prefixing it with the owner (e.g. `(cursor)`)
+before starting so two agents don't duplicate work.
 
 ## Install on this machine
 

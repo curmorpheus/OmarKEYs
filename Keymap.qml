@@ -23,11 +23,14 @@ Item {
   property string selectedAction: ""
   property string pendingMods: ""
   property string pendingKey: ""
+  property string pendingDispatcher: ""
+  property string pendingArg: ""
   property bool doubleTap: true
   property int holdSeconds: 5
   property var hiddenGroups: []
   property var groupList: []
   property var omarchyGroupList: []
+  property var omarchyTree: []
   property string modSuper: "any"
   property string modShift: "any"
   property string modCtrl: "any"
@@ -100,9 +103,11 @@ Item {
     root.launching = false
     root.contextArmed = false
     root.contextToplevel = ToplevelManager.activeToplevel
+    root.branchMenuOpen = false
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
+    root.refreshGitInfo()
     root.rebuild()
     root.opened = true
   }
@@ -175,6 +180,15 @@ Item {
   }
 
   property string sheetPath: ""
+  property string activeLabel: ""
+
+  function emptySheetSections(label) {
+    var name = label || "this window"
+    return [{
+      title: label || "This app",
+      rows: [{ keys: "—", action: "No bundled keymap sheet for \"" + name + "\" yet" }]
+    }]
+  }
 
   FileView {
     id: sheetFile
@@ -188,20 +202,14 @@ Item {
         else
           throw new Error("empty")
       } catch (e) {
-        KeymapData.setSections([{
-          title: "This app",
-          rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-        }])
+        KeymapData.setSections(root.emptySheetSections(root.activeLabel))
       }
       root.rebuild()
     }
     onLoadFailed: {
       if (!root.sheetPath)
         return
-      KeymapData.setSections([{
-        title: "This app",
-        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-      }])
+      KeymapData.setSections(root.emptySheetSections(root.activeLabel))
       root.rebuild()
     }
   }
@@ -250,7 +258,109 @@ Item {
     }
   }
 
-  Component.onCompleted: root.refreshKeymap()
+  property string gitBranch: ""
+  property string gitHash: ""
+  property var gitBranches: []
+  property bool gitDirty: false
+  property bool gitUpdateAvailable: false
+  property int gitBehind: 0
+  property string gitError: ""
+  property bool gitBusy: false
+  property bool branchMenuOpen: false
+  // Set when a switch/sync succeeds: the QML on disk changed, so the
+  // shell has to restart for it to take effect.
+  property bool gitReloadPending: false
+
+  function refreshGitInfo() {
+    root.runGit(["status"], false)
+  }
+
+  function toggleBranchMenu() {
+    root.branchMenuOpen = !root.branchMenuOpen
+    // Opening is the moment the branch list matters, so refresh it then
+    // rather than paying for git on every overlay open.
+    if (root.branchMenuOpen)
+      root.refreshGitInfo()
+    else
+      root.gitError = ""
+  }
+
+  function checkForUpdates() {
+    root.gitError = ""
+    root.runGit(["fetch"], false)
+  }
+
+  function switchBranch(name) {
+    if (!name || name === root.gitBranch)
+      return
+    root.gitError = ""
+    root.runGit(["switch", String(name)], true)
+  }
+
+  function syncBranch() {
+    root.gitError = ""
+    root.runGit(["sync"], true)
+  }
+
+  function runGit(args, reloadOnSuccess) {
+    if (root.gitBusy)
+      return
+    root.gitBusy = true
+    root.gitReloadPending = !!reloadOnSuccess
+    gitProc.command = [root.sourceDir + "/plugin-git"].concat(args)
+    gitProc.running = true
+  }
+
+  function applyGitPayload(text) {
+    var data = null
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      root.gitError = "could not read git status"
+      return
+    }
+    if (!data)
+      return
+    root.gitBranch = data.branch || ""
+    root.gitHash = data.hash || ""
+    root.gitBranches = data.branches || []
+    root.gitDirty = data.dirty === true
+    root.gitBehind = data.behind || 0
+    root.gitUpdateAvailable = data.updateAvailable === true
+    root.gitError = data.error || data.fetchError || ""
+    // Only a clean switch/sync warrants restarting the shell; a refusal
+    // leaves the checkout untouched, so there is nothing to reload.
+    if (root.gitReloadPending && data.ok && !data.error) {
+      root.gitReloadPending = false
+      // Through a login shell: omarchy lives in /usr/share/omarchy/bin,
+      // which is on the user's PATH but not necessarily on the shell
+      // process's. Detached, so it survives the restart it triggers.
+      Quickshell.execDetached(["bash", "-lc", "omarchy restart shell"])
+    }
+    root.gitReloadPending = false
+  }
+
+  Process {
+    id: gitProc
+    command: [root.sourceDir + "/plugin-git", "status"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        root.gitBusy = false
+        root.applyGitPayload(text)
+      }
+    }
+    onExited: function(code) {
+      root.gitBusy = false
+      if (code !== 0 && !root.gitError)
+        root.gitError = "plugin-git failed (" + code + ")"
+    }
+  }
+
+  Component.onCompleted: {
+    root.refreshKeymap()
+    root.refreshGitInfo()
+  }
 
   Timer {
     id: runTimer
@@ -258,7 +368,10 @@ Item {
     repeat: false
     onTriggered: {
       var script = root.sourceDir + "/run-shortcut"
-      Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
+      if (root.pendingDispatcher)
+        Quickshell.execDetached([script, "--dispatch", root.pendingDispatcher, root.pendingArg])
+      else
+        Quickshell.execDetached([script, root.pendingMods, root.pendingKey])
     }
   }
 
@@ -330,12 +443,16 @@ Item {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.branchMenuOpen = false
+    root.clearSolo()
   }
 
   function dismiss() {
     root.contextArmed = false
     root.grabKeys = false
     root.opened = false
+    root.branchMenuOpen = false
+    root.clearSolo()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
   }
@@ -358,9 +475,9 @@ Item {
     var keepAction = root.selectedAction
     root.applyConfigToData()
     root.groupList = KeymapData.catalog()
-    root.omarchyGroupList = KeymapData.catalogFor(
-      (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
-    )
+    var omarchySource = (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
+    root.omarchyGroupList = KeymapData.catalogFor(omarchySource)
+    root.omarchyTree = KeymapData.groupedCatalog(omarchySource)
     var cols = KeymapData.columns(root.filterText)
     root.leftSections = cols.left
     root.rightSections = cols.right
@@ -389,18 +506,18 @@ Item {
       return
     }
     var sheet = ""
+    var label = id
     var list = root.clients
     for (var i = 0; i < list.length; i++) {
       if (list[i].class === id) {
         sheet = list[i].sheet || ""
+        label = list[i].label || id
         break
       }
     }
+    root.activeLabel = label
     if (!sheet) {
-      KeymapData.setSections([{
-        title: "This app",
-        rows: [{ keys: "—", action: "No bundled keymap for this window yet" }]
-      }])
+      KeymapData.setSections(root.emptySheetSections(label))
       root.rebuild()
       return
     }
@@ -416,6 +533,7 @@ Item {
   }
 
   function toggleGroup(title) {
+    root.preSoloHidden = null
     var next = []
     var hiding = !root.groupIsHidden(title)
     for (var i = 0; i < root.hiddenGroups.length; i++) {
@@ -424,6 +542,59 @@ Item {
     }
     if (hiding)
       next.push(title)
+    root.hiddenGroups = next
+    root.saveConfig()
+  }
+
+  // Snapshot of hiddenGroups taken before the first solo, so closing the
+  // overlay can put the user's real group settings back.
+  property var preSoloHidden: null
+
+  // Click a branch in the tree to show only that branch: every Omarchy
+  // group outside `titles` is hidden, so the board shows just the one
+  // area/group you picked. This is a *view* filter — deliberately not
+  // written to the config, and undone on close, so a stray click cannot
+  // leave the keymap permanently mostly-hidden.
+  function soloGroups(titles) {
+    if (root.preSoloHidden === null)
+      root.preSoloHidden = root.hiddenGroups.slice()
+    var keep = {}
+    for (var i = 0; i < titles.length; i++)
+      keep[titles[i]] = true
+    var next = []
+    var list = root.omarchyGroupList
+    for (var j = 0; j < list.length; j++) {
+      if (!keep[list[j].title])
+        next.push(list[j].title)
+    }
+    root.hiddenGroups = next
+    root.applyConfigToData()
+    root.rebuild()
+  }
+
+  function clearSolo() {
+    if (root.preSoloHidden === null)
+      return
+    root.hiddenGroups = root.preSoloHidden.slice()
+    root.preSoloHidden = null
+    root.applyConfigToData()
+    root.rebuild()
+  }
+
+  function setGroupsVisible(titles, show) {
+    root.preSoloHidden = null
+    var set = {}
+    for (var i = 0; i < titles.length; i++)
+      set[titles[i]] = true
+    var next = []
+    for (var j = 0; j < root.hiddenGroups.length; j++) {
+      if (!set[root.hiddenGroups[j]])
+        next.push(root.hiddenGroups[j])
+    }
+    if (!show) {
+      for (var k = 0; k < titles.length; k++)
+        next.push(titles[k])
+    }
     root.hiddenGroups = next
     root.saveConfig()
   }
@@ -456,6 +627,7 @@ Item {
   }
 
   function setAllGroupsVisible(show) {
+    root.preSoloHidden = null
     if (show) {
       root.hiddenGroups = []
     } else {
@@ -640,9 +812,9 @@ Item {
 
   function executeSelected() {
     if (root.editMode) {
-      var item = root.navItems[root.selected]
-      if (item)
-        root.startCapture(item.keys, item.action)
+      var editItem = root.navItems[root.selected]
+      if (editItem)
+        root.startCapture(editItem.keys, editItem.action)
       return
     }
     if (root.launching || !root.opened)
@@ -650,11 +822,27 @@ Item {
     var item = root.navItems[root.selected]
     if (!item)
       return
+    // Prefer the binding's own action. Replaying the chord only works for
+    // app sheet rows, which are the app's shortcuts rather than Hyprland
+    // binds - a synthetic key sent to a window never reaches Hyprland's
+    // bind matcher, so dispatching by chord silently did nothing.
+    if (item.dispatcher) {
+      root.pendingDispatcher = item.dispatcher
+      root.pendingArg = item.dispatchArg || ""
+      root.pendingMods = ""
+      root.pendingKey = ""
+      root.launching = true
+      root.dismiss()
+      runTimer.restart()
+      return
+    }
     var sc = item.shortcut
     if (!sc || !sc.key)
       sc = KeymapData.shortcut(item.keys)
     if (!sc || !sc.key)
       return
+    root.pendingDispatcher = ""
+    root.pendingArg = ""
     root.pendingMods = sc.mods || ""
     root.pendingKey = sc.key
     root.launching = true
@@ -698,7 +886,9 @@ Item {
       return
     }
     if (event.key === Qt.Key_Escape) {
-      if (root.filterText)
+      if (root.branchMenuOpen)
+        root.branchMenuOpen = false
+      else if (root.filterText)
         root.setFilter("")
       else
         root.dismiss()
@@ -935,6 +1125,40 @@ Item {
                 width: parent.width
               }
             }
+          }
+
+          Text {
+            id: buildInfo
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: Style.spacing.sm
+            visible: !!(root.gitBranch || root.gitHash)
+            textFormat: Text.PlainText
+            text: (root.branchMenuOpen ? "▾ " : "▴ ")
+              + root.gitBranch
+              + (root.gitHash ? " @ " + root.gitHash : "")
+              + (root.gitUpdateAvailable ? " •" : "")
+            color: root.gitUpdateAvailable ? root.chipFg : root.foreground
+            opacity: buildInfoArea.containsMouse || root.branchMenuOpen ? 0.9 : 0.35
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+
+            MouseArea {
+              id: buildInfoArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleBranchMenu()
+            }
+          }
+
+          KeymapBranchMenu {
+            host: root
+            visible: root.branchMenuOpen
+            anchors.right: parent.right
+            anchors.bottom: buildInfo.top
+            anchors.rightMargin: Style.spacing.sm
+            anchors.bottomMargin: Style.space(4)
           }
         }
       }
