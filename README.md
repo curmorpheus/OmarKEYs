@@ -87,6 +87,22 @@ cannot be updated in place. Re-run the installer to convert it:
 cd ~/Work/omarkeys && git pull && ./install.sh
 ```
 
+### Updating
+
+`omarchy plugin update` works on a normal (clone) install, and so does the
+overlay's own corner picker. They divide up like this:
+
+| On channel | Use |
+|---|---|
+| Main | `omarchy plugin update`, or the picker |
+| Beta / Nightly | the picker's **Sync** |
+
+`omarchy plugin update` always fetches the default branch (`main`) and
+fast-forwards the checked-out branch onto it, so running it while on Beta
+leaves a branch named `beta` sitting on main's commit. Recover with
+`git checkout main && git branch -D beta` in the plugin directory; the next
+switch to Beta recreates it from `origin/beta`.
+
 ### Working on OmarKEYS itself
 
 ```bash

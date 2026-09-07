@@ -68,6 +68,30 @@ at once (a branch is checkout-exclusive per working tree):
 Claude ships beta. Grok pulls a finished `beta` into `main` and updates
 `RELEASE.md`. Cursor does not land on `main`.
 
+### Updating: `omarchy plugin update` is Main-only
+
+Install as a real directory (the default `./install.sh`, or
+`omarchy plugin add`) and both updaters work — the picker never needed the
+symlink, it only needs a git repo at the plugin path.
+
+They are not interchangeable, though:
+
+| On channel | Use |
+|---|---|
+| Main | `omarchy plugin update`, or the picker |
+| Beta, Nightly | the picker's **Sync** only |
+
+`omarchy plugin update` fetches `origin HEAD`, which is always `main`, and
+fast-forwards whatever branch is checked out onto it. Run it while the
+picker has you on Beta and the fast-forward *succeeds*, leaving a branch
+still called `beta` sitting on main's commit — so the corner label reads
+`Beta @ <main's hash>` while running Main's code. Nothing is lost, but the
+channel is then a lie.
+
+To recover, from the plugin directory: `git checkout main`, then
+`git branch -D beta`. The next switch to Beta recreates it cleanly from
+`origin/beta`.
+
 ```sh
 cd ~/Work/omarkeys-grok
 git checkout main
