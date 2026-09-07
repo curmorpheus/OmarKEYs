@@ -304,11 +304,36 @@ local function dispatcher(kind, arg, expr)
   return { __omarkeys = true, kind = kind or "", arg = arg or "", expr = expr or "" }
 end
 
+-- Tables have to round-trip: the window dispatchers take their real
+-- arguments that way (resize{...}, fullscreen{...}), and flattening them
+-- to nil produces an expression that dispatches "ok" and does nothing.
 local function lua_literal(value)
   local t = type(value)
   if t == "string" then return string.format("%q", value) end
   if t == "number" or t == "boolean" then return tostring(value) end
-  return "nil"
+  if t ~= "table" then return "nil" end
+  local parts = {}
+  local length = #value
+  for index = 1, length do
+    parts[#parts + 1] = lua_literal(value[index])
+  end
+  local keys = {}
+  for key in pairs(value) do
+    if not (type(key) == "number" and key >= 1 and key <= length and math.floor(key) == key) then
+      keys[#keys + 1] = key
+    end
+  end
+  table.sort(keys, function(left, right) return tostring(left) < tostring(right) end)
+  for _, key in ipairs(keys) do
+    local prefix
+    if type(key) == "string" and key:match("^[%a_][%w_]*$") then
+      prefix = key .. " = "
+    else
+      prefix = "[" .. lua_literal(key) .. "] = "
+    end
+    parts[#parts + 1] = prefix .. lua_literal(value[key])
+  end
+  return "{ " .. table.concat(parts, ", ") .. " }"
 end
 
 local function dsp_proxy(path)
@@ -393,10 +418,16 @@ def load_lua_actions() -> dict[str, list[dict]]:
     return by_desc
 
 
-def pick_action(entries: list[dict], modmask: int, key: str) -> dict | None:
+def pick_action(entries: list[dict], modmask: int | None, key: str) -> dict | None:
     """Prefer the entry matching this exact chord; fall back to the description."""
     if not entries:
         return None
+    if modmask is None:
+        # Hyprland reported no chord for this bind (keycode binds come back
+        # with key "" and keycode 0). The description is then the only
+        # handle we have, so accept it when it is unambiguous and decline
+        # when it is not - attaching the wrong action is worse than dimming.
+        return entries[0] if len(entries) == 1 else None
     upper = (key or "").upper()
     for entry in entries:
         if entry["modmask"] == modmask and entry["key"].upper() == upper:
@@ -417,18 +448,32 @@ def attach_hypr_keys(
     actions = actions or {}
     for row in rows:
         opts = binds.get(row["action"]) or []
-        if not opts:
-            continue
-        row["mods"] = opts[0]["mods"]
-        row["bindKey"] = opts[0]["bindKey"]
-        action = pick_action(
-            actions.get(row["action"]) or [], opts[0].get("modmask", 0), opts[0]["bindKey"]
-        )
+        modmask: int | None = None
+        bind_key = ""
+        if opts:
+            row["mods"] = opts[0]["mods"]
+            row["bindKey"] = opts[0]["bindKey"]
+            modmask = opts[0].get("modmask", 0)
+            bind_key = opts[0]["bindKey"]
+        # Keep looking for the action even with no chord from hyprctl:
+        # keycode binds (the whole Resize group) report an empty key, and
+        # gating the action on the chord left them permanently inert.
+        action = pick_action(actions.get(row["action"]) or [], modmask, bind_key)
         # Without this the overlay can only replay the chord as a synthetic
         # key, which Hyprland's bind matcher never sees.
         if action:
             row["dispatcher"] = action["dispatcher"]
             row["arg"] = action["arg"]
+
+    # A Hyprland bind with no recovered action cannot be issued from the
+    # overlay at all: chord replay is a no-op against the bind matcher, so
+    # it would close the overlay and appear to do nothing. Mark those so
+    # the UI dims them instead of promising something it cannot deliver.
+    # OmarKEYS' own bind lands here too, which is what we want - toggling
+    # the overlay from inside the overlay is meaningless.
+    for row in rows:
+        if not row.get("dispatcher"):
+            row["runnable"] = False
 
 
 def parse_print(text: str) -> list[dict]:

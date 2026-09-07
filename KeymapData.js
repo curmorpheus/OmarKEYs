@@ -496,7 +496,11 @@ function navList(query) {
         // window never reach Hyprland's bind matcher.
         dispatcher: row.dispatcher || "",
         dispatchArg: row.arg || "",
-        runnable: (isRunnable(row.keys) && !!sc) || !!row.dispatcher,
+        // dump-keymap sets runnable false on binds the overlay cannot
+        // issue; that verdict wins over anything the chord text implies.
+        runnable: row.runnable === false
+          ? false
+          : ((isRunnable(row.keys) && !!sc) || !!row.dispatcher),
         shortcut: sc
       })
     }

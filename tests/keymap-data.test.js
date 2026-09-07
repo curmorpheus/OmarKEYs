@@ -163,6 +163,24 @@ test("navList carries a bind's own dispatcher so rows dispatch, not replay keys"
   context.setSections(null)
 })
 
+test("a bind the overlay cannot issue stays non-runnable however runnable its chord looks", () => {
+  // Context-sensitive binds (universal copy, zoom) are Lua closures, so
+  // there is no action to dispatch; OmarKEYS' own bind is self-referential.
+  // dump-keymap marks those runnable:false and that must win, otherwise the
+  // row looks live, closes the overlay, and does nothing.
+  context.setSections([{
+    title: "Main",
+    rows: [
+      { keys: "Super + C", action: "Universal copy", runnable: false },
+      { keys: "Super + Return", action: "Terminal", dispatcher: "exec", arg: "term" }
+    ]
+  }])
+  const items = context.navList("")
+  assert.equal(items.find((i) => i.action === "Universal copy").runnable, false)
+  assert.equal(items.find((i) => i.action === "Terminal").runnable, true)
+  context.setSections(null)
+})
+
 test("groupedCatalog buckets every section into exactly 5 areas, none dropped", () => {
   const areas = context.groupedCatalog(context.sections)
   assert.equal(areas.length, 5)

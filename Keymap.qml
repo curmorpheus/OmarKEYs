@@ -866,6 +866,10 @@ Item {
     var item = root.navItems[root.selected]
     if (!item)
       return
+    // Dimmed rows are dimmed because we cannot issue them; running the
+    // chord anyway would just close the overlay and do nothing.
+    if (item.runnable === false)
+      return
     // Prefer the binding's own action. Replaying the chord only works for
     // app sheet rows, which are the app's shortcuts rather than Hyprland
     // binds - a synthetic key sent to a window never reaches Hyprland's
