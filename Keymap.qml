@@ -167,7 +167,7 @@ Item {
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
         var scale = Number(cfg.fontScale)
-        if (scale >= 0.8 && scale <= 1.8)
+        if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
@@ -855,7 +855,7 @@ Item {
   }
 
   function setFontScale(value) {
-    var next = Math.max(0.8, Math.min(1.8, Math.round(Number(value) * 20) / 20))
+    var next = Math.max(0.6, Math.min(1.4, Math.round(Number(value) * 20) / 20))
     if (next === root.fontScale)
       return
     root.fontScale = next
@@ -1428,9 +1428,9 @@ Item {
             textFormat: Text.PlainText
             text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Options"
             color: root.foreground
-            opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.35
+            opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.45
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Style.font.body
 
             MouseArea {
               id: optionsArea
