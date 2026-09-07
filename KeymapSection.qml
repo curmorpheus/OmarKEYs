@@ -20,6 +20,7 @@ Rectangle {
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35
+  property bool editMode: false
   signal rowClicked(string keys, string action)
   signal rowHighlighted(var item)
 
@@ -94,6 +95,7 @@ Rectangle {
         rowLayout: section.rowLayout
         fontScale: section.fontScale
         iconScale: section.iconScale
+        editMode: section.editMode
         onClicked: function(keys, action) { section.rowClicked(keys, action) }
         onHighlighted: function(item) { section.rowHighlighted(item) }
       }

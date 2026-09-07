@@ -42,7 +42,9 @@ Type while it is open to filter, including digits.
 
 - Double-tap Super on/off
 - Hold Super duration, 1–10 seconds
-- Edit mode (Omarchy source): pick a command, then press its new chord
+- Edit mode (Omarchy source): View | Edit in the header; click a command,
+  then press its new chord. Writes `omarkeys-edits.lua` (unbind + bind),
+  not the plugin git origin and not the body of Omarchy's defaults.
 
 App windows with a bundled sheet (Chromium, Ghostty, Nautilus) can be
 selected in the overlay; those sheets live in `sheets/`.

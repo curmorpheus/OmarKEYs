@@ -57,6 +57,7 @@ Flickable {
     rowLayout: host.rowLayout
     fontScale: host.fontScale
     iconScale: host.iconScale
+    editMode: host.editMode
     onRowClicked: function(keys, action) { host.activateRow(keys, action) }
     onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
   }

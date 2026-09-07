@@ -188,11 +188,18 @@ rewrite the overlay chrome in the same pass.
 
 ### Finish Phase 3 — View | Edit UI
 
-- [ ] Header toggle View | Edit (Omarchy branch only)
-- [ ] Dim non-editable rows; “press a new chord or Esc”
-- [ ] Enter stays View-only
-- [ ] Surface `apply-edit revert` / history in the overlay
-- [ ] `install.sh` wires `omarkeys-edits.lua` on first install (first edit already appends the dofile)
+- [x] (cursor) Header toggle View | Edit (Omarchy branch only)
+- [x] (cursor) Dim non-editable rows; “press a new chord or Esc”
+- [x] (cursor) Enter stays View-only
+- [x] (cursor) Surface `apply-edit revert` / history in the overlay
+- [x] (cursor) `install.sh` wires `omarkeys-edits.lua` on first install (first edit already appends the dofile)
+
+Chord remap writes `~/.config/hypr/omarkeys-edits.lua` using Omarchy's
+own override style (`hl.unbind` then `hl.bind` with the recovered
+dispatcher). That is allowed for an unsandboxed overlay plugin: it
+edits the user's Hyprland config, not the plugin git origin and not
+Omarchy's default bind modules. Super+K / hold / double-tap cannot be
+remapped. Dispatcher/args are not edited — only the chord.
 
 ### Later (out of the original three phases)
 

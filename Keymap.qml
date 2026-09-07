@@ -69,7 +69,19 @@ Item {
   property bool capturing: false
   property string captureOldKeys: ""
   property string captureAction: ""
+  property string captureDispatcher: ""
+  property string captureArg: ""
   property string editStatus: ""
+  property string editHistory: ""
+  readonly property bool canRevert: {
+    var n = 0
+    var lines = String(root.editHistory || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+      if (String(lines[i]).trim())
+        n++
+    }
+    return n >= 2
+  }
   readonly property bool omarchyActive: root.activeSource === "omarchy"
 
   readonly property bool allModsAny: root.modSuper === "any" && root.modShift === "any" && root.modCtrl === "any" && root.modAlt === "any"
@@ -498,6 +510,7 @@ Item {
           root.editStatus = "Saved · history committed"
           root.capturing = false
           root.refreshKeymap()
+          root.refreshEditHistory()
         } else {
           root.editStatus = "Reload failed · restored previous version"
           root.capturing = false
@@ -509,6 +522,47 @@ Item {
         root.editStatus = "Edit failed · restored previous version"
       root.capturing = false
     }
+  }
+
+  Process {
+    id: historyProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.editHistory = String(text || "")
+    }
+  }
+
+  Process {
+    id: revertProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var out = String(text || "").trim()
+        if (out === "ok") {
+          root.editStatus = "Reverted last remap"
+          root.capturing = false
+          root.refreshKeymap()
+          root.refreshEditHistory()
+        } else {
+          root.editStatus = "Revert failed"
+        }
+      }
+    }
+  }
+
+  function refreshEditHistory() {
+    historyProc.command = [root.sourceDir + "/apply-edit", "list"]
+    historyProc.running = false
+    historyProc.running = true
+  }
+
+  function revertLastEdit() {
+    if (root.launching)
+      return
+    root.editStatus = "Reverting…"
+    revertProc.command = [root.sourceDir + "/apply-edit", "revert"]
+    revertProc.running = false
+    revertProc.running = true
   }
 
   function grab() {
@@ -1052,29 +1106,50 @@ Item {
   function startCapture(keys, action) {
     if (!root.omarchyActive || !root.editMode)
       return
-    if (!KeymapData.rowRunnable({ keys: keys })) {
+    var item = null
+    var list = root.navItems
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].keys === keys && list[i].action === action) {
+        item = list[i]
+        break
+      }
+    }
+    if (!item || !KeymapData.rowEditable(item)) {
       root.editStatus = "That row cannot be remapped"
       return
     }
     root.captureOldKeys = keys
     root.captureAction = action
+    root.captureDispatcher = item.dispatcher || ""
+    root.captureArg = item.dispatchArg || ""
     root.capturing = true
-    root.editStatus = "Press the new shortcut for “" + action + "”"
+    root.editStatus = "Press the new shortcut for “" + action + "”, or Esc"
   }
 
   function applyCapture(newHypr) {
     if (!root.capturing || !newHypr)
       return
+    if (KeymapData.isProtectedChord(newHypr)) {
+      root.editStatus = "That chord summons OmarKEYS and cannot be used"
+      return
+    }
     var oldHypr = root.toHyprChord(root.captureOldKeys)
     if (!oldHypr)
       return
+    if (!root.captureDispatcher) {
+      root.editStatus = "That row cannot be remapped"
+      root.capturing = false
+      return
+    }
     root.editStatus = "Saving…"
     editProc.command = [
       root.sourceDir + "/apply-edit", "remap",
       "--old-keys", oldHypr,
       "--old-action", root.captureAction,
       "--new-keys", newHypr,
-      "--action", root.captureAction
+      "--action", root.captureAction,
+      "--dispatcher", root.captureDispatcher,
+      "--arg", root.captureArg
     ]
     editProc.running = false
     editProc.running = true
@@ -1085,10 +1160,12 @@ Item {
       on = false
     root.editMode = !!on
     root.capturing = false
-    if (root.editMode)
-      root.editStatus = "Edit: select a command, then press its new chord"
-    else
+    if (root.editMode) {
+      root.editStatus = "Edit: click a command, then press its new chord"
+      root.refreshEditHistory()
+    } else {
       root.editStatus = ""
+    }
   }
 
   function focusWindow(address) {
@@ -1146,7 +1223,10 @@ Item {
 
   function activateRow(keys, action) {
     root.selectKeys(keys, action)
-    root.executeSelected()
+    if (root.editMode)
+      root.startCapture(keys, action)
+    else
+      root.executeSelected()
   }
 
   function isSuperKey(event) {
@@ -1164,6 +1244,14 @@ Item {
       if (event.key === Qt.Key_Escape) {
         root.capturing = false
         root.editStatus = "Capture cancelled"
+        event.accepted = true
+        return
+      }
+      if (event.key === Qt.Key_W
+          && (event.modifiers & Qt.MetaModifier)
+          && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier))) {
+        root.capturing = false
+        root.dismiss()
         event.accepted = true
         return
       }
@@ -1368,7 +1456,7 @@ Item {
                   id: headerLabel
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  anchors.right: hintLabel.left
+                  anchors.right: modeToggle.visible ? modeToggle.left : hintLabel.left
                   anchors.rightMargin: Style.spacing.md
                   text: root.filterText || "OmarKEYS"
                   textFormat: Text.PlainText
@@ -1379,11 +1467,83 @@ Item {
                   elide: Text.ElideRight
                 }
 
+                Row {
+                  id: modeToggle
+                  visible: root.omarchyActive
+                  anchors.right: hintLabel.left
+                  anchors.rightMargin: Style.spacing.md
+                  anchors.verticalCenter: parent.verticalCenter
+                  spacing: 6
+
+                  Text {
+                    text: "View"
+                    textFormat: Text.PlainText
+                    color: root.editMode ? root.foreground : root.chipFg
+                    opacity: root.editMode ? 0.55 : 1
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: !root.editMode
+                    MouseArea {
+                      anchors.fill: parent
+                      anchors.margins: -4
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: root.setEditMode(false)
+                    }
+                  }
+
+                  Text {
+                    text: "|"
+                    textFormat: Text.PlainText
+                    color: root.foreground
+                    opacity: 0.35
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+
+                  Text {
+                    text: "Edit"
+                    textFormat: Text.PlainText
+                    color: root.editMode ? root.chipFg : root.foreground
+                    opacity: root.editMode ? 1 : 0.55
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: root.editMode
+                    MouseArea {
+                      anchors.fill: parent
+                      anchors.margins: -4
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: root.setEditMode(true)
+                    }
+                  }
+
+                  Text {
+                    visible: root.editMode && root.canRevert
+                    text: "Revert"
+                    textFormat: Text.PlainText
+                    color: root.foreground
+                    opacity: revertArea.containsMouse ? 1 : 0.6
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    MouseArea {
+                      id: revertArea
+                      anchors.fill: parent
+                      anchors.margins: -4
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: root.revertLastEdit()
+                    }
+                  }
+                }
+
                 Text {
                   id: hintLabel
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
-                  text: "↑↓ command · Ctrl+1–9 window · type to search · Enter run"
+                  text: root.capturing
+                    ? (root.editStatus || "Press a new chord, or Esc")
+                    : (root.editMode
+                      ? (root.editStatus || "Click a command, then press a new chord · Esc cancels")
+                      : "↑↓ command · Ctrl+1–9 window · type to search · Enter run")
                   textFormat: Text.PlainText
                   color: root.foreground
                   opacity: 0.72

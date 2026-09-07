@@ -639,6 +639,27 @@ function isRunnable(keys) {
   return true
 }
 
+function isProtectedChord(keys) {
+  var k = String(keys || "").trim()
+  if (/^Super\s*\+\s*K$/i.test(k) || /^SUPER\s*\+\s*K$/i.test(k))
+    return true
+  if (/double-tap super|hold super/i.test(k))
+    return true
+  return false
+}
+
+// Chord remap only: need the recovered Hyprland action, and never OmarKEYS'
+// own summons (Super+K / hold / double-tap).
+function rowEditable(row) {
+  if (!row || isProtectedChord(row.keys))
+    return false
+  if (row.runnable === false)
+    return false
+  if (!row.dispatcher)
+    return false
+  return isRunnable(row.keys)
+}
+
 // One verdict for the board (dim) and the keyboard (Enter). dump-keymap's
 // runnable:false wins; a recovered dispatcher can still run even if the
 // chord text looks odd; otherwise the chord must parse as a shortcut.

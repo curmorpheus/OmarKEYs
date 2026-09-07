@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.rowRunnable = rowRunnable;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.rowRunnable = rowRunnable; this.rowEditable = rowEditable; this.isProtectedChord = isProtectedChord;", context)
 
 function hasLiveDump() {
   const { execFileSync } = require("node:child_process")
@@ -317,4 +317,20 @@ test("rowRunnable matches the board and Enter", () => {
   assert.equal(context.rowRunnable({
     keys: "not a chord", dispatcher: "workspace", arg: "1"
   }), true)
+})
+
+test("rowEditable is chord remap of a recovered action, never OmarKEYS summons", () => {
+  assert.equal(context.isProtectedChord("Super + K"), true)
+  assert.equal(context.isProtectedChord("SUPER + K"), true)
+  assert.equal(context.isProtectedChord("Hold Super 5s"), true)
+  assert.equal(context.rowEditable({
+    keys: "Super + Return", dispatcher: "exec", arg: "ghostty"
+  }), true)
+  assert.equal(context.rowEditable({
+    keys: "Super + K", dispatcher: "lua", arg: "hl.dsp.exec_cmd(\"x\")"
+  }), false)
+  assert.equal(context.rowEditable({ keys: "Super + Return" }), false)
+  assert.equal(context.rowEditable({
+    keys: "Super + 1-9, 0", dispatcher: "lua", arg: "hl.dsp.workspace(1)"
+  }), false)
 })

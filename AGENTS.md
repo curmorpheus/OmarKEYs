@@ -36,6 +36,7 @@ visible (search, hidden groups, modifier modes). Roadmap: `PLAN.md`.
 omarchy plugin validate .
 node --test tests/keymap-data.test.js
 python3 tests/dump-keymap.test.py
+python3 tests/apply-edit.test.py
 python3 -m py_compile dump-keymap apply-edit
 git diff --check
 ```

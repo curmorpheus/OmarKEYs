@@ -39,10 +39,9 @@ Rectangle {
   signal clicked(string keys, string action)
   signal highlighted(var item)
 
-  // Same verdict as Enter: dump-keymap's runnable:false, else dispatcher
-  // or a parseable chord. App sheet rows have no dump flag and fall back
-  // to reading the chord.
+  property bool editMode: false
   readonly property bool runnable: KeymapData.rowRunnable(modelData)
+  readonly property bool editable: KeymapData.rowEditable(modelData)
 
   width: parent ? parent.width : 0
   height: Math.max(Style.space(22), actionLabel.implicitHeight + 4)
@@ -50,7 +49,7 @@ Rectangle {
   color: selected ? row.selectedBg : "transparent"
   border.width: selected ? 1 : 0
   border.color: selected ? row.selectedFg : row.borderColor
-  opacity: runnable ? 1 : 0.55
+  opacity: row.editMode ? (row.editable ? 1 : 0.4) : (row.runnable ? 1 : 0.55)
 
   HoverHandler { id: rowHover }
 
