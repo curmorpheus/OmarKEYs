@@ -16,7 +16,7 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSettingsBar.qml` | Double-tap toggle and hold slider |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |
-| `run-shortcut` | Run a selected row: dispatch a bind's action, or replay a chord into the focused window for app sheets |
+| `run-shortcut` | Run a selected row after the overlay closes (`--dispatch` for Hyprland binds; chord replay for app sheets) |
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Branch/update state for the corner picker; switch + sync |
@@ -45,42 +45,48 @@ hyprctl configerrors
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
 
-## Working copies — read this first
+## Grok's repository
 
-**`~/Work/omarkeys` is no longer a workspace. Do not edit or commit in it.**
+This clone is **Grok's line** (`~/Work/omarkeys-grok`). Claude and Cursor
+do not commit here.
 
-It is now the **deploy slot**: the directory
-`~/.config/omarchy/plugins/io.github.romills.omarkeys` symlinks to, i.e. the
-copy Hyprland actually loads. It only ever switches branches and pulls —
-increasingly from the overlay's own corner branch picker, which refuses to
-switch or sync when the tree is dirty. **A stray edit there is not just
-untidy: it blocks the picker.** Keep it clean.
+| Remote | URL | Role |
+|---|---|---|
+| `origin` | https://github.com/romills/OmarKEYs-grok.git | Grok's repo. `main` is Grok's released/stable line. |
+| `shared` | https://github.com/romills/OmarKEYs.git | Claude/Cursor repo. `develop` is their integration branch. |
 
-Work in your own clone instead. One per agent, so two of us can hold the
-same branch at once — a branch can only be checked out in one working tree,
-and that collision repeatedly cost us real time:
+Grok is the only one who pulls `develop` into `main`:
 
 ```sh
-git clone https://github.com/romills/OmarKEYs.git ~/Work/omarkeys-<agent>
+cd ~/Work/omarkeys-grok
+git checkout main
+git fetch shared
+git merge --no-ff shared/develop
+git push origin main
 ```
+
+Do not push Grok commits to `shared` unless handing a patch back. Local
+`develop` tracks `shared/develop` for inspection only.
+
+## Working copies
+
+**`~/Work/omarkeys` is not a workspace. Do not edit or commit in it.**
+
+It is the **deploy slot**: `~/.config/omarchy/plugins/io.github.romills.omarkeys`
+symlinks here. It only switches branches and pulls. The overlay's corner
+branch picker refuses to switch or sync when this tree is dirty.
 
 | Path | Who | Purpose |
 |---|---|---|
-| `~/Work/omarkeys` | nobody | Deploy slot: symlink target, what actually runs. No edits. |
-| `~/Work/omarkeys-claude` | Claude | |
-| `~/Work/omarkeys-cursor` | Cursor | |
-| `~/Work/omarkeys-grok` | Grok | |
+| `~/Work/omarkeys-grok` | Grok | This repo (`origin` = OmarKEYs-grok). Edit and commit here. |
+| `~/Work/omarkeys-claude` | Claude | Shared-repo clone |
+| `~/Work/omarkeys-cursor` | Cursor | Shared-repo clone |
+| `~/Work/omarkeys` | nobody | Deploy slot. No edits. |
 
-Push to GitHub to hand work off; that is how it reaches the other agents
-and the deploy slot. To test a branch live, point the deploy slot at it
-(corner picker in the overlay, or `git -C ~/Work/omarkeys checkout <branch>`)
-and `omarchy restart shell`. Only one branch can be loaded at a time —
-that part is unavoidable, so say which branch you are testing.
+To test a branch live, point the deploy slot at it (corner picker, or
+`git -C ~/Work/omarkeys checkout <branch>`) and `omarchy restart shell`.
 
 ## Branches
-
-Each agent works in its own clone (above), so branch switches never yank
-files out from under another tool's open buffers.
 
 | Branch | Owner | Role |
 |---|---|---|
@@ -90,7 +96,7 @@ files out from under another tool's open buffers.
 | `develop-claude` | Claude | Claude's working integration branch; feature branches merge here first, brought into `develop` once approved |
 | `develop-cursor` | Cursor | Cursor's own integration branch; opens a PR into `develop` when ready to hand work back |
 | `feature/phase2-sidebar-tree` | Claude | Off `develop-claude` |
-| `feature/phase3-view-edit-ui` | Claude (second session) | Off `develop-claude` |
+| `feature/phase3-view-edit-ui` | Claude | Off `develop-claude` |
 
 ### Release channels
 

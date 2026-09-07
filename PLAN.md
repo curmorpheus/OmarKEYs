@@ -53,6 +53,7 @@ intentional "jump to this app" action. Not building this.
 - [x] Settings in `~/.config/omarchy/omarkeys.json`
 - [x] Code split: host, sidebar, board, row, settings bar
 - [x] Public repo: https://github.com/romills/OmarKEYs
+- [x] Grok repo: https://github.com/romills/OmarKEYs-grok (`~/Work/omarkeys-grok`). Grok owns `main` and pulls `develop` from the shared repo when ready.
 - [x] Ship `apply-edit` and `sheets/` (were gitignored; GitHub clones missed them)
 
 ### Phase 1 — Auto-reload
@@ -109,14 +110,27 @@ User comment (click to filter / click to run):
 Dealt with: clicking an area or a group now *solos* it — every other
 Omarchy group is hidden so the board shows only what you clicked
 (`soloGroups()`). Clicking the **Omarchy** root restores all of them,
-so it doubles as the reset. Solo writes through the normal
-`hiddenGroups` setting, so it persists like the toggles do. Active Apps
-was already exclusive: picking a window swaps the whole board to that
-app's sheet. Click-to-run-and-close already shipped in v1 (`activateRow`
-→ `executeSelected` → `dismiss()`, chord replayed by `run-shortcut`);
-only rows that can't be dispatched as one chord stay inert — ranges
-("Super + 1-9"), gestures (double-tap / hold), and descriptive rows
-("Volume keys", "Play / pause") — and those are dimmed to show it.
+so it doubles as the reset. Solo is **view-only**: it snapshots
+`hiddenGroups` and restores them when the overlay closes (a stray click
+had been writing 14/15 groups hidden into the live config). Deliberate
+toggles still persist and end the solo. Active Apps was already
+exclusive: picking a window swaps the whole board to that app's sheet.
+
+### Run a command (dispatch, not chord replay)
+
+- [x] Click or Enter runs the highlighted Omarchy bind and closes the overlay
+- [x] `dump-keymap` recovers each bind's real dispatcher+arg (stubbed Lua
+      `bind()`, because `hyprctl binds` reports every Lua bind as `__lua`)
+- [x] `run-shortcut --dispatch <kind> <arg>` runs that action (`exec`,
+      `lua`, `sendshortcut`, other dispatchers)
+- [x] App sheet rows still replay the chord into the focused window
+- [x] Ranges, gestures, and descriptive rows stay inert and dimmed
+
+Chord replay of a Hyprland bind was a no-op: keys sent to the active
+window never reach Hyprland's bind matcher, so the app swallowed them
+and `run-shortcut` still exited 0. Omarchy's own keybindings menu
+dispatches the action; OmarKEYS now matches that. Verified: Volume up
+moved the sink; the old path returned ok and changed nothing.
 
 ### Release channels in the picker
 
@@ -136,6 +150,17 @@ only rows that can't be dispatched as one chord stay inert — ranges
       force, no `reset --hard`, `merge --ff-only` so divergence reports
 - [x] Branches held by another worktree are left out (git would refuse)
 
+### Working copies
+
+- [x] `~/Work/omarkeys` is the deploy slot (plugin symlink). No edits.
+- [x] Per-agent clones: `omarkeys-grok`, `omarkeys-claude`, `omarkeys-cursor`
+- [x] Grok pulls `shared/develop` into this `main`
+
+### Live reload (was "Later")
+
+- [x] A 3s timer while open so `hyprctl binds` picks up Lua reloads we did not write
+- [x] Watch `omarkeys-edits.lua` the same way as `bindings.lua`
+
 ## Future
 
 ### Finish Phase 3 — View | Edit UI
@@ -149,8 +174,6 @@ only rows that can't be dispatched as one chord stay inert — ranges
 ### Later (out of the original three phases)
 
 - [ ] More app sheets beyond Chromium / Ghostty / Nautilus
-- [ ] A 3s timer while open so `hyprctl binds` picks up Lua reloads we did not write
-- [ ] Watch `omarkeys-edits.lua` the same way as `bindings.lua`
 - [ ] Do not scrape another program’s keymap from memory
 - [ ] Do not edit dispatcher/args — chord remap of an existing action only
 - [ ] Do not change Super+K / hold / double-tap from the chord editor
