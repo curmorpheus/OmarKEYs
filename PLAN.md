@@ -53,7 +53,7 @@ intentional "jump to this app" action. Not building this.
 - [x] Settings in `~/.config/omarchy/omarkeys.json`
 - [x] Code split: host, sidebar, board, row, settings bar
 - [x] Public repo: https://github.com/romills/OmarKEYs
-- [x] Grok repo: https://github.com/romills/OmarKEYs-grok (`~/Work/omarkeys-grok`). Grok owns `main` and pulls `develop` from the shared repo when ready.
+- [x] Grok repo: https://github.com/romills/OmarKEYs-grok (`~/Work/omarkeys-grok`). Grok owns `main`, pulls finished `beta` (Claude) into it, and writes `RELEASE.md`.
 - [x] Ship `apply-edit` and `sheets/` (were gitignored; GitHub clones missed them)
 
 ### Phase 1 — Auto-reload
@@ -135,7 +135,8 @@ moved the sink; the old path returned ok and changed nothing.
 ### Release channels in the picker
 
 - [x] Corner picker offers Main / Beta / Nightly instead of raw branches
-- [x] `beta` branch created; promotion is `develop` → `beta` → `main`
+- [x] `beta` branch created; Claude owns beta; promotion is `develop` → `beta` (Claude) → `main` (Grok)
+- [x] Grok updates `RELEASE.md` when promoting a finished beta
 - [x] Nightly is a disclosure holding every working branch, so nobody
       lands on one by accident
 - [x] `plugin-git switch` fetches when a branch is unseen, so a newly
@@ -154,7 +155,7 @@ moved the sink; the old path returned ok and changed nothing.
 
 - [x] `~/Work/omarkeys` is the deploy slot (plugin symlink). No edits.
 - [x] Per-agent clones: `omarkeys-grok`, `omarkeys-claude`, `omarkeys-cursor`
-- [x] Grok pulls `shared/develop` into this `main`
+- [x] Grok pulls `shared/beta` into this `main` (not `develop`, not Cursor)
 
 ### Live reload (was "Later")
 
