@@ -55,12 +55,47 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
-          ToggleSwitch {
-            id: omarchySwitch
+          // Same control as Active Apps: collapsing a root branch takes its
+          // whole subtree with it.
+          Rectangle {
+            id: omarchyToggle
             anchors.right: parent.right
             anchors.rightMargin: 2
             anchors.verticalCenter: parent.verticalCenter
-            visible: host && host.omarchyActive
+            width: omarchyToggleLabel.implicitWidth + Style.space(8)
+            height: omarchyToggleLabel.implicitHeight + Style.space(4)
+            radius: 4
+            border.width: 1
+            border.color: side.borderColor
+            color: omarchyToggleArea.containsMouse
+              ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
+              : "transparent"
+
+            Text {
+              id: omarchyToggleLabel
+              anchors.centerIn: parent
+              text: side.omarchyOpen ? "Hide" : "Show"
+              textFormat: Text.PlainText
+              color: side.foreground
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+            }
+
+            MouseArea {
+              id: omarchyToggleArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: side.omarchyOpen = !side.omarchyOpen
+            }
+          }
+
+          ToggleSwitch {
+            id: omarchySwitch
+            anchors.right: omarchyToggle.left
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            visible: host && host.omarchyActive && side.omarchyOpen
             checked: host ? host.allGroupsVisible : true
             foreground: side.foreground
             accent: side.chipFg
@@ -75,7 +110,8 @@ Rectangle {
 
           Row {
             anchors.fill: parent
-            anchors.rightMargin: omarchySwitch.visible ? omarchySwitch.width + 8 : 4
+            anchors.rightMargin: omarchyToggle.width
+              + (omarchySwitch.visible ? omarchySwitch.width + 6 : 0) + 8
             spacing: 4
 
             Text {
@@ -292,8 +328,44 @@ Rectangle {
           width: parent.width
           height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
 
+          // Says what a click will do, not what state you are in: "Hide"
+          // while the branch is open, "Show" once it is collapsed.
+          Rectangle {
+            id: windowsToggle
+            anchors.right: parent.right
+            anchors.rightMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: windowsToggleLabel.implicitWidth + Style.space(8)
+            height: windowsToggleLabel.implicitHeight + Style.space(4)
+            radius: 4
+            border.width: 1
+            border.color: side.borderColor
+            color: windowsToggleArea.containsMouse
+              ? Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.22)
+              : "transparent"
+
+            Text {
+              id: windowsToggleLabel
+              anchors.centerIn: parent
+              text: side.windowsOpen ? "Hide" : "Show"
+              textFormat: Text.PlainText
+              color: side.foreground
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+            }
+
+            MouseArea {
+              id: windowsToggleArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: side.windowsOpen = !side.windowsOpen
+            }
+          }
+
           Row {
             anchors.fill: parent
+            anchors.rightMargin: windowsToggle.width + 8
             spacing: 4
 
             Text {
@@ -320,6 +392,11 @@ Rectangle {
               font.pixelSize: side.rootFontSize
               font.bold: true
               font.capitalization: Font.AllUppercase
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: side.windowsOpen = !side.windowsOpen
+              }
             }
           }
         }
