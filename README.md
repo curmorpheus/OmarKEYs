@@ -3,9 +3,10 @@
 A Super+K alternative for [Omarchy](https://omarchy.org/). Topic-organized
 keymap overlay, summoned without eating Super+other shortcuts.
 
-This is **Grok's** line (`main`). Claude and Cursor work on
-https://github.com/romills/OmarKEYs (`develop`). Grok pulls `develop`
-into `main` when that work is ready. Working copy: `~/Work/omarkeys-grok`.
+Stable is **main** (Grok). Claude owns **beta** on
+https://github.com/romills/OmarKEYs. When a beta is done, Grok pulls it
+into `main` and updates [RELEASE.md](RELEASE.md). Cursor does not land
+on `main`. Working copy: `~/Work/omarkeys-grok`.
 
 **Open**
 
