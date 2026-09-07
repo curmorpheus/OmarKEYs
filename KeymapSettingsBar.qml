@@ -36,7 +36,8 @@ Item {
           if (!host)
             return ""
           if (modelData.id === "chips")
-            return host.chipStyle === "short" ? "short" : "full"
+            return host.chipStyle === "short" ? "short"
+              : (host.chipStyle === "icons" ? "icons" : "full")
           if (modelData.id === "layout")
             return host.rowLayout === "action" ? "action first" : "keys first"
           if (modelData.id === "sort")
