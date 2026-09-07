@@ -18,7 +18,7 @@ Rectangle {
   readonly property string fontFamily: host ? host.fontFamily : Style.font.menuFamily
   readonly property int labelSize: Style.font.caption
 
-  width: Style.space(300)
+  width: Style.space(340)
   height: Math.min(Style.space(520),
     content.implicitHeight + Style.spacing.md * 2 + restoreButton.height + Style.space(4))
   radius: 6
@@ -78,6 +78,8 @@ Rectangle {
     id: content
     anchors.fill: parent
     anchors.margins: Style.spacing.md
+    anchors.leftMargin: Style.spacing.md + Style.space(6)
+    anchors.rightMargin: Style.spacing.md + Style.space(6)
     anchors.bottomMargin: Style.spacing.md + restoreButton.height
     spacing: Style.space(7)
 
@@ -221,12 +223,23 @@ Rectangle {
         id: iconSizeLabel
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        text: parent.live ? "Icon size" : "Icon size (icons off)"
+        text: !parent.live ? "Icon size (icons off)"
+          : ((menu.host && Math.abs(menu.host.iconScale - 1.35) > 0.001)
+            ? "Icon size · reset" : "Icon size")
         textFormat: Text.PlainText
-        color: menu.foreground
+        color: iconResetArea.containsMouse ? menu.chipFg : menu.foreground
         opacity: 0.75
         font.family: menu.fontFamily
         font.pixelSize: menu.labelSize
+
+        MouseArea {
+          id: iconResetArea
+          anchors.fill: parent
+          hoverEnabled: true
+          enabled: parent.parent.live
+          cursorShape: Qt.PointingHandCursor
+          onClicked: if (menu.host) menu.host.setIconScale(1.35)
+        }
       }
 
       PanelSlider {
