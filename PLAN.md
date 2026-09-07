@@ -137,6 +137,9 @@ moved the sink; the old path returned ok and changed nothing.
 - [x] Corner picker offers Main / Beta / Nightly instead of raw branches
 - [x] `beta` branch created; Claude owns beta; promotion is `develop` → `beta` (Claude) → `main` (Grok)
 - [x] Grok updates `RELEASE.md` when promoting a finished beta
+- [x] 1.5.1 from beta `9db25ad`: modifier chips, channel switch syncs,
+      real-directory install, dispatcher table args, pre-overlay window
+      for key-sends
 - [x] Nightly is a disclosure holding every working branch, so nobody
       lands on one by accident
 - [x] `plugin-git switch` fetches when a branch is unseen, so a newly
