@@ -281,6 +281,49 @@ var KEY_ICONS = {
   Print: "\udb81\udc2a"
 }
 
+// What an icon is, in words. The raw token is no good here: hovering to
+// find out what a glyph means and being told "XF86AudioRaiseVolume" is
+// barely an improvement on the glyph.
+var KEY_NAMES = {
+  XF86AudioRaiseVolume: "Volume up",
+  XF86AudioLowerVolume: "Volume down",
+  XF86AudioMute: "Mute",
+  XF86AudioMicMute: "Mic mute",
+  XF86MonBrightnessUp: "Brightness up",
+  XF86MonBrightnessDown: "Brightness down",
+  XF86KbdBrightnessUp: "Keyboard light up",
+  XF86KbdBrightnessDown: "Keyboard light down",
+  XF86KbdLightOnOff: "Keyboard light",
+  XF86AudioPlay: "Play",
+  XF86AudioPause: "Pause",
+  XF86AudioNext: "Next track",
+  XF86AudioPrev: "Previous track",
+  XF86PowerOff: "Power",
+  XF86Calculator: "Calculator",
+  XF86Eject: "Eject",
+  XF86TouchpadToggle: "Touchpad",
+  XF86TouchpadOn: "Touchpad on",
+  XF86TouchpadOff: "Touchpad off",
+  LMB: "Left click",
+  RMB: "Right click",
+  MMB: "Middle click",
+  "Wheel\u2193": "Wheel down",
+  "Wheel\u2191": "Wheel up"
+}
+
+function keyName(name) {
+  var key = String(name || "")
+  return KEY_NAMES[key] || key
+}
+
+function displayNames(keys) {
+  var parts = collapseMouse(splitKeys(keys))
+  var out = []
+  for (var i = 0; i < parts.length; i++)
+    out.push(keyName(parts[i]))
+  return out
+}
+
 function iconKey(name) {
   return KEY_ICONS[String(name || "")] || ""
 }

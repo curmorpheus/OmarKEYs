@@ -18,9 +18,9 @@ Rectangle {
   readonly property string fontFamily: host ? host.fontFamily : Style.font.menuFamily
   readonly property int labelSize: Style.font.caption
 
-  width: Style.space(340)
-  height: Math.min(Style.space(520),
-    content.implicitHeight + Style.spacing.md * 2 + restoreButton.height + Style.space(4))
+  width: Style.space(380)
+  height: Math.min(Style.space(640),
+    content.implicitHeight + Style.spacing.md * 4 + restoreButton.height + Style.space(4))
   radius: 6
   color: host ? host.background : Color.menu.background
   border.width: 1
@@ -77,11 +77,11 @@ Rectangle {
   Column {
     id: content
     anchors.fill: parent
-    anchors.margins: Style.spacing.md
-    anchors.leftMargin: Style.spacing.md + Style.space(6)
-    anchors.rightMargin: Style.spacing.md + Style.space(6)
-    anchors.bottomMargin: Style.spacing.md + restoreButton.height
-    spacing: Style.space(7)
+    anchors.margins: Style.spacing.md * 2
+    anchors.leftMargin: Style.spacing.md * 2 + Style.space(8)
+    anchors.rightMargin: Style.spacing.md * 2 + Style.space(8)
+    anchors.bottomMargin: Style.spacing.md * 2 + restoreButton.height
+    spacing: Style.space(14)
 
     Text {
       width: parent.width
@@ -118,7 +118,7 @@ Rectangle {
             : (menu.host.searchMode === "action" ? "name" : "all")
         }
         width: content.width
-        height: Math.max(Style.space(20), optionName.implicitHeight + 4)
+        height: Math.max(Style.space(24), optionName.implicitHeight + 8)
 
         Text {
           id: optionName
