@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Install OmarKEYS into Omarchy: symlink the plugin, enable it, wire Hyprland.
+# Install OmarKEYS into Omarchy: install the plugin, enable it, wire Hyprland.
+#
+# Default is a real directory, because Omarchy's validator refuses a plugin
+# folder that is a symlink -- `find <dir> -type l` reports the starting point
+# itself -- which makes `omarchy plugin update` fail and roll back. Use --dev
+# to symlink this checkout instead, which is what you want while working on
+# OmarKEYS and what you must not ship to anyone else.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -9,15 +15,22 @@ PLUGIN_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/${PLUGIN_ID}"
 OLD_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/${OLD_ID}"
 BINDINGS="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/bindings.lua"
 UNINSTALL=0
+DEV=0
 
 for arg in "$@"; do
   case "$arg" in
     --uninstall) UNINSTALL=1 ;;
+    --dev) DEV=1 ;;
     -h|--help)
       printf '%s\n' \
-        "Usage: ./install.sh [--uninstall]" \
-        "  Symlink this repo into Omarchy plugins, enable OmarKEYS," \
-        "  and load hyprland.lua from ~/.config/hypr/bindings.lua."
+        "Usage: ./install.sh [--dev] [--uninstall]" \
+        "  Install this repo into Omarchy plugins, enable OmarKEYS," \
+        "  and load hyprland.lua from ~/.config/hypr/bindings.lua." \
+        "" \
+        "  --dev  symlink this checkout instead of copying it. Edits go live" \
+        "         on 'omarchy restart shell', but 'omarchy plugin update'" \
+        "         and 'omarchy plugin validate' both reject a symlinked" \
+        "         plugin folder, so never use this for a real install."
       exit 0
       ;;
     *)
@@ -67,6 +80,9 @@ if (( UNINSTALL )); then
   if [[ -L $PLUGIN_DIR ]]; then
     rm -f "$PLUGIN_DIR"
     log "removed symlink $PLUGIN_DIR"
+  elif [[ -d $PLUGIN_DIR ]]; then
+    rm -rf "$PLUGIN_DIR"
+    log "removed $PLUGIN_DIR"
   fi
   if [[ -f $BINDINGS ]]; then
     cp "$BINDINGS" "$BINDINGS.bak.$(date +%s)"
@@ -81,14 +97,39 @@ if (( UNINSTALL )); then
 fi
 
 mkdir -p "$(dirname "$PLUGIN_DIR")"
-if [[ -e $PLUGIN_DIR && ! -L $PLUGIN_DIR ]]; then
-  backup="${PLUGIN_DIR}.bak.$(date +%s)"
-  mv "$PLUGIN_DIR" "$backup"
-  log "moved existing plugin dir -> $backup"
+chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap" "$ROOT/apply-edit" "$ROOT/plugin-git"
+
+if (( DEV )); then
+  if [[ -e $PLUGIN_DIR && ! -L $PLUGIN_DIR ]]; then
+    backup="${PLUGIN_DIR}.bak.$(date +%s)"
+    mv "$PLUGIN_DIR" "$backup"
+    log "moved existing plugin dir -> $backup"
+  fi
+  ln -sfn "$ROOT" "$PLUGIN_DIR"
+  log "symlinked $PLUGIN_DIR -> $ROOT"
+  log "dev install: 'omarchy plugin update' and 'validate' will reject this symlink"
+else
+  # A git clone, not a copy: `omarchy plugin update` drives the plugin dir
+  # with git fetch + merge --ff-only, so it needs real history to update.
+  [[ -L $PLUGIN_DIR ]] && { rm -f "$PLUGIN_DIR"; log "removed old symlink $PLUGIN_DIR"; }
+  origin="$(git -C "$ROOT" remote get-url origin 2>/dev/null || true)"
+  if [[ -d $PLUGIN_DIR/.git ]]; then
+    log "plugin already installed at $PLUGIN_DIR; update it with: omarchy plugin update $PLUGIN_ID"
+  elif [[ -n $origin ]]; then
+    [[ -e $PLUGIN_DIR ]] && { mv "$PLUGIN_DIR" "${PLUGIN_DIR}.bak.$(date +%s)"; log "moved existing plugin dir aside"; }
+    branch="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
+    git clone --quiet --branch "$branch" "$origin" "$PLUGIN_DIR"
+    log "cloned $origin ($branch) -> $PLUGIN_DIR"
+  else
+    fail_msg="no git origin to clone from; run from a clone, or use --dev to symlink"
+    echo "install.sh: $fail_msg" >&2
+    exit 1
+  fi
 fi
-chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap" "$ROOT/apply-edit"
-ln -sfn "$ROOT" "$PLUGIN_DIR"
-log "symlinked $PLUGIN_DIR -> $ROOT"
+
+if command -v omarchy >/dev/null && ! omarchy plugin validate "$PLUGIN_DIR" >/dev/null 2>&1; then
+  log "WARNING: $PLUGIN_DIR does not pass 'omarchy plugin validate'"
+fi
 
 if command -v omarchy >/dev/null; then
   omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true

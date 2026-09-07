@@ -63,10 +63,39 @@ cd ~/Work/omarkeys
 
 `install.sh` will:
 
-1. Symlink this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
+1. Clone this repo to `~/.config/omarchy/plugins/io.github.romills.omarkeys`
 2. Enable the overlay plugin
 3. Point `~/.config/hypr/bindings.lua` at `hyprland.lua`
 4. Reload Hyprland
+
+### Already installed with a symlink?
+
+Earlier versions symlinked the checkout into the plugins folder. Omarchy's
+validator refuses a plugin folder that *is* a symlink, so
+`omarchy plugin update` fails on those installs and rolls back:
+
+```
+omarchy-plugin-validate: symlinks are not allowed inside a plugin folder
+omarchy-plugin-update: update of '...' failed validation; rolled back
+```
+
+Nothing is broken and nothing is lost — the plugin keeps working, it just
+cannot be updated in place. Re-run the installer to convert it:
+
+```bash
+cd ~/Work/omarkeys && git pull && ./install.sh
+```
+
+### Working on OmarKEYS itself
+
+```bash
+./install.sh --dev
+```
+
+Symlinks the checkout instead of cloning, so edits go live on
+`omarchy restart shell`. `omarchy plugin update` and
+`omarchy plugin validate` both reject a symlinked plugin folder, so use this
+only on a machine where you are developing OmarKEYS.
 
 Or add it like any other Omarchy plugin, then still run `./install.sh` so
 the Super gestures are wired (the overlay alone has no Super hold/double-tap).
