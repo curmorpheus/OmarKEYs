@@ -138,6 +138,31 @@ test("hiding every group empties the grid", () => {
   context.setConfig({ doubleTap: true, holdSeconds: 5, hiddenGroups: [] })
 })
 
+test("navList carries a bind's own dispatcher so rows dispatch, not replay keys", () => {
+  // Regression: rows used to expose only mods/key, so the overlay replayed
+  // the chord as a synthetic key. Hyprland's bind matcher never sees those,
+  // so every Omarchy binding silently did nothing.
+  context.setSections([{
+    title: "Main",
+    rows: [
+      { keys: "Super + Return", action: "Terminal", mods: "SUPER", bindKey: "RETURN",
+        dispatcher: "exec", arg: "omarchy-launch-terminal" },
+      { keys: "Ctrl + T", action: "New tab" }
+    ]
+  }])
+  const items = context.navList("")
+  const terminal = items.find((i) => i.action === "Terminal")
+  assert.equal(terminal.dispatcher, "exec")
+  assert.equal(terminal.dispatchArg, "omarchy-launch-terminal")
+  assert.equal(terminal.runnable, true)
+  // App sheet rows have no dispatcher and still fall back to key replay,
+  // which is correct for an app's own shortcut.
+  const tab = items.find((i) => i.action === "New tab")
+  assert.equal(tab.dispatcher, "")
+  assert.ok(tab.shortcut && tab.shortcut.key)
+  context.setSections(null)
+})
+
 test("groupedCatalog buckets every section into exactly 5 areas, none dropped", () => {
   const areas = context.groupedCatalog(context.sections)
   assert.equal(areas.length, 5)
