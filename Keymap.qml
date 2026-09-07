@@ -33,6 +33,11 @@ Item {
   property bool doubleTap: true
   property int holdSeconds: 5
   property var hiddenGroups: []
+  // Apps switched off in the tree, by window class. A hidden app leaves the
+  // list rather than sitting there dimmed: this is a live window list, so a
+  // permanent dimmed entry is just clutter of a different kind. Showing the
+  // Active Apps branch brings them all back.
+  property var hiddenApps: []
   property var groupList: []
   property var omarchyTree: []
   property string modSuper: "any"
@@ -92,6 +97,7 @@ Item {
       doubleTap: root.doubleTap,
       holdSeconds: root.holdSeconds,
       hiddenGroups: root.hiddenGroups,
+      hiddenApps: root.hiddenApps,
       modifiers: {
         Super: root.modSuper,
         Shift: root.modShift,
@@ -135,6 +141,8 @@ Item {
           root.holdSeconds = Math.round(hold)
         if (Object.prototype.toString.call(cfg.hiddenGroups) === "[object Array]")
           root.hiddenGroups = cfg.hiddenGroups.slice()
+        if (Object.prototype.toString.call(cfg.hiddenApps) === "[object Array]")
+          root.hiddenApps = cfg.hiddenApps.slice()
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
           root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
@@ -584,6 +592,42 @@ Item {
       return
     }
     root.sheetPath = root.sourceDir + "/sheets/" + sheet
+  }
+
+  function appIsHidden(cls) {
+    for (var i = 0; i < root.hiddenApps.length; i++) {
+      if (root.hiddenApps[i] === cls)
+        return true
+    }
+    return false
+  }
+
+  readonly property var visibleClients: {
+    var out = []
+    var list = root.clients || []
+    for (var i = 0; i < list.length; i++) {
+      if (!root.appIsHidden(list[i].class))
+        out.push(list[i])
+    }
+    return out
+  }
+
+  function toggleApp(cls) {
+    var next = []
+    var hiding = !root.appIsHidden(cls)
+    for (var i = 0; i < root.hiddenApps.length; i++) {
+      if (root.hiddenApps[i] !== cls)
+        next.push(root.hiddenApps[i])
+    }
+    if (hiding)
+      next.push(cls)
+    root.hiddenApps = next
+    root.saveConfig()
+  }
+
+  function showAllApps() {
+    root.hiddenApps = []
+    root.saveConfig()
   }
 
   function groupIsHidden(title) {
