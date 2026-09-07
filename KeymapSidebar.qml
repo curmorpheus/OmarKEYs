@@ -64,7 +64,6 @@ Rectangle {
             shown: side.omarchyOpen
             foreground: side.foreground
             accent: side.chipFg
-            borderColor: side.borderColor
             fontFamily: side.fontFamily
             fontSize: side.subFontSize
             onToggled: {
@@ -177,7 +176,6 @@ Rectangle {
                 shown: !areaCol.allHidden
                 foreground: side.foreground
                 accent: side.chipFg
-                borderColor: side.borderColor
                 fontFamily: side.fontFamily
                 fontSize: side.subFontSize
                 onToggled: {
@@ -255,7 +253,6 @@ Rectangle {
                   shown: !modelData.hidden
                   foreground: side.foreground
                   accent: side.chipFg
-                  borderColor: side.borderColor
                   fontFamily: side.fontFamily
                   fontSize: side.subFontSize
                   onToggled: {
@@ -440,7 +437,6 @@ Rectangle {
               shown: true
               foreground: side.foreground
               accent: side.chipFg
-              borderColor: side.borderColor
               fontFamily: side.fontFamily
               fontSize: side.subFontSize
               onToggled: {
