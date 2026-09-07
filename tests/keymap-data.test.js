@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -202,4 +202,35 @@ test("groupedCatalog still buckets everything when a section list omits Other", 
   const areas = context.groupedCatalog(withoutOther)
   const groupedTitles = areas.flatMap((a) => a.groups.map((g) => g.title)).sort()
   assert.deepEqual(groupedTitles, context.catalogFor(withoutOther).map((g) => g.title).sort())
+})
+
+test("display options: short chips, action sort, and the two search modes", () => {
+  // Option 1: chips shorten to <=5 chars so the action column keeps its width.
+  context.setConfig({ chipStyle: "short" })
+  // JSON.stringify, not deepEqual: values cross the vm realm boundary, so
+  // their prototypes differ even when the contents match.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Backspace", "short")),
+    JSON.stringify(["Sup", "Shft", "Bksp"]))
+  assert.equal(context.shortKey("XF86AudioRaiseVolume"), "Raise")
+  assert.ok(context.displayKeys("Super + Shift + Backspace", "short").every((k) => k.length <= 5))
+  // Full style is untouched.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Return", "full")),
+    JSON.stringify(["Super", "Return"]))
+
+  // Sorting by description orders rows within their section.
+  context.setConfig({ sortBy: "action" })
+  const actions = context.filtered("")[0].rows.map((r) => r.action)
+  assert.equal(JSON.stringify(actions),
+    JSON.stringify(actions.slice().sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)))
+
+  // The two search modes are genuinely different: "super" is a modifier,
+  // never a description, so searching descriptions must not match it.
+  context.setConfig({ searchMode: "keys" })
+  assert.ok(context.filtered("super").length > 0)
+  context.setConfig({ searchMode: "action" })
+  assert.equal(context.filtered("super").length, 0)
+  context.setConfig({ searchMode: "action" })
+  assert.ok(context.filtered("terminal").length > 0)
+
+  context.setConfig({})
 })

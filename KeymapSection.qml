@@ -16,6 +16,8 @@ Rectangle {
   property color chipFg: Color.menu.selectedText
   property color selectedBg: Color.menu.selectedBackground
   property color selectedFg: Color.menu.selectedText
+  property string chipStyle: "full"
+  property string rowLayout: "keys"
   signal rowClicked(string keys, string action)
   signal rowActivated(string keys, string action)
   signal rowHighlighted(var item)
@@ -87,6 +89,8 @@ Rectangle {
         chipFg: section.chipFg
         selectedBg: section.selectedBg
         selectedFg: section.selectedFg
+        chipStyle: section.chipStyle
+        rowLayout: section.rowLayout
         onClicked: function(keys, action) { section.rowClicked(keys, action) }
         onActivated: function(keys, action) { section.rowActivated(keys, action) }
         onHighlighted: function(item) { section.rowHighlighted(item) }

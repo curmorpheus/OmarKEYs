@@ -14,6 +14,9 @@ Rectangle {
   property color chipFg: Color.menu.selectedText
   property color selectedBg: Color.menu.selectedBackground
   property color selectedFg: Color.menu.selectedText
+  // "full" | "short" chips, and whether keys or the action leads the row.
+  property string chipStyle: "full"
+  property string rowLayout: "keys"
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
   signal highlighted(var item)
@@ -53,8 +56,10 @@ Rectangle {
 
   Row {
     id: keysRow
-    anchors.left: parent.left
-    anchors.leftMargin: 8
+    anchors.left: row.rowLayout === "keys" ? parent.left : undefined
+    anchors.leftMargin: row.rowLayout === "keys" ? 8 : 0
+    anchors.right: row.rowLayout === "keys" ? undefined : parent.right
+    anchors.rightMargin: row.rowLayout === "keys" ? 0 : 8
     anchors.verticalCenter: parent.verticalCenter
     // Chips rarely fill this column, and every pixel reserved past the last
     // chip is one the action label elides instead. 0.56 left a wide dead gap
@@ -64,7 +69,7 @@ Rectangle {
     spacing: 4
 
     Repeater {
-      model: KeymapData.splitKeys(row.modelData.keys)
+      model: KeymapData.displayKeys(row.modelData.keys, row.chipStyle)
       delegate: Rectangle {
         implicitWidth: chipText.implicitWidth + 10
         implicitHeight: Math.max(Style.space(18), chipText.implicitHeight + 4)
@@ -89,10 +94,11 @@ Rectangle {
 
   Text {
     id: actionLabel
-    anchors.left: keysRow.right
-    anchors.right: parent.right
+    anchors.left: row.rowLayout === "keys" ? keysRow.right : parent.left
+    anchors.right: row.rowLayout === "keys" ? parent.right : keysRow.left
     anchors.verticalCenter: parent.verticalCenter
-    anchors.leftMargin: Style.spacing.sm
+    anchors.leftMargin: row.rowLayout === "keys" ? Style.spacing.sm : 8
+    anchors.rightMargin: row.rowLayout === "keys" ? 0 : Style.spacing.sm
     text: row.modelData.action
     textFormat: Text.PlainText
     color: row.selected ? row.selectedFg : row.foreground

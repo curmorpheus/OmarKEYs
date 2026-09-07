@@ -34,6 +34,12 @@ Item {
   property bool doubleTap: true
   property int holdSeconds: 5
   property var hiddenGroups: []
+  // Layout experiments, switchable from the settings bar so they can be
+  // compared against each other rather than rebuilt to try.
+  property string chipStyle: "full"     // full | short
+  property string rowLayout: "keys"     // keys | action
+  property string sortBy: "section"     // section | action
+  property string searchMode: "all"     // all | keys | action
   // Apps switched off in the tree, by window class. A hidden app leaves the
   // list rather than sitting there dimmed: this is a live window list, so a
   // permanent dimmed entry is just clutter of a different kind. Showing the
@@ -99,6 +105,10 @@ Item {
       holdSeconds: root.holdSeconds,
       hiddenGroups: root.hiddenGroups,
       hiddenApps: root.hiddenApps,
+      chipStyle: root.chipStyle,
+      rowLayout: root.rowLayout,
+      sortBy: root.sortBy,
+      searchMode: root.searchMode,
       modifiers: {
         Super: root.modSuper,
         Shift: root.modShift,
@@ -144,6 +154,14 @@ Item {
           root.hiddenGroups = cfg.hiddenGroups.slice()
         if (Object.prototype.toString.call(cfg.hiddenApps) === "[object Array]")
           root.hiddenApps = cfg.hiddenApps.slice()
+        if (cfg.chipStyle === "short" || cfg.chipStyle === "full")
+          root.chipStyle = cfg.chipStyle
+        if (cfg.rowLayout === "action" || cfg.rowLayout === "keys")
+          root.rowLayout = cfg.rowLayout
+        if (cfg.sortBy === "action" || cfg.sortBy === "section")
+          root.sortBy = cfg.sortBy
+        if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
+          root.searchMode = cfg.searchMode
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
           root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
@@ -799,6 +817,27 @@ Item {
     root.modShift = next
     root.modCtrl = next
     root.modAlt = next
+    root.saveConfig()
+  }
+
+  function cycleChipStyle() {
+    root.chipStyle = root.chipStyle === "full" ? "short" : "full"
+    root.saveConfig()
+  }
+
+  function cycleRowLayout() {
+    root.rowLayout = root.rowLayout === "keys" ? "action" : "keys"
+    root.saveConfig()
+  }
+
+  function cycleSortBy() {
+    root.sortBy = root.sortBy === "section" ? "action" : "section"
+    root.saveConfig()
+  }
+
+  function cycleSearchMode() {
+    root.searchMode = root.searchMode === "all" ? "keys"
+      : (root.searchMode === "keys" ? "action" : "all")
     root.saveConfig()
   }
 
