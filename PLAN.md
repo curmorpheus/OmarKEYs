@@ -43,6 +43,7 @@ The original "Close window" bind is restored when the overlay hides.
 - [x] Settings in `~/.config/omarchy/omarkeys.json`
 - [x] Code split: host, sidebar, board, row, settings bar
 - [x] Public repo: https://github.com/romills/OmarKEYs
+- [x] Grok repo: https://github.com/romills/OmarKEYs-grok (`~/Work/omarkeys-grok`). Grok owns `main` and pulls `develop` from the shared repo when ready.
 - [x] Ship `apply-edit` and `sheets/` (were gitignored; GitHub clones missed them)
 
 ### Phase 1 — Auto-reload

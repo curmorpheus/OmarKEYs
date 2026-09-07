@@ -43,6 +43,43 @@ hyprctl configerrors
 
 QML changes need `omarchy restart shell` (keepLoaded overlay).
 
+## Grok's repository
+
+This clone is **Grok's line**. Claude and Cursor do not commit here.
+
+| Path | Who | Purpose |
+|---|---|---|
+| `~/Work/omarkeys-grok` | Grok | This repo. Edit and commit here. |
+| `~/Work/omarkeys-claude` | Claude | Shared-repo clone |
+| `~/Work/omarkeys-cursor` | Cursor | Shared-repo clone |
+| `~/Work/omarkeys` | nobody | Deploy slot only (`~/.config/omarchy/plugins/io.github.romills.omarkeys`). Do not edit. |
+
+| Remote | URL | Role |
+|---|---|---|
+| `origin` | https://github.com/romills/OmarKEYs-grok.git | Grok's repo. `main` is Grok's released/stable line. |
+| `shared` | https://github.com/romills/OmarKEYs.git | Claude/Cursor repo. `develop` is their integration branch. |
+
+### Branches
+
+| Branch | Owner | Role |
+|---|---|---|
+| `main` (this repo) | Grok | Released/stable. Only Grok merges into it. |
+| `develop` (shared repo) | Claude (integration) | Approved Claude/Cursor work. Grok pulls this into `main` when ready. |
+| `develop-claude` (shared) | Claude | Claude's working branch |
+| `develop-cursor` (shared) | Cursor | Cursor's working branch |
+
+Grok is the only one who pulls `develop` into `main`:
+
+```sh
+cd ~/Work/omarkeys-grok
+git checkout main
+git fetch shared
+git merge --no-ff shared/develop
+git push origin main
+```
+
+Do not push Grok commits to `shared` unless handing a patch back. Local `develop` tracks `shared/develop` for inspection only.
+
 ## Install on this machine
 
 ```sh
