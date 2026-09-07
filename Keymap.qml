@@ -29,7 +29,6 @@ Item {
   property int holdSeconds: 5
   property var hiddenGroups: []
   property var groupList: []
-  property var omarchyGroupList: []
   property var omarchyTree: []
   property string modSuper: "any"
   property string modShift: "any"
@@ -518,7 +517,6 @@ Item {
     root.applyConfigToData()
     root.groupList = KeymapData.catalog()
     var omarchySource = (root.omarchySections && root.omarchySections.length) ? root.omarchySections : KeymapData.sections
-    root.omarchyGroupList = KeymapData.catalogFor(omarchySource)
     root.omarchyTree = KeymapData.groupedCatalog(omarchySource)
     var cols = KeymapData.columns(root.filterText)
     root.leftSections = cols.left
@@ -604,10 +602,14 @@ Item {
     for (var i = 0; i < titles.length; i++)
       keep[titles[i]] = true
     var next = []
-    var list = root.omarchyGroupList
-    for (var j = 0; j < list.length; j++) {
-      if (!keep[list[j].title])
-        next.push(list[j].title)
+    // omarchyTree already holds every group, bucketed by area.
+    var areas = root.omarchyTree || []
+    for (var a = 0; a < areas.length; a++) {
+      var groups = areas[a].groups || []
+      for (var g = 0; g < groups.length; g++) {
+        if (!keep[groups[g].title])
+          next.push(groups[g].title)
+      }
     }
     root.hiddenGroups = next
     root.applyConfigToData()
