@@ -118,6 +118,15 @@ only rows that can't be dispatched as one chord stay inert — ranges
 ("Super + 1-9"), gestures (double-tap / hold), and descriptive rows
 ("Volume keys", "Play / pause") — and those are dimmed to show it.
 
+### Release channels in the picker
+
+- [x] Corner picker offers Main / Beta / Nightly instead of raw branches
+- [x] `beta` branch created; promotion is `develop` → `beta` → `main`
+- [x] Nightly is a disclosure holding every working branch, so nobody
+      lands on one by accident
+- [x] `plugin-git switch` fetches when a branch is unseen, so a newly
+      created channel is selectable without a manual fetch first
+
 ### Branch picker / update check
 
 - [x] `plugin-git` reports branch, hash, dirty, upstream, ahead/behind

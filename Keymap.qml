@@ -275,6 +275,48 @@ Item {
     root.runGit(["status"], false)
   }
 
+  // Release channels. Main and Beta are the two choices most people need;
+  // Nightly is the escape hatch that opens up every working branch.
+  readonly property string mainBranch: "main"
+  readonly property string betaBranch: "beta"
+
+  function channelFor(branch) {
+    if (branch === root.mainBranch)
+      return "main"
+    if (branch === root.betaBranch)
+      return "beta"
+    return "nightly"
+  }
+
+  readonly property string gitChannel: root.channelFor(root.gitBranch)
+
+  function channelLabel(channel) {
+    if (channel === "main")
+      return "Main"
+    if (channel === "beta")
+      return "Beta"
+    return "Nightly"
+  }
+
+  function switchChannel(channel) {
+    if (channel === "main")
+      root.switchBranch(root.mainBranch)
+    else if (channel === "beta")
+      root.switchBranch(root.betaBranch)
+  }
+
+  // Everything that is not one of the two release channels. Those have
+  // their own rows in the menu, so listing them again only adds noise.
+  readonly property var nightlyBranches: {
+    var out = []
+    var list = root.gitBranches || []
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] !== root.mainBranch && list[i] !== root.betaBranch)
+        out.push(list[i])
+    }
+    return out
+  }
+
   function toggleBranchMenu() {
     root.branchMenuOpen = !root.branchMenuOpen
     // Opening is the moment the branch list matters, so refresh it then
@@ -1134,8 +1176,12 @@ Item {
             anchors.margins: Style.spacing.sm
             visible: !!(root.gitBranch || root.gitHash)
             textFormat: Text.PlainText
+            // Lead with the channel: that is the part most people care
+            // about. The branch name only adds information on Nightly,
+            // where it is not implied by the channel.
             text: (root.branchMenuOpen ? "▾ " : "▴ ")
-              + root.gitBranch
+              + root.channelLabel(root.gitChannel)
+              + (root.gitChannel === "nightly" && root.gitBranch ? " · " + root.gitBranch : "")
               + (root.gitHash ? " @ " + root.gitHash : "")
               + (root.gitUpdateAvailable ? " •" : "")
             color: root.gitUpdateAvailable ? root.chipFg : root.foreground
