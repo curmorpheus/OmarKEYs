@@ -16,15 +16,17 @@ Rectangle {
   property color selectedFg: Color.menu.selectedText
   // "full" | "short" chips, and whether keys or the action leads the row.
   property string chipStyle: "full"
-  property string keyboardOS: "windows"
+  property string keyboardType: "windows"
+  property bool iconBorders: true
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35
   readonly property bool keysFirst: rowLayout !== "action"
   // Both renderings of the same chord, index for index: collapseMouse runs
   // for either style, so a chip and its full name share a position.
-  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle, row.keyboardOS)
+  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle, row.keyboardType)
   readonly property var chipNames: KeymapData.displayNames(modelData.keys)
+  readonly property var chipClasses: KeymapData.displayClasses(modelData.keys)
   // An icon says what key it is only once you know the glyph, so hovering
   // the line spells it out beside it.
   readonly property bool namingKeys: rowHover.hovered && chipStyle === "icons"
@@ -97,11 +99,16 @@ Rectangle {
         // beside the icon tables, since that is what decides it.
         readonly property bool isIcon: KeymapData.isIconGlyph(modelData)
         readonly property string fullName: row.chipNames[index] || ""
-        implicitWidth: chipContent.implicitWidth + (isIcon ? 4 : 10)
+        readonly property string chipClass: row.chipClasses[index] || "key"
+        // A cap is drawn round a key you press. A glyph standing for what
+        // the key does, or for a mouse button, is not a key on a keyboard,
+        // so it stays loose whatever this is set to.
+        readonly property bool capped: !isIcon || (row.iconBorders && chipClass === "key")
+        implicitWidth: chipContent.implicitWidth + (capped ? 10 : 4)
         implicitHeight: Math.max(Style.space(18), chipContent.implicitHeight + 4)
         radius: 4
-        color: isIcon ? "transparent" : row.chipBg
-        border.width: isIcon ? 0 : 1
+        color: capped ? row.chipBg : "transparent"
+        border.width: capped ? 1 : 0
         border.color: row.borderColor
 
         // The name is its own item rather than appended text, so it can sit

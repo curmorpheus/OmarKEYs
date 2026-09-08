@@ -45,7 +45,10 @@ Item {
   property string searchMode: "all"     // all | keys | action
   // Which keyboard's keycaps the modifier chips imitate. Mac symbols all
   // four; the PC layouts print words, so they only supply a Super logo.
-  property string keyboardOS: "windows" // text | mac | windows | omarchy
+  property string keyboardType: "windows" // text | mac | windows | omarchy
+  // Draw keys as keycaps. Only keys you press get one -- an action the key
+  // performs, or a mouse button, is not a cap and does not want a box.
+  property bool iconBorders: true
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
   // Icons carry their own size: a glyph reads smaller than a letter, and
@@ -121,7 +124,8 @@ Item {
       rowLayout: root.rowLayout,
       sortBy: root.sortBy,
       searchMode: root.searchMode,
-      keyboardOS: root.keyboardOS,
+      keyboardType: root.keyboardType,
+      iconBorders: root.iconBorders,
       fontScale: root.fontScale,
       iconScale: root.iconScale,
       modifiers: {
@@ -182,14 +186,18 @@ Item {
           root.sortBy = cfg.sortBy
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
-        // superIcon is the old Super-only name for this setting.
-        var os = cfg.keyboardOS || cfg.superIcon
-        if (os === "command" || os === "option")
-          root.keyboardOS = "mac"
-        else if (os === "superman")
-          root.keyboardOS = "windows"
-        else if (os === "text" || os === "mac" || os === "windows" || os === "omarchy")
-          root.keyboardOS = os
+        // keyboardOS and superIcon are earlier names for this setting.
+        var kb = cfg.keyboardType || cfg.keyboardOS || cfg.superIcon
+        if (kb === "command" || kb === "option")
+          root.keyboardType = "mac"
+        else if (kb === "superman")
+          root.keyboardType = "windows"
+        else if (kb === "text" || kb === "mac" || kb === "windows" || kb === "omarchy")
+          root.keyboardType = kb
+        if (cfg.iconBorders === false)
+          root.iconBorders = false
+        else if (cfg.iconBorders === true)
+          root.iconBorders = true
         var scale = Number(cfg.fontScale)
         if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
@@ -942,7 +950,8 @@ Item {
     root.rowLayout = "action"
     root.sortBy = "action"
     root.searchMode = "all"
-    root.keyboardOS = "windows"
+    root.keyboardType = "windows"
+    root.iconBorders = true
     root.fontScale = 1.0
     root.iconScale = 1.35
     root.modSuper = "any"
@@ -980,10 +989,15 @@ Item {
     hyprReloadTimer.restart()
   }
 
-  function cycleKeyboardOS() {
-    root.keyboardOS = root.keyboardOS === "text" ? "mac"
-      : (root.keyboardOS === "mac" ? "windows"
-      : (root.keyboardOS === "windows" ? "omarchy" : "text"))
+  function cycleKeyboardType() {
+    root.keyboardType = root.keyboardType === "text" ? "mac"
+      : (root.keyboardType === "mac" ? "windows"
+      : (root.keyboardType === "windows" ? "omarchy" : "text"))
+    root.saveConfig()
+  }
+
+  function toggleIconBorders() {
+    root.iconBorders = !root.iconBorders
     root.saveConfig()
   }
 

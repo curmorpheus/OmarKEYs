@@ -223,6 +223,18 @@ var KEY_SYMBOLS = {
   percent: "%", asciicircum: "^", ampersand: "&", asterisk: "*"
 }
 
+// A chip is one of three things, and they do not want the same treatment:
+// a key you press, an action the key performs, or a mouse button. Only
+// the first is a keycap, so only the first takes a border.
+function keyClass(name) {
+  var key = String(name || "")
+  if (key === "LMB" || key === "RMB" || key === "MMB" || key.indexOf("Wheel") === 0)
+    return "mouse"
+  if (key.indexOf("XF86") === 0)
+    return "action"
+  return "key"
+}
+
 function keySymbol(name) {
   // Case-insensitive: the dump title-cases what it reads back, so the
   // same key arrives as "bracketleft" or "Bracketleft".
@@ -232,7 +244,7 @@ function keySymbol(name) {
 var SHORT_KEYS = {
   Super: "Sup", Shift: "Shft", Control: "Ctrl", Ctrl: "Ctrl", Alt: "Alt",
   Return: "Ret", Enter: "Ret", Escape: "Esc", Space: "Spc", Backspace: "Bksp",
-  Delete: "Del", Insert: "Ins", Print: "Prt", Home: "Home", End: "End",
+  Delete: "DEL", Insert: "Ins", Print: "Prt", Home: "Home", End: "End",
   PageUp: "PgUp", PageDown: "PgDn", Left: "←", Right: "→", Up: "↑", Down: "↓",
   Tab: "Tab", "Wheel↓": "Whl↓", "Wheel↑": "Whl↑",
   // Chopping the keysym gave "Raise" for volume up and "Power" for the
@@ -326,7 +338,6 @@ var KEY_ICONS = {
   Space: "\udb84\udc50",
   Escape: "\udb84\udeb7",
   Backspace: "\udb80\udc6e",
-  Delete: "\udb80\udd56",
   Home: "\udb80\udedc",
   Print: "\udb81\udc2a"
 }
@@ -368,6 +379,16 @@ function keyName(name) {
 
 function gestureLabel(part) {
   return splitGesture(part)
+}
+
+// Index for index with displayKeys, like displayNames: collapseMouse runs
+// for all three, so a chip, its name and its class share a position.
+function displayClasses(keys) {
+  var parts = collapseMouse(splitKeys(keys))
+  var out = []
+  for (var i = 0; i < parts.length; i++)
+    out.push(keyClass(parts[i]))
+  return out
 }
 
 function displayNames(keys) {
@@ -459,7 +480,7 @@ function displayKeys(keys, style, keyboardOS) {
   var parts = collapseMouse(splitKeys(keys))
   // The keyboard set overrides whatever the chip style would have drawn:
   // choosing a layout is pointless if its keycaps only show in icon mode.
-  var os = keyboardOS || (currentConfig && currentConfig.keyboardOS)
+  var os = keyboardOS || (currentConfig && currentConfig.keyboardType)
   var out = []
   for (var i = 0; i < parts.length; i++) {
     var mod = modifierIcon(parts[i], os)
@@ -512,7 +533,8 @@ function setConfig(cfg) {
     sortBy: (cfg && cfg.sortBy === "section") ? "section" : "action",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
       ? cfg.searchMode : "all",
-    keyboardOS: normalizeKeyboardOS(cfg && (cfg.keyboardOS || cfg.superIcon))
+    keyboardType: normalizeKeyboardOS(cfg
+      && (cfg.keyboardType || cfg.keyboardOS || cfg.superIcon))
   }
 }
 

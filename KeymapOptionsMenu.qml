@@ -98,7 +98,8 @@ Rectangle {
     Repeater {
       model: [
         { id: "chips",  label: "Keys" },
-        { id: "super",  label: "Super keyboard OS" },
+        { id: "super",  label: "Keyboard type" },
+        { id: "caps",   label: "Icon borders" },
         { id: "layout", label: "Order" },
         { id: "sort",   label: "Sort" },
         { id: "search", label: "Find" }
@@ -116,8 +117,10 @@ Rectangle {
           if (modelData.id === "super") {
             // The keyboard's name rather than its Super glyph: the setting
             // now moves all four modifiers, so one symbol undersells it.
-            return menu.host.keyboardOS
+            return menu.host.keyboardType
           }
+          if (modelData.id === "caps")
+            return menu.host.iconBorders ? "on" : "off"
           if (modelData.id === "sort")
             return menu.host.sortBy === "action" ? "by name" : "by group"
           return menu.host.searchMode === "keys" ? "keys"
@@ -161,7 +164,9 @@ Rectangle {
             if (modelData.id === "chips")
               h.cycleChipStyle()
             else if (modelData.id === "super")
-              h.cycleKeyboardOS()
+              h.cycleKeyboardType()
+            else if (modelData.id === "caps")
+              h.toggleIconBorders()
             else if (modelData.id === "layout")
               h.cycleRowLayout()
             else if (modelData.id === "sort")

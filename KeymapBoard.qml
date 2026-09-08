@@ -59,7 +59,8 @@ Flickable {
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
           chipStyle: host.chipStyle
-          keyboardOS: host.keyboardOS
+          keyboardType: host.keyboardType
+          iconBorders: host.iconBorders
           rowLayout: host.rowLayout
           fontScale: host.fontScale
           iconScale: host.iconScale
@@ -94,7 +95,8 @@ Flickable {
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
           chipStyle: host.chipStyle
-          keyboardOS: host.keyboardOS
+          keyboardType: host.keyboardType
+          iconBorders: host.iconBorders
           rowLayout: host.rowLayout
           fontScale: host.fontScale
           iconScale: host.iconScale

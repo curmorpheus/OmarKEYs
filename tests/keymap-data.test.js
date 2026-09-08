@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.displayClasses = displayClasses;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -376,4 +376,32 @@ test("keys read as keys: punctuation is its symbol, media keys have names", () =
   assert.equal(context.shortKey("1-9, 0"), "1-9, 0")
   assert.equal(context.shortKey("Bracketleft"), "[")
   assert.equal(context.displayKeys("Super + 1-9, 0", "short", "text")[1], "1-9, 0")
+})
+
+test("a chip knows whether it is a key, an action, or a mouse button", () => {
+  // Only a key you press is a keycap, so only it takes a border. A glyph
+  // standing for what the key does is not a cap, nor is a mouse button.
+  assert.equal(context.keyClass("K"), "key")
+  assert.equal(context.keyClass("Super"), "key")
+  assert.equal(context.keyClass("Delete"), "key")
+  assert.equal(context.keyClass("XF86AudioMute"), "action")
+  assert.equal(context.keyClass("XF86MonBrightnessUp"), "action")
+  assert.equal(context.keyClass("LMB"), "mouse")
+  assert.equal(context.keyClass("RMB"), "mouse")
+  assert.equal(context.keyClass("Wheel\u2193"), "mouse")
+
+  // Classes line up index for index with the chips they describe, which
+  // means collapseMouse has to have run for both.
+  assert.equal(JSON.stringify(context.displayClasses("Super + Left + Mouse + Button")),
+    JSON.stringify(["key", "mouse"]))
+  assert.equal(context.displayClasses("Super + Left + Mouse + Button").length,
+    context.displayKeys("Super + Left + Mouse + Button", "icons", "mac").length)
+})
+
+test("Delete reads DEL rather than a glyph that looks like a close button", () => {
+  assert.equal(context.displayKeys("Super + Delete", "icons", "text")[1], "DEL")
+  assert.equal(context.displayKeys("Super + Delete", "short", "text")[1], "DEL")
+  assert.equal(context.shortKey("Delete"), "DEL")
+  // Still a word, so it is drawn as a capped chip rather than a loose glyph.
+  assert.equal(context.isIconGlyph("DEL"), false)
 })

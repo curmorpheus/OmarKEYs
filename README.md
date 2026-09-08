@@ -66,7 +66,8 @@ Type while it is open to filter, including digits.
 | Option | Values | Default |
 |---|---|---|
 | Keys | full / short / icons | icons |
-| Super keyboard OS | text / mac / windows / omarchy | windows |
+| Keyboard type | text / mac / windows / omarchy | windows |
+| Icon borders | on / off | on |
 | Order | keys first / action first | action first |
 | Sort | by group / by name | by name |
 | Find | all / keys / name | all |
@@ -75,7 +76,7 @@ Type while it is open to filter, including digits.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 
-**Super keyboard OS** picks which keyboard's keycaps the modifier chips
+**Keyboard type** picks which keyboard's keycaps the modifier chips
 imitate. It moves all four modifiers together, and applies in every chip
 style — choosing a layout is pointless if its keycaps only show in icon
 mode.
@@ -92,6 +93,12 @@ the words, so those sets supply a logo for Super and leave the rest as
 text. Omarchy's own mark is block-drawing art rather than a font glyph,
 so that set uses the Arch logo. Every glyph was checked against the
 overlay's font before mapping.
+
+**Icon borders** draws a cap around each key. Only keys you press get
+one — a glyph standing for what the key *does* (volume, brightness) or for
+a mouse button is not a cap, so those stay loose whatever this is set to.
+Words are always capped, since a chip of text needs an edge to read as a
+key at all.
 
 Command is Super, not Option: on a Mac keyboard under Linux it is Command
 that reports `KEY_LEFTMETA` and therefore arrives as Super, while Option
