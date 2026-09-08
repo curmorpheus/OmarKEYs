@@ -53,6 +53,11 @@ between keys first and keys last. The **Filter** 󰈲 keeps its own column under
 with the box beside it across the other two. Clicking the icon changes what
 is matched; typing anywhere in the overlay lands in the box.
 
+**All** reads the length of what you typed: one character is treated as a
+key, more than one searches everything — keys, descriptions and topics. So
+`k` finds binds on K, while `delete` finds the Delete key *and* anything
+described with the word.
+
 In key mode, clicking the box arms it: the next keystroke is taken whole,
 modifiers included, so `Super+Shift+B` filters on that chord and finds the
 binds that use all of it. That is the only way to filter on Return or

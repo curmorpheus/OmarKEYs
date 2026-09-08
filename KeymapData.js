@@ -705,6 +705,12 @@ function rowMatchesQuery(row, sectionTitle, q) {
     return keyMatchesQuery(row.keys, q)
   if (mode === "action")
     return action.indexOf(q) !== -1
+  // "All" reads the length of what you typed. One character is a key --
+  // nobody searches descriptions for "k", and as a substring it matched
+  // most of the board. More than one is a word, so it searches
+  // everything, keys included: "delete" should still find Delete.
+  if (String(q).length === 1)
+    return keyMatchesQuery(row.keys, q)
   return keys.indexOf(q) !== -1 || action.indexOf(q) !== -1
     || String(sectionTitle).toLowerCase().indexOf(q) !== -1
 }

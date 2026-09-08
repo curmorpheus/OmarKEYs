@@ -616,3 +616,26 @@ test("a captured keystroke filters as a whole chord", () => {
   assert.equal(JSON.stringify(found("Escape")), JSON.stringify(["sys"]))
   context.setConfig({})
 })
+
+test("all mode reads the length of what you typed", () => {
+  context.setSections([{ title: "Windows", rows: [
+    { keys: "Super + K", action: "kill it" },
+    { keys: "Super + Shift + Backspace", action: "square aspect" },
+    { keys: "Ctrl + Alt + Delete", action: "close all" }
+  ]}])
+  context.setConfig({ searchMode: "all" })
+  const found = (q) => context.filtered(q).flatMap((s) => s.rows).map((r) => r.action)
+
+  // One character is a key. As a substring it used to match most of the
+  // board -- "k" is in Bac(k)space and in "kill it" -- and nobody
+  // searches descriptions for a single letter.
+  assert.equal(JSON.stringify(found("k")), JSON.stringify(["kill it"]))
+  assert.equal(JSON.stringify(found("s")), JSON.stringify([]), "no whole key is 's'")
+
+  // More than one is a word, and searches everything: keys, description
+  // and the topic it sits under.
+  assert.equal(JSON.stringify(found("delete")), JSON.stringify(["close all"]), "a key by name")
+  assert.equal(JSON.stringify(found("square")), JSON.stringify(["square aspect"]), "a description")
+  assert.equal(found("windows").length, 3, "the topic")
+  context.setConfig({})
+})

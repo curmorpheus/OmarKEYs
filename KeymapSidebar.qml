@@ -862,13 +862,13 @@ Rectangle {
           }
         }
 
-        // Sits across the other two columns, level with the glyph rather
-        // than the label under it.
+        // Across the other two columns, and as tall as the glyph beside
+        // it so the two read as one control rather than a big icon with a
+        // small box floating next to it.
         Rectangle {
           id: filterBox
-          y: Math.round(filterGlyph.height / 2 - height / 2)
           width: filterRow.width - controlRow.width / 3
-          height: Math.max(Style.space(20), filterText.implicitHeight + 6)
+          height: filterGlyph.height
           radius: 4
           color: "transparent"
           border.width: 1
