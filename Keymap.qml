@@ -1579,15 +1579,18 @@ Item {
 
           Text {
             id: optionsLabel
-            anchors.left: parent.left
+            // Centred under the tree rather than jammed into the corner:
+            // it belongs to that column, and the sidebar starts at the
+            // card's left inset, which is this item's own left edge.
+            x: card.contentLeftInset + Math.round((sideBar.width - width) / 2)
             anchors.bottom: parent.bottom
-            anchors.margins: Style.spacing.sm
+            anchors.bottomMargin: Style.spacing.sm
             textFormat: Text.PlainText
             text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Options"
             color: root.foreground
             opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.45
             font.family: root.fontFamily
-            font.pixelSize: Style.font.body
+            font.pixelSize: Math.round(Style.font.body * 1.2)
 
             MouseArea {
               id: optionsArea
@@ -1605,6 +1608,9 @@ Item {
             anchors.bottom: optionsLabel.top
             anchors.leftMargin: Style.spacing.sm
             anchors.bottomMargin: Style.space(4)
+            // All the room there is between the top of the card and the
+            // trigger; the popup scrolls rather than overflow past it.
+            maxHeight: Math.max(Style.space(280), optionsLabel.y - Style.space(16))
           }
 
           KeymapBranchMenu {
