@@ -152,8 +152,8 @@ Rectangle {
             if (modelData.id === "sort")
               return menu.host.sortBy === "action" ? "by name"
                 : (menu.host.sortBy === "key" ? "by key" : "by group")
-            return menu.host.searchMode === "keys" ? "keys"
-              : (menu.host.searchMode === "action" ? "name" : "all")
+            return menu.host.searchMode === "keys" ? "key"
+              : (menu.host.searchMode === "action" ? "description" : "all")
           }
           width: content.width
           height: Math.max(Style.space(24), optionName.implicitHeight + 8)

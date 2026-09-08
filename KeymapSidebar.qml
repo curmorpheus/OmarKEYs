@@ -35,7 +35,7 @@ Rectangle {
 
     Flickable {
       width: parent.width
-      height: parent.height
+      height: parent.height - footer.height - sideCol.spacing
       clip: true
       contentWidth: width
       contentHeight: treeCol.height
@@ -718,5 +718,140 @@ Rectangle {
       }
     }
 
+
+    // The three settings you reach for while reading the board, without
+    // opening Options for them. Each icon shows its current mode under it
+    // and cycles on click.
+    Column {
+      id: footer
+      width: parent.width
+      spacing: Style.space(5)
+
+      Rectangle {
+        width: parent.width
+        height: 1
+        color: side.borderColor
+        opacity: 0.5
+      }
+
+      Row {
+        id: controlRow
+        width: parent.width
+
+        Repeater {
+          model: [
+            { id: "group",  glyph: "\udb80\udec3" },
+            { id: "sort",   glyph: "\udb81\udcba" },
+            { id: "filter", glyph: "\udb80\ude32" }
+          ]
+          delegate: Item {
+            required property var modelData
+            readonly property string mode: {
+              var h = side.host
+              if (!h)
+                return ""
+              if (modelData.id === "group")
+                return h.grouping === "off" ? "off"
+                  : (h.grouping === "keytype" ? "by key type" : "by topic")
+              if (modelData.id === "sort")
+                return h.sortBy === "action" ? "by name"
+                  : (h.sortBy === "key" ? "by key" : "by group")
+              return h.searchMode === "keys" ? "key"
+                : (h.searchMode === "action" ? "description" : "all")
+            }
+            width: controlRow.width / 3
+            height: glyphText.height + modeText.height + Style.space(2)
+
+            Text {
+              id: glyphText
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: modelData.glyph
+              textFormat: Text.PlainText
+              color: cellArea.containsMouse ? side.chipFg : side.foreground
+              opacity: cellArea.containsMouse ? 1 : 0.75
+              font.family: side.fontFamily
+              font.pixelSize: Math.round(side.rootFontSize * 1.35)
+            }
+
+            Text {
+              id: modeText
+              anchors.top: glyphText.bottom
+              anchors.topMargin: Style.space(2)
+              width: parent.width
+              horizontalAlignment: Text.AlignHCenter
+              text: mode
+              textFormat: Text.PlainText
+              color: cellArea.containsMouse ? side.chipFg : side.foreground
+              opacity: 0.55
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+              elide: Text.ElideRight
+            }
+
+            MouseArea {
+              id: cellArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var h = side.host
+                if (!h)
+                  return
+                if (modelData.id === "group")
+                  h.cycleGrouping()
+                else if (modelData.id === "sort")
+                  h.cycleSortBy()
+                else
+                  h.cycleSearchMode()
+              }
+            }
+          }
+        }
+      }
+
+      // The filter itself. Typing anywhere in the overlay lands here, so
+      // this shows what is being filtered on rather than competing with
+      // the overlay's key grab for focus; clicking it clears.
+      Rectangle {
+        width: parent.width
+        height: Math.max(Style.space(20), filterText.implicitHeight + 6)
+        radius: 4
+        color: "transparent"
+        border.width: 1
+        border.color: filterArea.containsMouse ? side.chipFg : side.borderColor
+        opacity: filterArea.containsMouse ? 1 : 0.8
+
+        Text {
+          id: filterText
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.leftMargin: Style.space(5)
+          anchors.rightMargin: Style.space(5)
+          anchors.verticalCenter: parent.verticalCenter
+          readonly property string hint: {
+            var h = side.host
+            if (!h)
+              return "type to filter"
+            return h.searchMode === "keys" ? "press a key"
+              : (h.searchMode === "action" ? "type a description" : "type to filter")
+          }
+          text: (side.host && side.host.filterText) ? side.host.filterText : hint
+          textFormat: Text.PlainText
+          color: (side.host && side.host.filterText) ? side.chipFg : side.foreground
+          opacity: (side.host && side.host.filterText) ? 1 : 0.4
+          font.family: side.fontFamily
+          font.pixelSize: side.subFontSize
+          elide: Text.ElideRight
+        }
+
+        MouseArea {
+          id: filterArea
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: if (side.host) side.host.setFilter("")
+        }
+      }
+    }
   }
 }

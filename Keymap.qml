@@ -681,6 +681,16 @@ Item {
       root.open("{}")
   }
 
+  // Filtering by key means one key, not a string of them, so a keystroke
+  // replaces what is in the box rather than adding to it. Typing "gh"
+  // looking for h would otherwise leave you filtering on a chord nothing
+  // is bound to.
+  function appendFilter(text) {
+    root.setFilter(root.searchMode === "keys"
+      ? String(text)
+      : root.filterText + String(text))
+  }
+
   function setFilter(nextFilter) {
     root.filterText = nextFilter
     root.selected = 0
@@ -1416,19 +1426,19 @@ Item {
       event.accepted = true
     } else if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127
         && !root.chordMods(event)) {
-      root.setFilter(root.filterText + event.text)
+      root.appendFilter(event.text)
       event.accepted = true
     } else if (!root.chordMods(event) && event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
       var letter = String.fromCharCode(65 + (event.key - Qt.Key_A))
       if (!(event.modifiers & Qt.ShiftModifier))
         letter = letter.toLowerCase()
-      root.setFilter(root.filterText + letter)
+      root.appendFilter(letter)
       event.accepted = true
     } else if (!root.chordMods(event) && event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
-      root.setFilter(root.filterText + String(event.key - Qt.Key_0))
+      root.appendFilter(String(event.key - Qt.Key_0))
       event.accepted = true
     } else if (event.key === Qt.Key_Space && !root.chordMods(event)) {
-      root.setFilter(root.filterText + " ")
+      root.appendFilter(" ")
       event.accepted = true
     }
   }

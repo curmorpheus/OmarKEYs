@@ -46,6 +46,13 @@ Type while it is open to filter, including digits.
 
 **Sidebar** — the tree
 
+Under the tree sit the three settings worth reaching for while reading the
+board, without opening Options: **Grouping** 󰋃, **Sort** 󰒺 and **Filter**
+󰈲. Each shows its current mode underneath and cycles on click. The box
+below them is the filter — typing anywhere in the overlay lands there, and
+clicking it clears. Filtering by key holds a *single* key, so a keystroke
+replaces what is in the box rather than adding to it.
+
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups
 - **Active Apps**: live windows, grouped by the keymap sheet they share
@@ -73,7 +80,7 @@ Type while it is open to filter, including digits.
 | Order | keys first / action first | action first |
 | Grouping | by topic / by key type / off | by topic |
 | Sort | by group / by name / by key | by key |
-| Find | all / keys / name | all |
+| Find | all / key / description | all |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
 
