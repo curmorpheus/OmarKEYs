@@ -43,6 +43,9 @@ Item {
   property string rowLayout: "action"   // keys | action
   property string sortBy: "action"      // section | action
   property string searchMode: "all"     // all | keys | action
+  // How the Super key draws in a chip. Its symbol is a matter of which
+  // keyboard you grew up on, so it is a choice rather than a default.
+  property string superIcon: "windows"  // text | option | windows | superman
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
   // Icons carry their own size: a glyph reads smaller than a letter, and
@@ -118,6 +121,7 @@ Item {
       rowLayout: root.rowLayout,
       sortBy: root.sortBy,
       searchMode: root.searchMode,
+      superIcon: root.superIcon,
       fontScale: root.fontScale,
       iconScale: root.iconScale,
       modifiers: {
@@ -178,6 +182,9 @@ Item {
           root.sortBy = cfg.sortBy
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
+        if (cfg.superIcon === "text" || cfg.superIcon === "option"
+            || cfg.superIcon === "windows" || cfg.superIcon === "superman")
+          root.superIcon = cfg.superIcon
         var scale = Number(cfg.fontScale)
         if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
@@ -919,6 +926,7 @@ Item {
     root.rowLayout = "action"
     root.sortBy = "action"
     root.searchMode = "all"
+    root.superIcon = "windows"
     root.fontScale = 1.0
     root.iconScale = 1.35
     root.modSuper = "any"
@@ -954,6 +962,13 @@ Item {
   // cost one reload rather than one each.
   function reloadHyprland() {
     hyprReloadTimer.restart()
+  }
+
+  function cycleSuperIcon() {
+    root.superIcon = root.superIcon === "text" ? "option"
+      : (root.superIcon === "option" ? "windows"
+      : (root.superIcon === "windows" ? "superman" : "text"))
+    root.saveConfig()
   }
 
   function cycleSearchMode() {

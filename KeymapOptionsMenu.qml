@@ -98,6 +98,7 @@ Rectangle {
     Repeater {
       model: [
         { id: "chips",  label: "Keys" },
+        { id: "super",  label: "Super" },
         { id: "layout", label: "Order" },
         { id: "sort",   label: "Sort" },
         { id: "search", label: "Find" }
@@ -112,6 +113,13 @@ Rectangle {
               : (menu.host.chipStyle === "icons" ? "icons" : "full")
           if (modelData.id === "layout")
             return menu.host.rowLayout === "action" ? "action first" : "keys first"
+          if (modelData.id === "super") {
+            // Shows the glyph it will draw, not the word for it: the
+            // point of the setting is which shape ends up in the chip.
+            return menu.host.superIcon === "option" ? "\u2325"
+              : (menu.host.superIcon === "windows" ? "\udb81\uddb3"
+              : (menu.host.superIcon === "superman" ? "\uf2dd" : "text"))
+          }
           if (modelData.id === "sort")
             return menu.host.sortBy === "action" ? "by name" : "by group"
           return menu.host.searchMode === "keys" ? "keys"
@@ -154,6 +162,8 @@ Rectangle {
               return
             if (modelData.id === "chips")
               h.cycleChipStyle()
+            else if (modelData.id === "super")
+              h.cycleSuperIcon()
             else if (modelData.id === "layout")
               h.cycleRowLayout()
             else if (modelData.id === "sort")

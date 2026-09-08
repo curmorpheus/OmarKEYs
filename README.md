@@ -65,6 +65,7 @@ Type while it is open to filter, including digits.
 | Option | Values | Default |
 |---|---|---|
 | Keys | full / short / icons | icons |
+| Super | text / option / windows / superman | windows |
 | Order | keys first / action first | action first |
 | Sort | by group / by name | by name |
 | Find | all / keys / name | all |
@@ -72,6 +73,13 @@ Type while it is open to filter, including digits.
 | Icon size | slider (icons only), click to reset | 1.35 |
 
 With icons on, hovering a row spells each glyph out in words beside it.
+
+**Super** has no one true symbol — it is the Windows key on most
+keyboards and Option on a Mac layout — so it is a setting of its own:
+the word, ⌥, the Windows key, or the Superpowers mark. Unlike the other
+key chips it applies in every chip style, since picking a symbol is
+pointless if it only shows in icon mode. All three glyphs are in the
+overlay's own font.
 
 *Filters* — Super, Shift, Ctrl and Alt in a 2×2 grid. A **clear** key is
 **A**ll and carries no mark; click it to require it (**M**ust), again to

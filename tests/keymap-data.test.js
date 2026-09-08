@@ -296,3 +296,22 @@ test("a gesture shows the key it applies to, at every chip style", () => {
   assert.equal(context.isRunnable("Double-tap Super"), false)
   assert.equal(context.isRunnable("Hold Super 5s"), false)
 })
+
+test("the Super glyph is a choice, and it overrides every chip style", () => {
+  // Picking a Super symbol is pointless if it only shows in icon mode, so
+  // it replaces the key in full and short chips too.
+  assert.equal(context.displayKeys("Super + K", "full", "text")[0], "Super")
+  assert.equal(context.displayKeys("Super + K", "short", "text")[0], "Sup")
+  const win = context.displayKeys("Super + K", "full", "windows")[0]
+  assert.equal(win.codePointAt(0), 0xF05B3, "expected the Windows key glyph")
+  assert.equal(context.displayKeys("Super + K", "short", "windows")[0], win)
+  assert.equal(context.displayKeys("Super + K", "icons", "windows")[0], win)
+  // The option key is real Unicode rather than a private-use glyph.
+  assert.equal(context.displayKeys("Super + K", "full", "option")[0].codePointAt(0), 0x2325)
+  assert.equal(context.displayKeys("Super + K", "full", "superman")[0].codePointAt(0), 0xF2DD)
+  // Only Super is swapped; the rest of the chord is untouched.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + K", "full", "windows").slice(1)),
+    JSON.stringify(["Shift", "K"]))
+  // An unknown value falls back to the word rather than drawing nothing.
+  assert.equal(context.displayKeys("Super + K", "full", "nonsense")[0], "Super")
+})

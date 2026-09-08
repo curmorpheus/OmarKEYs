@@ -345,6 +345,27 @@ function displayNames(keys) {
   return out
 }
 
+// Super has no one true symbol: it is the Windows key on most keyboards,
+// Option on a Mac layout, and neither if you just want the word. All three
+// are in the overlay's own Nerd Font, checked before mapping -- the
+// Windows and Superpowers glyphs are private-use, the option key is real
+// Unicode.
+var SUPER_ICONS = {
+  option: "\u2325",
+  windows: "\udb81\uddb3",
+  superman: "\uf2dd"
+}
+
+function superIconFor(style) {
+  var key = String(style || (currentConfig && currentConfig.superIcon) || "text")
+  return SUPER_ICONS[key] || ""
+}
+
+function normalizeSuperIcon(value) {
+  var key = String(value || "")
+  return SUPER_ICONS[key] ? key : "text"
+}
+
 function iconKey(name) {
   return KEY_ICONS[String(name || "")] || ""
 }
@@ -362,22 +383,32 @@ function shortKey(name) {
   return key.length <= 5 ? key : key.slice(0, 5)
 }
 
-function displayKeys(keys, style) {
+function displayKeys(keys, style, superStyle) {
   var parts = collapseMouse(splitKeys(keys))
+  // The Super glyph is a choice of its own, so it overrides whatever the
+  // chip style would have produced -- picking one is pointless if it only
+  // shows in icon mode.
+  var sup = superIconFor(superStyle)
   if (style === "icons") {
     var iconed = []
     for (var j = 0; j < parts.length; j++) {
+      if (parts[j] === "Super" && sup) {
+        iconed.push(sup)
+        continue
+      }
       // Anything without an icon keeps its short text, so the row stays
       // readable rather than half-blank.
       iconed.push(iconKey(parts[j]) || shortKey(parts[j]))
     }
     return iconed
   }
-  if (style !== "short")
-    return parts
   var out = []
-  for (var i = 0; i < parts.length; i++)
-    out.push(shortKey(parts[i]))
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i] === "Super" && sup)
+      out.push(sup)
+    else
+      out.push(style === "short" ? shortKey(parts[i]) : parts[i])
+  }
   return out
 }
 
@@ -403,7 +434,8 @@ function setConfig(cfg) {
     rowLayout: (cfg && cfg.rowLayout === "keys") ? "keys" : "action",
     sortBy: (cfg && cfg.sortBy === "section") ? "section" : "action",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
-      ? cfg.searchMode : "all"
+      ? cfg.searchMode : "all",
+    superIcon: normalizeSuperIcon(cfg && cfg.superIcon)
   }
 }
 

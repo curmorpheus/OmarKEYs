@@ -16,13 +16,14 @@ Rectangle {
   property color selectedFg: Color.menu.selectedText
   // "full" | "short" chips, and whether keys or the action leads the row.
   property string chipStyle: "full"
+  property string superIcon: "text"
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35
   readonly property bool keysFirst: rowLayout !== "action"
   // Both renderings of the same chord, index for index: collapseMouse runs
   // for either style, so a chip and its full name share a position.
-  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle)
+  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle, row.superIcon)
   readonly property var chipNames: KeymapData.displayNames(modelData.keys)
   // An icon says what key it is only once you know the glyph, so hovering
   // the line spells it out beside it.
@@ -92,7 +93,13 @@ Rectangle {
         // modelData undefined and every chip blank.
         required property int index
         required property var modelData
-        readonly property bool isIcon: String(modelData).codePointAt(0) >= 0xF0000
+        // Nerd Font glyphs sit in both private use areas, and the option
+        // key is a real Unicode symbol -- all of them are shapes, not
+        // words, so none of them wants a box drawn round it.
+        readonly property bool isIcon: {
+          var cp = String(modelData).codePointAt(0)
+          return cp >= 0xF0000 || (cp >= 0xE000 && cp <= 0xF8FF) || cp === 0x2325
+        }
         readonly property string fullName: row.chipNames[index] || ""
         implicitWidth: chipContent.implicitWidth + (isIcon ? 4 : 10)
         implicitHeight: Math.max(Style.space(18), chipContent.implicitHeight + 4)
