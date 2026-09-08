@@ -1642,7 +1642,7 @@ Item {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Style.spacing.sm
             textFormat: Text.PlainText
-            text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Options"
+            text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Other Options"
             color: root.foreground
             opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.45
             font.family: root.fontFamily

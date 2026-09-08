@@ -770,7 +770,7 @@ Rectangle {
               color: cellArea.containsMouse ? side.chipFg : side.foreground
               opacity: cellArea.containsMouse ? 1 : 0.75
               font.family: side.fontFamily
-              font.pixelSize: Math.round(side.rootFontSize * 1.35)
+              font.pixelSize: Math.round(side.rootFontSize * 3.4)
             }
 
             Text {

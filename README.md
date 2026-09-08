@@ -47,7 +47,7 @@ Type while it is open to filter, including digits.
 **Sidebar** — the tree
 
 Under the tree sit the three settings worth reaching for while reading the
-board, without opening Options: **Grouping** 󰋃, **Sort** 󰒺 and **Filter**
+board, without opening Other Options: **Grouping** 󰋃, **Sort** 󰒺 and **Filter**
 󰈲. Each shows its current mode underneath and cycles on click. The box
 below them is the filter — typing anywhere in the overlay lands there, and
 clicking it clears. Filtering by key holds a *single* key, so a keystroke
@@ -68,7 +68,7 @@ replaces what is in the box rather than adding to it.
   always be brought back. Carets show the state: collapsed when everything
   under a parent is hidden, expanded while any of it still shows.
 
-**Options** (bottom-left corner)
+**Other Options** (bottom-left, under the tree)
 
 *Display*
 
