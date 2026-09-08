@@ -46,7 +46,8 @@ Type while it is open to filter, including digits.
 
 **Sidebar** — the tree
 
-- **Omarchy** (expanded): five areas, each holding its topic groups
+- **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
+  holding its topic groups
 - **Active Apps**: live windows, grouped by the keymap sheet they share
   (Web apps, Terminals, File managers) and then by app. Click a window to
   load its sheet, double-click to focus it. Apps with no bundled sheet sit
@@ -66,7 +67,7 @@ Type while it is open to filter, including digits.
 | Option | Values | Default |
 |---|---|---|
 | Keys | full / short / icons | icons |
-| Keyboard type | text / mac / windows / omarchy | windows |
+| Keyboard type | text / ⌘ mac /  windows /  omarchy | windows |
 | Icon borders | on / off | on |
 | Order | keys first / action first | action first |
 | Grouping | by topic / off | by topic |

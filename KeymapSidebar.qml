@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import "KeymapData.js" as KeymapData
 
 Rectangle {
   id: side
@@ -99,9 +100,21 @@ Rectangle {
             }
 
             Text {
+              id: omarchyMark
+              anchors.verticalCenter: parent.verticalCenter
+              text: KeymapData.omarchyIcon()
+              textFormat: Text.PlainText
+              color: host && host.omarchyActive ? side.chipFg : side.foreground
+              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
+              font.family: side.fontFamily
+              // A glyph reads smaller than a letter at the same pixel size.
+              font.pixelSize: Math.round(side.rootFontSize * 1.15)
+            }
+
+            Text {
               id: omarchyLabel
               anchors.verticalCenter: parent.verticalCenter
-              width: parent.width - 16
+              width: parent.width - 20 - omarchyMark.width
               text: "Omarchy"
               textFormat: Text.PlainText
               color: host && host.omarchyActive ? side.chipFg : side.foreground

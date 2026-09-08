@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "KeymapData.js" as KeymapData
 
 // Everything you set rather than read, in one popup off the bottom-left
 // corner - the mirror of the channel picker on the right. It used to be
@@ -116,9 +117,11 @@ Rectangle {
           if (modelData.id === "layout")
             return menu.host.rowLayout === "action" ? "action first" : "keys first"
           if (modelData.id === "super") {
-            // The keyboard's name rather than its Super glyph: the setting
-            // now moves all four modifiers, so one symbol undersells it.
-            return menu.host.keyboardType
+            // Symbol then name: the glyph shows what the rows will look
+            // like, the word says which keyboard it is. "text" has no
+            // symbol, which is the whole point of it.
+            var mark = KeymapData.modifierIcon("Super", menu.host.keyboardType)
+            return (mark ? mark + "  " : "") + menu.host.keyboardType
           }
           if (modelData.id === "caps")
             return menu.host.iconBorders ? "on" : "off"

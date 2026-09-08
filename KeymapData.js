@@ -426,6 +426,16 @@ function displayNames(keys) {
 // while Option arrives as Alt. The kernel's own hid_apple says so -- its
 // swap_opt_cmd parameter reads "Swap the Option (Alt) and Command (Flag)
 // keys". Every glyph here was checked against the overlay's font.
+// The mark used wherever Omarchy itself is named: the tree's root row and
+// the Omarchy keyboard set. Omarchy ships its own logo as block-drawing
+// art rather than a font glyph, so this is the Arch mark -- Omarchy is
+// Arch-based, and the glyph is in the overlay's font.
+var OMARCHY_ICON = "\uf303"
+
+function omarchyIcon() {
+  return OMARCHY_ICON
+}
+
 var KEYBOARD_SETS = {
   text: {},
   mac: {
@@ -436,7 +446,7 @@ var KEYBOARD_SETS = {
     Alt: "\u2325"
   },
   windows: { Super: "\udb81\uddb3" },
-  omarchy: { Super: "\uf303" }
+  omarchy: { Super: OMARCHY_ICON }
 }
 
 // Values from when this was a Super-only glyph picker, so a saved setting

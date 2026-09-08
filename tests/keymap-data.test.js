@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.displayClasses = displayClasses;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.displayClasses = displayClasses;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -467,4 +467,14 @@ test("grouping off is one untitled run, split down the middle", () => {
   assert.equal(cols.right.length, 1)
   assert.equal(cols.left[0].rows.length + cols.right[0].rows.length, 3)
   assert.equal(cols.left[0].rows.length, 2, "odd counts lean left")
+})
+
+test("the Omarchy mark is one glyph, shared by the tree and the keyboard set", () => {
+  // Omarchy ships its own logo as block-drawing art rather than a font
+  // glyph, so this is the Arch mark -- and the tree row and the keyboard
+  // set must not drift apart into two different symbols.
+  assert.equal(context.omarchyIcon().codePointAt(0), 0xF303)
+  assert.equal(context.modifierIcon("Super", "omarchy"), context.omarchyIcon())
+  // In the overlay's font, so it draws as a shape rather than a box.
+  assert.equal(context.isIconGlyph(context.omarchyIcon()), true)
 })
