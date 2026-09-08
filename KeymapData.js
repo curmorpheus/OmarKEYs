@@ -206,12 +206,45 @@ function setSections(next) {
 // Long key names push the action column off the row, so a chip can be
 // abbreviated. Anything not listed falls back to its first 5 characters,
 // which keeps XF86-style names from running away.
+// X11 spells its punctuation out, so a bind on "[" arrives as
+// "bracketleft". The symbol is shorter than the word AND clearer than an
+// abbreviation of it, so this replaces the name at every chip style
+// rather than living in the short-form table.
+var KEY_SYMBOLS = {
+  bracketleft: "[", bracketright: "]",
+  braceleft: "{", braceright: "}",
+  parenleft: "(", parenright: ")",
+  semicolon: ";", apostrophe: "'", quotedbl: "\"",
+  grave: "`", asciitilde: "~", backslash: "\\", bar: "|",
+  comma: ",", period: ".", slash: "/", question: "?",
+  minus: "-", underscore: "_", equal: "=", plus: "+",
+  colon: ":", less: "<", greater: ">",
+  exclam: "!", at: "@", numbersign: "#", dollar: "$",
+  percent: "%", asciicircum: "^", ampersand: "&", asterisk: "*"
+}
+
+function keySymbol(name) {
+  // Case-insensitive: the dump title-cases what it reads back, so the
+  // same key arrives as "bracketleft" or "Bracketleft".
+  return KEY_SYMBOLS[String(name || "").toLowerCase()] || ""
+}
+
 var SHORT_KEYS = {
   Super: "Sup", Shift: "Shft", Control: "Ctrl", Ctrl: "Ctrl", Alt: "Alt",
   Return: "Ret", Enter: "Ret", Escape: "Esc", Space: "Spc", Backspace: "Bksp",
   Delete: "Del", Insert: "Ins", Print: "Prt", Home: "Home", End: "End",
   PageUp: "PgUp", PageDown: "PgDn", Left: "←", Right: "→", Up: "↑", Down: "↓",
-  Tab: "Tab", "Wheel↓": "Whl↓", "Wheel↑": "Whl↑"
+  Tab: "Tab", "Wheel↓": "Whl↓", "Wheel↑": "Whl↑",
+  // Chopping the keysym gave "Raise" for volume up and "Power" for the
+  // power key; these say what the key does in the width available.
+  XF86AudioRaiseVolume: "Vol+", XF86AudioLowerVolume: "Vol-",
+  XF86AudioMute: "Mute", XF86AudioMicMute: "Mic",
+  XF86MonBrightnessUp: "Bri+", XF86MonBrightnessDown: "Bri-",
+  XF86KbdBrightnessUp: "Kbd+", XF86KbdBrightnessDown: "Kbd-",
+  XF86KbdLightOnOff: "Kbd", XF86AudioPlay: "Play",
+  XF86AudioPause: "Paus", XF86AudioNext: "Next", XF86AudioPrev: "Prev",
+  XF86PowerOff: "Pwr", XF86Calculator: "Calc", XF86Eject: "Ejct",
+  XF86TouchpadToggle: "Pad", XF86TouchpadOn: "Pad+", XF86TouchpadOff: "Pad-"
 }
 
 // Hyprland reports a mouse bind as separate words, so "Super + Left +
@@ -410,13 +443,16 @@ function shortKey(name) {
   var key = String(name || "")
   if (SHORT_KEYS[key])
     return SHORT_KEYS[key]
+  var symbol = keySymbol(key)
+  if (symbol)
+    return symbol
   if (/^(Hold \d+s|Double-tap)$/.test(key))
     return key
-  // XF86AudioRaiseVolume -> Volume, XF86PowerOff -> Power
-  var xf86 = key.match(/^XF86(?:Audio|Mon|Kbd)?([A-Za-z]+)/)
-  if (xf86)
-    return xf86[1].slice(0, 5)
-  return key.length <= 5 ? key : key.slice(0, 5)
+  // No blind truncation. Cutting to five characters turned "Bracketleft"
+  // into "Brack" and quietly dropped the 0 from the "1-9, 0" range --
+  // shorter, but no longer the name of any key. Anything genuinely long
+  // belongs in SHORT_KEYS, where a person chose the abbreviation.
+  return key
 }
 
 function displayKeys(keys, style, keyboardOS) {
@@ -431,13 +467,24 @@ function displayKeys(keys, style, keyboardOS) {
       out.push(mod)
       continue
     }
+    var symbol = keySymbol(parts[i])
+    if (symbol) {
+      out.push(symbol)
+      continue
+    }
     if (style === "icons") {
       // Anything without an icon keeps its short text, so the row stays
       // readable rather than half-blank.
       out.push(iconKey(parts[i]) || shortKey(parts[i]))
       continue
     }
-    out.push(style === "short" ? shortKey(parts[i]) : parts[i])
+    if (style === "short") {
+      out.push(shortKey(parts[i]))
+      continue
+    }
+    // Full chips spell the key out, but "XF86AudioRaiseVolume" is the
+    // X11 name, not a spelling of anything. These have a human one.
+    out.push(parts[i].indexOf("XF86") === 0 ? keyName(parts[i]) : parts[i])
   }
   return out
 }

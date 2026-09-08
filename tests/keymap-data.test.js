@@ -211,7 +211,7 @@ test("display options: short chips, action sort, and the two search modes", () =
   // their prototypes differ even when the contents match.
   assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Backspace", "short", "text")),
     JSON.stringify(["Sup", "Shft", "Bksp"]))
-  assert.equal(context.shortKey("XF86AudioRaiseVolume"), "Raise")
+  assert.equal(context.shortKey("XF86AudioRaiseVolume"), "Vol+")
   assert.ok(context.displayKeys("Super + Shift + Backspace", "short", "text").every((k) => k.length <= 5))
   // Full style is untouched.
   assert.equal(JSON.stringify(context.displayKeys("Super + Return", "full", "text")),
@@ -353,4 +353,27 @@ test("a chip is a shape or a word, and the symbols are neither private-use", () 
   assert.equal(context.isIconGlyph("Sup"), false)
   assert.equal(context.isIconGlyph("B"), false)
   assert.equal(context.isIconGlyph(""), false)
+})
+
+test("keys read as keys: punctuation is its symbol, media keys have names", () => {
+  // X11 spells punctuation out, so a bind on "[" arrives as "bracketleft"
+  // -- and the old short form chopped that to "Brack", which is not a key.
+  assert.equal(context.displayKeys("Super + bracketleft", "full", "text")[1], "[")
+  assert.equal(context.displayKeys("Super + Bracketright", "full", "text")[1], "]")
+  // The symbol wins at every chip style: it is already the shortest form.
+  assert.equal(context.displayKeys("Super + Bracketleft", "short", "text")[1], "[")
+  assert.equal(context.displayKeys("Super + Bracketleft", "icons", "text")[1], "[")
+  assert.equal(context.shortKey("bracketleft"), "[")
+  assert.equal(context.shortKey("Semicolon"), ";")
+
+  // A full chip spells the key out, but XF86AudioRaiseVolume is the X11
+  // name rather than a spelling of anything.
+  assert.equal(context.displayKeys("XF86AudioRaiseVolume", "full", "text")[0], "Volume up")
+  assert.equal(context.displayKeys("XF86MonBrightnessDown", "full", "text")[0], "Brightness down")
+  assert.equal(context.shortKey("XF86AudioMute"), "Mute")
+
+  // Nothing is truncated into something that is no longer a key name.
+  assert.equal(context.shortKey("1-9, 0"), "1-9, 0")
+  assert.equal(context.shortKey("Bracketleft"), "[")
+  assert.equal(context.displayKeys("Super + 1-9, 0", "short", "text")[1], "1-9, 0")
 })
