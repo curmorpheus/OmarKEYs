@@ -540,3 +540,34 @@ test("rows carry their topic out when the headings no longer show it", () => {
   context.setConfig({ grouping: "topic", sortBy: "action" })
   assert.equal(context.filtered("")[0].rows[0].topic, undefined, "source untouched")
 })
+
+test("filtering by key finds the key pressed, not letters in its name", () => {
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + K", action: "kay" },
+    { keys: "Super + Shift + Backspace", action: "backspace" },
+    { keys: "Super + Escape", action: "escape" },
+    { keys: "Super + bracketleft", action: "bracket" },
+    { keys: "Super + Ctrl + 1-9, 0", action: "workspaces" },
+    { keys: "Super + Left + Mouse + Button", action: "drag" }
+  ]}])
+  context.setConfig({ searchMode: "keys" })
+  const found = (q) => context.filtered(q).flatMap((s) => s.rows).map((r) => r.action)
+
+  // The bug: "k" matched Bac(k)space, and "s" matched Super, Shift,
+  // Space and Escape -- which is every row, so the filter did nothing.
+  assert.equal(JSON.stringify(found("k")), JSON.stringify(["kay"]))
+  assert.equal(JSON.stringify(found("s")), JSON.stringify([]), "no whole key is 's'")
+  // A whole key still matches, modifiers included.
+  assert.equal(found("super").length, 6)
+  assert.equal(JSON.stringify(found("backspace")), JSON.stringify(["backspace"]))
+  // Punctuation is spelled out in the bind, so the symbol has to find it.
+  assert.equal(JSON.stringify(found("[")), JSON.stringify(["bracket"]))
+  // A range is several keys written as one.
+  assert.equal(JSON.stringify(found("3")), JSON.stringify(["workspaces"]))
+  assert.equal(JSON.stringify(found("0")), JSON.stringify(["workspaces"]))
+
+  // Description mode is unchanged: it still matches inside the text.
+  context.setConfig({ searchMode: "action" })
+  assert.equal(JSON.stringify(found("ackspac")), JSON.stringify(["backspace"]))
+  context.setConfig({})
+})

@@ -51,7 +51,10 @@ board, without opening Other Options: **Grouping** 󰋃, **Sort** 󰒺 and **Fil
 󰈲. Each shows its current mode underneath and cycles on click. The box
 below them is the filter — typing anywhere in the overlay lands there, and
 clicking it clears. Filtering by key holds a *single* key, so a keystroke
-replaces what is in the box rather than adding to it.
+replaces what is in the box rather than adding to it, and it matches whole
+keys only — pressing `k` finds binds on K, not every chord with a `k`
+somewhere in a key's name. A digit matches the ranges that contain it, so
+`3` finds the `1-9` workspace binds.
 
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups

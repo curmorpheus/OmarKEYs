@@ -639,6 +639,51 @@ function compareRows(a, b) {
 // Which field the query is tested against. "Search by modifiers" means the
 // chord text, so Super+Shift narrows to those; "by description" means the
 // action, so typing a word never matches a stray key name.
+// Filtering by key means the key you pressed, not the letters its name
+// happens to contain. A substring match over the whole chord made "k"
+// find Bac(k)space and "s" find Super, Shift, Space and Escape -- which
+// is every row, so the filter did nothing.
+function keyMatchesQuery(keys, q) {
+  var query = String(q || "").toLowerCase()
+  if (!query)
+    return true
+  var parts = collapseMouse(splitKeys(keys))
+  for (var i = 0; i < parts.length; i++) {
+    if (partMatchesKey(parts[i], query))
+      return true
+  }
+  return false
+}
+
+// Whole keys only, never a fragment of one.
+function partMatchesKey(part, query) {
+  var key = String(part || "")
+  if (key.toLowerCase() === query)
+    return true
+  // Punctuation arrives spelled out, so "[" has to find "bracketleft".
+  var symbol = keySymbol(key)
+  if (symbol && symbol.toLowerCase() === query)
+    return true
+  // A range or list is several keys written as one ("1-9", "1-9, 0"), so
+  // a digit inside it counts as that key. Without this, pressing 3 finds
+  // nothing at all while the workspace binds are sitting right there.
+  if (!/^[0-9,\s-]+$/.test(key) || !/^[0-9]$/.test(query))
+    return false
+  var wanted = Number(query)
+  var segs = key.split(",")
+  for (var s = 0; s < segs.length; s++) {
+    var seg = segs[s].replace(/^\s+|\s+$/g, "")
+    var span = seg.match(/^([0-9])-([0-9])$/)
+    if (span) {
+      if (wanted >= Number(span[1]) && wanted <= Number(span[2]))
+        return true
+    } else if (seg === query) {
+      return true
+    }
+  }
+  return false
+}
+
 function rowMatchesQuery(row, sectionTitle, q) {
   if (!q)
     return true
@@ -646,7 +691,7 @@ function rowMatchesQuery(row, sectionTitle, q) {
   var keys = String(row.keys).toLowerCase()
   var action = String(row.action).toLowerCase()
   if (mode === "keys")
-    return keys.indexOf(q) !== -1
+    return keyMatchesQuery(row.keys, q)
   if (mode === "action")
     return action.indexOf(q) !== -1
   return keys.indexOf(q) !== -1 || action.indexOf(q) !== -1
