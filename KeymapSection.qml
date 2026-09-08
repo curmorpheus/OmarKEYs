@@ -16,6 +16,10 @@ Rectangle {
   property color chipFg: Color.menu.selectedText
   property color selectedBg: Color.menu.selectedBackground
   property color selectedFg: Color.menu.selectedText
+  // Which keymap this card came from, shown at the head of the group: the
+  // Omarchy mark, or the app whose sheet is loaded. Only one is ever set.
+  property string mark: ""
+  property string qualifier: ""
   property string chipStyle: "full"
   property string keyboardType: "windows"
   property bool iconBorders: true
@@ -59,6 +63,27 @@ Rectangle {
         id: titleRow
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 8
+
+        Text {
+          visible: section.mark.length > 0
+          text: section.mark
+          textFormat: Text.PlainText
+          color: Color.menu.selectedText
+          font.family: section.fontFamily
+          // A glyph reads smaller than a letter at the same pixel size.
+          font.pixelSize: Math.round(Style.font.caption * section.fontScale * 1.2)
+        }
+
+        Text {
+          visible: section.qualifier.length > 0
+          text: section.qualifier
+          textFormat: Text.PlainText
+          color: section.selectedFg
+          opacity: 0.7
+          font.family: section.fontFamily
+          font.pixelSize: Math.round(Style.font.caption * section.fontScale)
+          font.bold: true
+        }
 
         Text {
           text: section.title

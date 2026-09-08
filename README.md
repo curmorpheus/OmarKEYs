@@ -143,6 +143,9 @@ to — it opens the list of every other branch, so nobody lands on a working
 branch by accident. On Untested the corner also names the branch, since
 the channel alone no longer implies it.
 
+Each group heading says which keymap it came from: the Omarchy mark for
+Omarchy's own binds, or the app's name in brackets when a sheet is loaded.
+
 App windows with a bundled sheet (Chromium, Ghostty, Nautilus) can be
 selected in the overlay; those sheets live in `sheets/`.
 

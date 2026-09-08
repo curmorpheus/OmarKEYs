@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import "KeymapData.js" as KeymapData
 
 Flickable {
   id: board
@@ -47,6 +48,12 @@ Flickable {
           required property var modelData
           width: leftCol.width
           title: modelData.title
+          mark: host.omarchyActive ? KeymapData.omarchyIcon() : ""
+          // The empty-state card is titled with the app's own name, so
+          // naming it again beside it just says it twice.
+          qualifier: (!host.omarchyActive && host.activeLabel
+            && modelData.title !== host.activeLabel)
+            ? "[" + host.activeLabel + "]" : ""
           sectionNumber: index * 2 + 1
           rows: modelData.rows
           selectedKeys: host.selectedKeys
@@ -83,6 +90,12 @@ Flickable {
           required property var modelData
           width: rightCol.width
           title: modelData.title
+          mark: host.omarchyActive ? KeymapData.omarchyIcon() : ""
+          // The empty-state card is titled with the app's own name, so
+          // naming it again beside it just says it twice.
+          qualifier: (!host.omarchyActive && host.activeLabel
+            && modelData.title !== host.activeLabel)
+            ? "[" + host.activeLabel + "]" : ""
           sectionNumber: index * 2 + 2
           rows: modelData.rows
           selectedKeys: host.selectedKeys
