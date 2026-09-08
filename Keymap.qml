@@ -45,7 +45,7 @@ Item {
   property string searchMode: "all"     // all | keys | action
   // How the Super key draws in a chip. Its symbol is a matter of which
   // keyboard you grew up on, so it is a choice rather than a default.
-  property string superIcon: "windows"  // text | option | windows | superman
+  property string superIcon: "windows"  // text | command | windows | superman
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
   // Icons carry their own size: a glyph reads smaller than a letter, and
@@ -182,7 +182,9 @@ Item {
           root.sortBy = cfg.sortBy
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
-        if (cfg.superIcon === "text" || cfg.superIcon === "option"
+        if (cfg.superIcon === "option")
+          root.superIcon = "command"
+        else if (cfg.superIcon === "text" || cfg.superIcon === "command"
             || cfg.superIcon === "windows" || cfg.superIcon === "superman")
           root.superIcon = cfg.superIcon
         var scale = Number(cfg.fontScale)
@@ -965,8 +967,8 @@ Item {
   }
 
   function cycleSuperIcon() {
-    root.superIcon = root.superIcon === "text" ? "option"
-      : (root.superIcon === "option" ? "windows"
+    root.superIcon = root.superIcon === "text" ? "command"
+      : (root.superIcon === "command" ? "windows"
       : (root.superIcon === "windows" ? "superman" : "text"))
     root.saveConfig()
   }

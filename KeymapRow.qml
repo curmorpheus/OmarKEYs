@@ -93,13 +93,9 @@ Rectangle {
         // modelData undefined and every chip blank.
         required property int index
         required property var modelData
-        // Nerd Font glyphs sit in both private use areas, and the option
-        // key is a real Unicode symbol -- all of them are shapes, not
-        // words, so none of them wants a box drawn round it.
-        readonly property bool isIcon: {
-          var cp = String(modelData).codePointAt(0)
-          return cp >= 0xF0000 || (cp >= 0xE000 && cp <= 0xF8FF) || cp === 0x2325
-        }
+        // A shape, not a word: boxing it fights the glyph. The rule lives
+        // beside the icon tables, since that is what decides it.
+        readonly property bool isIcon: KeymapData.isIconGlyph(modelData)
         readonly property string fullName: row.chipNames[index] || ""
         implicitWidth: chipContent.implicitWidth + (isIcon ? 4 : 10)
         implicitHeight: Math.max(Style.space(18), chipContent.implicitHeight + 4)

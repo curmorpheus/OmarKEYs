@@ -278,6 +278,13 @@ var KEY_ICONS = {
   XF86TouchpadToggle: "\udb80\udd68",
   XF86TouchpadOn: "\udb80\udd68",
   XF86TouchpadOff: "\udb80\udd68",
+  // The Mac modifier symbols. Unlike the rest of this table these are
+  // real Unicode rather than private-use glyphs, so isIconGlyph knows
+  // them by name -- a codepoint range cannot find them.
+  Control: "\u2303",
+  Ctrl: "\u2303",
+  Shift: "\u21e7",
+  Alt: "\u2325",
   LMB: "\udb80\udf7d L",
   RMB: "\udb80\udf7d R",
   MMB: "\udb80\udf7d M",
@@ -346,24 +353,50 @@ function displayNames(keys) {
 }
 
 // Super has no one true symbol: it is the Windows key on most keyboards,
-// Option on a Mac layout, and neither if you just want the word. All three
-// are in the overlay's own Nerd Font, checked before mapping -- the
-// Windows and Superpowers glyphs are private-use, the option key is real
-// Unicode.
+// Command on a Mac layout, and neither if you just want the word. All
+// three are in the overlay's own Nerd Font, checked before mapping -- the
+// Windows and Superpowers glyphs are private-use, Command is real Unicode.
+//
+// Command, not Option: on a Mac keyboard under Linux it is Command that
+// reports KEY_LEFTMETA and so arrives as Super, while Option is Alt. The
+// kernel's own hid_apple names them that way -- its swap_opt_cmd
+// parameter reads "Swap the Option (Alt) and Command (Flag) keys".
 var SUPER_ICONS = {
-  option: "\u2325",
+  command: "\u2318",
   windows: "\udb81\uddb3",
   superman: "\uf2dd"
 }
 
-function superIconFor(style) {
-  var key = String(style || (currentConfig && currentConfig.superIcon) || "text")
-  return SUPER_ICONS[key] || ""
-}
-
 function normalizeSuperIcon(value) {
   var key = String(value || "")
+  // Briefly shipped as "option" on develop before the Mac mapping was
+  // checked; carry those settings over rather than silently resetting.
+  if (key === "option")
+    return "command"
   return SUPER_ICONS[key] ? key : "text"
+}
+
+// Shapes that live outside the private use areas, so the chip cannot spot
+// them by codepoint range. Kept beside the tables that produce them.
+var SYMBOL_ICONS = {
+  "\u2318": true, "\u2303": true, "\u21e7": true, "\u2325": true
+}
+
+function isIconGlyph(text) {
+  var s = String(text || "")
+  if (!s.length)
+    return false
+  if (SYMBOL_ICONS[s.charAt(0)])
+    return true
+  var cp = s.codePointAt(0)
+  return cp >= 0xF0000 || (cp >= 0xE000 && cp <= 0xF8FF)
+}
+
+function superIconFor(style) {
+  // Through the normalizer, so the legacy name resolves here too rather
+  // than only on the way in from the config file.
+  var key = normalizeSuperIcon(style || (currentConfig && currentConfig.superIcon))
+  return SUPER_ICONS[key] || ""
 }
 
 function iconKey(name) {

@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -248,9 +248,13 @@ test("icon chips use in-font glyphs and fall back to text when unmapped", () => 
   assert.ok(named[2].codePointAt(0) >= 0xF0000, "Return should be a glyph")
   assert.ok(context.displayKeys("Super + Left", "icons")[1].codePointAt(0) >= 0xF0000,
     "arrow keys should be glyphs, not text arrows")
-  // A letter has no icon and keeps its short text rather than going blank.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + B", "icons")),
-    JSON.stringify(["Sup", "Shft", "B"]))
+  // Modifiers carry the Mac symbols; a plain letter has no icon and keeps
+  // its short text rather than going blank. Super stays a word here only
+  // because this row is rendered with the Super icon set to text.
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + B", "icons", "text")),
+    JSON.stringify(["Sup", "\u21e7", "B"]))
+  assert.equal(context.displayKeys("Ctrl + B", "icons")[0], "\u2303")
+  assert.equal(context.displayKeys("Alt + B", "icons")[0], "\u2325")
 })
 
 test("a mouse bind is one chip, and only real arrow keys become arrows", () => {
@@ -306,12 +310,31 @@ test("the Super glyph is a choice, and it overrides every chip style", () => {
   assert.equal(win.codePointAt(0), 0xF05B3, "expected the Windows key glyph")
   assert.equal(context.displayKeys("Super + K", "short", "windows")[0], win)
   assert.equal(context.displayKeys("Super + K", "icons", "windows")[0], win)
-  // The option key is real Unicode rather than a private-use glyph.
-  assert.equal(context.displayKeys("Super + K", "full", "option")[0].codePointAt(0), 0x2325)
+  // Command, not Option: on a Mac keyboard it is Command that reports
+  // KEY_LEFTMETA and so arrives as Super. Real Unicode, not private-use.
+  assert.equal(context.displayKeys("Super + K", "full", "command")[0].codePointAt(0), 0x2318)
+  // The value briefly shipped as "option"; it carries over to Command
+  // rather than resetting to the word.
+  assert.equal(context.displayKeys("Super + K", "full", "option")[0].codePointAt(0), 0x2318)
   assert.equal(context.displayKeys("Super + K", "full", "superman")[0].codePointAt(0), 0xF2DD)
   // Only Super is swapped; the rest of the chord is untouched.
   assert.equal(JSON.stringify(context.displayKeys("Super + Shift + K", "full", "windows").slice(1)),
     JSON.stringify(["Shift", "K"]))
   // An unknown value falls back to the word rather than drawing nothing.
   assert.equal(context.displayKeys("Super + K", "full", "nonsense")[0], "Super")
+})
+
+test("a chip is a shape or a word, and the symbols are neither private-use", () => {
+  // Nerd Font glyphs are found by range; the Mac symbols are real Unicode
+  // and would fail that test, which is why the rule is shared rather than
+  // re-derived as a codepoint check in the row.
+  assert.equal(context.isIconGlyph("\u2318"), true, "Command is a shape")
+  assert.equal(context.isIconGlyph("\u2303"), true, "Control is a shape")
+  assert.equal(context.isIconGlyph("\u21e7"), true, "Shift is a shape")
+  assert.equal(context.isIconGlyph("\u2325"), true, "Alt is a shape")
+  assert.equal(context.isIconGlyph("\udb81\uddb3"), true, "private-use glyph")
+  assert.equal(context.isIconGlyph("\uf2dd"), true, "BMP private-use glyph")
+  assert.equal(context.isIconGlyph("Sup"), false)
+  assert.equal(context.isIconGlyph("B"), false)
+  assert.equal(context.isIconGlyph(""), false)
 })

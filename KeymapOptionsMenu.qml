@@ -98,7 +98,7 @@ Rectangle {
     Repeater {
       model: [
         { id: "chips",  label: "Keys" },
-        { id: "super",  label: "Super" },
+        { id: "super",  label: "Super icon" },
         { id: "layout", label: "Order" },
         { id: "sort",   label: "Sort" },
         { id: "search", label: "Find" }
@@ -116,7 +116,7 @@ Rectangle {
           if (modelData.id === "super") {
             // Shows the glyph it will draw, not the word for it: the
             // point of the setting is which shape ends up in the chip.
-            return menu.host.superIcon === "option" ? "\u2325"
+            return menu.host.superIcon === "command" ? "\u2318"
               : (menu.host.superIcon === "windows" ? "\udb81\uddb3"
               : (menu.host.superIcon === "superman" ? "\uf2dd" : "text"))
           }
