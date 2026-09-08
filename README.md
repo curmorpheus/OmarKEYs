@@ -140,7 +140,9 @@ reload the installer does, and it costs nothing else.
 above, plus hidden groups and apps and the search box.
 
 **Channel** (bottom-right corner) reads `Channel @ hash`, with a `•` when
-the channel you are on is behind its remote. Click it to switch channel or
+the channel you are on is behind its remote. The picker names the date
+the loaded version was built, and says how each other channel compares to
+it — *same*, or how many days *newer* or *older*. Click it to switch channel or
 sync — see [Updating](#updating).
 
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,

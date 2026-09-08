@@ -54,6 +54,7 @@ Rectangle {
       text: (host ? host.channelLabel(host.gitChannel) : "unknown")
         + (host && host.gitBranch ? "  ·  " + host.gitBranch : "")
         + (host && host.gitHash ? " @ " + host.gitHash : "")
+        + (host && host.gitDate ? "  ·  " + host.gitDate : "")
       textFormat: Text.PlainText
       color: menu.foreground
       font.family: menu.fontFamily
@@ -171,10 +172,15 @@ Rectangle {
           anchors.leftMargin: 6
           anchors.rightMargin: 6
           anchors.verticalCenter: parent.verticalCenter
+          // The note says what the channel is; the age says whether it is
+          // worth switching to, which is the actual question being asked.
+          readonly property string age: (isUntested || !host) ? ""
+            : host.versionAge(host.branchForChannel(modelData.id))
           text: (current ? "• " : "  ")
             + modelData.label
             + (isUntested ? (menu.untestedOpen ? "  ▾" : "  ▸") : "")
             + "   " + modelData.note
+            + (age ? "  ·  " + age : "")
           textFormat: Text.PlainText
           color: current ? menu.chipFg : menu.foreground
           opacity: (menu.dirty && !current) ? 0.45 : 1
@@ -226,6 +232,7 @@ Rectangle {
           delegate: Rectangle {
             required property var modelData
             readonly property bool current: !!(host && modelData === host.gitBranch)
+            readonly property string age: host ? host.versionAge(modelData) : ""
             width: branchCol.width
             height: Math.max(Style.space(20), branchLabel.implicitHeight + 4)
             radius: 4
@@ -240,7 +247,7 @@ Rectangle {
               anchors.leftMargin: 16
               anchors.rightMargin: 6
               anchors.verticalCenter: parent.verticalCenter
-              text: (current ? "• " : "") + modelData
+              text: (current ? "• " : "") + modelData + (age ? "  ·  " + age : "")
               textFormat: Text.PlainText
               color: current ? menu.chipFg : menu.foreground
               opacity: (menu.dirty && !current) ? 0.45 : 1

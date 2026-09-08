@@ -398,6 +398,47 @@ Item {
 
   readonly property string gitChannel: root.channelFor(root.gitBranch)
 
+  // When the loaded commit was made, and the same for every branch you
+  // could switch to, so the picker can say how far apart they are.
+  property string gitDate: ""
+  property double gitEpoch: 0
+  property var gitCommits: ({})
+
+  function branchForChannel(channel) {
+    if (channel === "main")
+      return root.mainBranch
+    if (channel === "beta")
+      return root.betaBranch
+    if (channel === "nightly")
+      return root.nightlyBranch
+    return ""
+  }
+
+  // "same" / "3 days newer" / "1 day older", against the loaded commit.
+  // Sameness is by commit, not by clock: two branches can share a date and
+  // still be different code, and a fast-forward gives them the same date
+  // as well as the same commit.
+  function versionAge(branch) {
+    var info = branch ? (root.gitCommits || ({}))[branch] : null
+    if (!info || !root.gitEpoch)
+      return ""
+    if (info.hash && root.gitHash && info.hash === root.gitHash)
+      return "same"
+    var diff = Number(info.epoch) - root.gitEpoch
+    if (!diff)
+      return "same date"
+    var days = Math.floor(Math.abs(diff) / 86400)
+    var span = days < 1 ? "hours" : (days === 1 ? "1 day" : days + " days")
+    return span + (diff > 0 ? " newer" : " older")
+  }
+
+  function versionDate(branch) {
+    var info = branch ? (root.gitCommits || ({}))[branch] : null
+    if (!info || !info.epoch)
+      return ""
+    return Qt.formatDate(new Date(Number(info.epoch) * 1000), "yyyy-MM-dd")
+  }
+
   function channelLabel(channel) {
     if (channel === "main")
       return "Main"
@@ -490,6 +531,9 @@ Item {
     root.gitBranch = data.branch || ""
     root.gitHash = data.hash || ""
     root.gitBranches = data.branches || []
+    root.gitDate = data.date || ""
+    root.gitEpoch = Number(data.epoch) || 0
+    root.gitCommits = data.commits || ({})
     root.gitDirty = data.dirty === true
     root.gitBehind = data.behind || 0
     root.gitUpdateAvailable = data.updateAvailable === true
