@@ -3,6 +3,68 @@
 Grok writes this file when promoting a finished **beta** (Claude) into
 **main**. Cursor does not land on `main`.
 
+## 1.10.0 — 2026-09-08
+
+Promoted from `beta`. Written by Claude while Grok is offline. Cursor not
+included.
+
+- **Grouping, Sort, Order and Filter now sit under the tree**, each an
+  icon showing its current mode and cycling on click, under an Options
+  heading. The old corner link is **All Options** and opens the popup for
+  everything else.
+- **Filtering by key means the key you press.** It was a substring match
+  over the whole chord, so on a 189-row keymap pressing `s` matched 166
+  rows — Super, Shift, Space and Escape all contain one — while `3`
+  matched none, because the workspace binds are written `1-9, 0`. A query
+  now has to equal a whole key: `s` finds 4 rows, `3` finds the 5 range
+  binds, and `[` finds `bracketleft` by its symbol.
+- **Named keys filter too.** Delete, Home, the function keys and the rest
+  never reached the filter, so the mode meant for looking up a key could
+  not look up most of them. Return, Tab, Backspace and the arrows filter
+  only while the box is empty, then go back to moving through results.
+- **Click the filter box to capture a keystroke whole**, modifiers
+  included, which is the only way to filter on Return or Escape. A
+  captured chord matches as a chord: every key in it must be in the row.
+- **All mode reads what you typed.** One character is a key; more than one
+  searches keys, descriptions and topics.
+- The **version picker** names the date each build was made and says
+  whether every other channel is the same, or how many days newer or
+  older. Sameness is by commit, not by clock.
+- Fixed: every row in the **Active Apps** branch loads that app's keys.
+  Only the app row did — the rows below it handled double-click to focus
+  and nothing else, so clicking them did visibly nothing.
+
+## 1.9.0 — 2026-09-08
+
+Promoted from `beta` (`234ae31`). Never released to `main` on its own;
+folded into 1.10.0. Cursor not included.
+
+- **Keyboard type** picks which keyboard's keycaps the modifier chips
+  imitate — text, mac (⌘ ⌃ ⇧ ⌥), windows or omarchy. Command, not Option,
+  is Super: on a Mac keyboard under Linux it is Command that reports
+  `KEY_LEFTMETA`, which the kernel's own `hid_apple` says in as many
+  words.
+- **Icon borders** draws a cap around each key. Only keys you press get
+  one; a glyph standing for what a key *does*, or for a mouse button, is
+  not a cap.
+- **Grouping** by key type (Numbers, Alpha, Special, Non-keyboard) or off
+  entirely, and a third **Sort** by the key you actually press, so
+  `Super+Shift+K` files under K rather than under S.
+- Ungrouped rows trail their topic in faint smaller text — once the
+  headings are gone, the row is the only place it survives.
+- Group headings carry the Omarchy mark, or the app's name in brackets
+  when a sheet is loaded. The tree's Omarchy row carries the mark too.
+- **Keys read as keys**: punctuation shows its symbol rather than
+  `bracketleft`, media keys read "Volume up" rather than
+  `XF86AudioRaiseVolume`, and nothing is truncated into something that is
+  no longer a key name.
+- The channel picker is Main / Beta / Nightly / **Untested** — the three
+  channels are each one branch's tip, and Untested holds the rest.
+- The **Options popup fits its content** and scrolls past that, instead
+  of running its last rows off the bottom edge.
+- The **Modifiers** section is now **Filters**, and a clear key means All
+  and carries no mark.
+
 ## 1.8.0 — 2026-09-08
 
 Promoted from `beta`. Written by Claude while Grok is offline. Cursor not
