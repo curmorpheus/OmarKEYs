@@ -1,12 +1,20 @@
-# OmarKEYS (Grok)
+# OmarKEYS
 
 A Super+K alternative for [Omarchy](https://omarchy.org/). Topic-organized
 keymap overlay, summoned without eating Super+other shortcuts.
 
-Stable is **main** (Grok). Claude owns **beta** on
-https://github.com/romills/OmarKEYs. When a beta is done, Grok pulls it
-into `main` and updates [RELEASE.md](RELEASE.md). Cursor does not land
-on `main`. Working copy: `~/Work/omarkeys-grok`.
+Repo: https://github.com/romills/OmarKEYs. Work climbs one ladder —
+`develop-claude` → `develop` → `beta` → `main` — and each channel in the
+overlay's corner picker maps to one of its branches:
+
+| Branch | Channel | Owner |
+|---|---|---|
+| `main` | Main | Grok promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
+| `beta` | Beta | Claude |
+| `develop` | Nightly | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
+| `develop-claude` | Nightly | Claude's working branch |
+
+Cursor does not land on `main`.
 
 **Open**
 
@@ -28,29 +36,57 @@ Type while it is open to filter, including digits.
 - Arrow keys move the highlight (up/down command, left/right group)
 - `Ctrl+1`–`Ctrl+9` jump to a numbered group (`Ctrl+0` is the 10th)
 - Enter or click runs the highlighted shortcut
-- Greyed-out rows (ranges, holds, double-tap) cannot be run
+- Greyed-out rows cannot be run: ranges, gestures, and any bind whose
+  action OmarKEYS could not recover from your config
 
-**Sidebar**
+**Sidebar** — the tree
 
-- Tree: **Omarchy** (expanded) with topic groups under it; **Open windows**
-  for live apps (click a window to load its sheet)
-- Groups: show or hide topic cards; All/None on the Omarchy row
-- Modifiers: each of Super, Shift, Ctrl, Alt is Any / Must / Hide.
-  Click a name to cycle it, or click **A any**, **M must**, **H hide** to set all four.
+- **Omarchy** (expanded): five areas, each holding its topic groups
+- **Active Apps**: live windows, grouped by the keymap sheet they share
+  (Web apps, Terminals, File managers) and then by app. Click a window to
+  load its sheet, double-click to focus it. Apps with no bundled sheet sit
+  under **No keymap sheet**, pinned to the bottom.
+- Click an area or group to *solo* it — everything else hides so the board
+  shows only what you clicked. Clicking **Omarchy** restores all of them.
+  Solo is view-only and is undone when the overlay closes.
+- Every row carries a **Show**/**Hide** control, revealed when you hover it.
+  Hiding a branch collapses and greys it but keeps its label, so it can
+  always be brought back. Carets show the state: collapsed when everything
+  under a parent is hidden, expanded while any of it still shows.
 
-**Settings** (bottom of the overlay)
+**Options** (bottom-left corner)
 
-- Double-tap Super on/off
-- Hold Super duration, 1–10 seconds
-- Edit mode (Omarchy source): pick a command, then press its new chord
+*Display*
+
+| Option | Values | Default |
+|---|---|---|
+| Keys | full / short / icons | icons |
+| Order | keys first / action first | action first |
+| Sort | by group / by name | by name |
+| Find | all / keys / name | all |
+| Text size | slider, click the label to reset | 1.0 |
+| Icon size | slider (icons only), click to reset | 1.35 |
+
+With icons on, hovering a row spells each glyph out in words beside it.
+
+*Modifiers* — Super, Shift, Ctrl and Alt in a 2×2 grid, each **A**ll,
+**M**ust or **H**ide. Click a key to cycle it, or click a legend word to
+set all four.
+
+*Opening* — double-tap Super on/off, and hold-Super duration (1–10s).
+
+**Restore defaults** (bottom right of the popup) resets every one of the
+above, plus hidden groups and apps and the search box.
+
+**Channel** (bottom-right corner) reads `Channel @ hash`, with a `•` when
+the channel you are on is behind its remote. Click it to switch channel or
+sync — see [Updating](#updating).
 
 App windows with a bundled sheet (Chromium, Ghostty, Nautilus) can be
 selected in the overlay; those sheets live in `sheets/`.
 
-Bindings are read live from Hyprland each time OmarKEYS opens. Settings
-are stored in `~/.config/omarchy/omarkeys.json`. Remaps write
-`~/.config/hypr/omarkeys-edits.lua` and keep a git history under
-`~/.local/state/omarchy/omarkeys-history`.
+Bindings are read live from Hyprland each time OmarKEYS opens, and
+settings are stored in `~/.config/omarchy/omarkeys.json`.
 
 ## Dependencies and privileges
 
@@ -72,10 +108,15 @@ your user's permissions, so here is everything OmarKEYS reaches for.
 
 | Path | What |
 |---|---|
-| `~/.config/omarchy/omarkeys.json` | Overlay settings (hidden groups, modifiers, gestures) |
-| `~/.config/hypr/omarkeys-edits.lua` | Chord remaps made in the overlay |
+| `~/.config/omarchy/omarkeys.json` | Overlay settings (display options, hidden groups and apps, modifiers, gestures) |
 | `~/.config/hypr/bindings.lua` | Installer appends one `dofile` line; backed up first |
-| `~/.local/state/omarchy/omarkeys-history` | Git history of remaps, so an edit can be reverted |
+| `~/.config/hypr/omarkeys-edits.lua` | Chord remaps — written only by `apply-edit` |
+| `${XDG_STATE_HOME:-~/.local/state}/omarchy/omarkeys-history` | Git history of remaps, so an edit can be reverted |
+
+The last two are the chord-remap backend. It ships and works from the
+command line, but **nothing in the overlay calls it yet** — the View | Edit
+UI is unbuilt (see [PLAN.md](PLAN.md)), so a stock install never writes
+either path.
 
 **Privilege boundaries**
 
@@ -177,15 +218,20 @@ user bindings file so Super+chords stay unmodified.
 | Path | Role |
 |---|---|
 | `Keymap.qml` | Overlay host: config, live dump, keys, execute |
-| `KeymapSidebar.qml` | Groups and modifier filters |
+| `KeymapSidebar.qml` | The tree: Omarchy areas/groups and Active Apps |
 | `KeymapBoard.qml` | Two-column binding cards |
 | `KeymapSection.qml` / `KeymapRow.qml` | One topic card and one command row |
-| `KeymapSettingsBar.qml` | Double-tap and hold controls |
+| `KeymapHideButton.qml` | Show/Hide control, used at every level of the tree |
+| `KeymapOptionsMenu.qml` | Options popup: display, modifiers, opening gestures |
+| `KeymapBranchMenu.qml` | Corner channel picker: Main / Beta / Nightly |
 | `KeymapData.js` | Filter, catalog, shortcut parse, fallback list |
 | `dump-keymap` | Live Hyprland binds → JSON sections |
-| `apply-edit` | Remap a chord into `omarkeys-edits.lua` |
+| `run-shortcut` | Runs a row after the overlay closes: dispatches the bind's own action, or sends the chord for app-sheet rows |
+| `apply-edit` | Remap a chord into `omarkeys-edits.lua` (no UI yet) |
+| `plugin-git` | Channel picker's git backend: status, fetch, switch, sync |
+| `install.sh` | Install the plugin and wire the Hyprland gestures |
 | `sheets/` | Bundled app keymaps (Chromium, Ghostty, Nautilus) |
-| `run-shortcut` | Replay a chord after the overlay closes |
+| `tests/` | `node --test tests/keymap-data.test.js` |
 | `hyprland.lua` | Super+K, double-tap, hold |
 
 ## License

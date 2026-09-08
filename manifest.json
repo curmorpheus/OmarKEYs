@@ -5,7 +5,7 @@
   "version": "1.7.0",
   "author": "romills",
   "license": "MIT",
-  "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super (default 5s), or Super+K to show the live Hyprland keymap. Type to search, arrows and Ctrl+1–9 pick a window, Enter runs a shortcut. Double-tap and hold time are configurable on the overlay.",
+  "description": "OmarKEYS, a Super+K alternative: double-tap Super, hold Super (default 5s), or Super+K to show the live Hyprland keymap as a tree of topic areas and running apps. Type to search, arrows move the highlight and Ctrl+1–9 jump to a group, Enter runs the highlighted shortcut. Key display, sorting, modifier filters and the opening gestures are all configurable on the overlay.",
   "kinds": [
     "overlay"
   ],

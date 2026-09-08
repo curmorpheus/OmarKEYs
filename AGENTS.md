@@ -49,14 +49,25 @@ QML changes need `omarchy restart shell` (keepLoaded overlay).
 
 ## Channels
 
-| Channel | Branch | Owner |
-|---|---|---|
-| Main | `main` | Grok |
-| Beta | `beta` | Claude |
-| Nightly | working branches | agents |
+One ladder, `develop-claude` → `develop` → `beta` → `main`. Each step is a
+fast-forward, so a change that reaches `main` is the same commit that was
+tested on `beta`.
 
-Claude ships beta. Grok pulls a finished `beta` into `main` and updates
-`RELEASE.md`. Cursor does not land on `main`.
+| Branch | Channel | Owner | Fed by |
+|---|---|---|---|
+| `main` | Main | Grok | `beta`, when Claude calls one finished |
+| `beta` | Beta | Claude | `develop` |
+| `develop` | Nightly | Claude | `develop-claude`; PRs from `develop-cursor` |
+| `develop-claude` | Nightly | Claude | direct work |
+| `develop-cursor` | Nightly | Cursor | direct work; PRs into `develop` |
+
+Claude works on `develop-claude` and brings it into `develop` once it is
+approved, then ships `develop` to `beta`. Grok pulls a finished `beta`
+into `main` and updates `RELEASE.md`. Cursor does not land on `main`.
+
+Write release-note and version changes on the branch that *feeds* the one
+being promoted, never directly on `beta` or `main` — a commit made on the
+tip breaks the fast-forward and forces a back-merge to repair.
 
 ### Updating: `omarchy plugin update` is Main-only
 

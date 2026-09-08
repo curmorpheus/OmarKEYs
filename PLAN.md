@@ -135,7 +135,7 @@ moved the sink; the old path returned ok and changed nothing.
 ### Release channels in the picker
 
 - [x] Corner picker offers Main / Beta / Nightly instead of raw branches
-- [x] `beta` branch created; Claude owns beta; promotion is `develop` → `beta` (Claude) → `main` (Grok)
+- [x] `beta` branch created; Claude owns beta; promotion is `develop-claude` → `develop` → `beta` (Claude) → `main` (Grok)
 - [x] Grok updates `RELEASE.md` when promoting a finished beta
 - [x] 1.5.1 from beta `9db25ad`: modifier chips, channel switch syncs,
       real-directory install, dispatcher table args, pre-overlay window
@@ -157,13 +157,39 @@ moved the sink; the old path returned ok and changed nothing.
 ### Working copies
 
 - [x] `~/Work/omarkeys` is the deploy slot. No edits.
-- [x] Per-agent clones: `omarkeys-grok`, `omarkeys-claude`, `omarkeys-cursor`
+- [x] Per-agent clones: `omarkeys-grok`, `omarkeys-claude`. No separate
+      Cursor clone was made; Cursor lands via `develop-cursor` on the remote.
 - [x] Grok pulls `shared/beta` into this `main` (not `develop`, not Cursor)
 
 ### Live reload (was "Later")
 
 - [x] A 3s timer while open so `hyprctl binds` picks up Lua reloads we did not write
 - [x] Watch `omarkeys-edits.lua` the same way as `bindings.lua`
+
+### Display options (1.7.0)
+
+User comment: the chords were hard to read while navigating — too much
+text per row, and no way to scan by what a command *does*.
+
+- [x] Four display options: key chips full / short / icons, keys or action
+      leading the row, sort by group or by name, search all / keys / name
+- [x] Icon chips drawn from the overlay's own Nerd Font, not emoji (emoji
+      resolve to a fallback font with different metrics)
+- [x] Hovering a row names each glyph in words beside it, dimmed. The keys
+      column is a constant width so hovering never moves the chips
+- [x] Left/right/middle mouse collapse to one chip; the wheel gets a mouse
+      glyph plus a direction arrow
+- [x] Text-size and icon-size sliders, each reset by clicking its label
+- [x] Overlay sizes itself to the display instead of a fixed default
+- [x] Modifiers and gestures moved out of the sidebar and the bottom bar
+      into an Options popup, opened from the bottom-left corner
+      (`KeymapSettingsBar.qml` deleted, `KeymapOptionsMenu.qml` added)
+- [x] Restore defaults resets display, modifiers, gestures, hidden groups
+      and apps, and the search box
+- [x] Gesture rows name the key they apply to (Double-tap → Super)
+- [x] "No keymap sheet" pinned to the bottom of the tree
+- [x] Docs catch-up: README rewritten for the tree and Options popup;
+      AGENTS.md channels table covers the full ladder
 
 ## Future
 
@@ -182,4 +208,3 @@ moved the sink; the old path returned ok and changed nothing.
 - [ ] Do not edit dispatcher/args — chord remap of an existing action only
 - [ ] Do not change Super+K / hold / double-tap from the chord editor
 - [ ] GitHub release tag
-- [ ] Manifest description catch-up
