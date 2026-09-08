@@ -1205,6 +1205,13 @@ Item {
     runTimer.restart()
   }
 
+  // A single click only moves the highlight. Running a command is a
+  // double-click (or Enter): a stray click on the way to reading a row
+  // should not fire a shortcut and close the overlay under you.
+  function selectRow(keys, action) {
+    root.selectKeys(keys, action)
+  }
+
   function activateRow(keys, action) {
     root.selectKeys(keys, action)
     if (root.editMode)

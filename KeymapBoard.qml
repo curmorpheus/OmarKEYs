@@ -62,7 +62,7 @@ Flickable {
           rowLayout: host.rowLayout
           fontScale: host.fontScale
           iconScale: host.iconScale
-          onRowClicked: function(keys, action) { host.activateRow(keys, action) }
+          onRowClicked: function(keys, action) { host.selectRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
           onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
         }
@@ -96,7 +96,7 @@ Flickable {
           rowLayout: host.rowLayout
           fontScale: host.fontScale
           iconScale: host.iconScale
-          onRowClicked: function(keys, action) { host.activateRow(keys, action) }
+          onRowClicked: function(keys, action) { host.selectRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
           onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
         }

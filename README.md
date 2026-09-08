@@ -37,7 +37,9 @@ Type while it is open to filter, including digits.
 
 - Arrow keys move the highlight (up/down command, left/right group)
 - `Ctrl+1`–`Ctrl+9` jump to a numbered group (`Ctrl+0` is the 10th)
-- Enter or click runs the highlighted shortcut
+- Click highlights a row; **double-click** or Enter runs it. Running takes
+  two deliberate actions so a click while reading cannot fire a shortcut
+  and close the overlay under you.
 - Greyed-out rows cannot be run: ranges, gestures, and any bind whose
   action OmarKEYS could not recover from your config
 

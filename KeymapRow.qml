@@ -150,6 +150,9 @@ Rectangle {
     elide: Text.ElideRight
   }
 
+  // clicked selects, activated runs. A double click emits clicked once for
+  // the first press and then activated, so the row is always highlighted
+  // before it fires.
   MouseArea {
     anchors.fill: parent
     onClicked: row.clicked(row.modelData.keys, row.modelData.action)

@@ -46,7 +46,8 @@ intentional "jump to this app" action. Not building this.
 - [x] Super+W temp-mapped to the layer while open (does not close the window behind it)
 - [x] Live Hyprland binds on open (`dump-keymap`)
 - [x] Type to search (digits included; Ctrl+1–9 jumps groups)
-- [x] Arrows, Enter or click to run the highlighted chord
+- [x] Arrows to move, Enter or double-click to run the highlighted chord
+      (single click only highlights; see the 1.7.0 notes below)
 - [x] Sidebar groups with show/hide and All/None
 - [x] Modifier filter Any / Must / Hide; A/M/H sets all four
 - [x] Double-tap toggle and hold slider
@@ -190,6 +191,9 @@ text per row, and no way to scan by what a command *does*.
 - [x] "No keymap sheet" pinned to the bottom of the tree
 - [x] Docs catch-up: README rewritten for the tree and Options popup;
       AGENTS.md channels table covers the full ladder
+- [x] Running a command takes a double-click. A single click only moves
+      the highlight, so a click while reading the board cannot fire a
+      shortcut and close the overlay. Enter is unchanged.
 - [x] Super+K on/off under Options → Opening. Off means `hyprland.lua`
       never unbinds the chord, so the original survives without OmarKEYS
       having to know what it was; the overlay applies it with
