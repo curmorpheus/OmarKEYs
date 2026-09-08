@@ -17,6 +17,8 @@ Rectangle {
   // everything nested under them steps down proportionally so it keeps
   // scaling with the user's base font size.
   readonly property int rootFontSize: Style.font.caption
+  // The Options popup opens above this link, which lives down here now.
+  readonly property int optionsLinkHeight: optionsLink.height
   readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
 
   width: Style.space(200)
@@ -719,9 +721,9 @@ Rectangle {
     }
 
 
-    // The three settings you reach for while reading the board, without
-    // opening Options for them. Each icon shows its current mode under it
-    // and cycles on click.
+    // The settings you reach for while reading the board, without opening
+    // the popup for them. Each icon shows its current mode and cycles on
+    // click; the filter shares its row with what is being filtered on.
     Column {
       id: footer
       width: parent.width
@@ -740,9 +742,9 @@ Rectangle {
 
         Repeater {
           model: [
-            { id: "group",  glyph: "\udb80\udec3" },
-            { id: "sort",   glyph: "\udb81\udcba" },
-            { id: "filter", glyph: "\udb80\ude32" }
+            { id: "group", glyph: "\udb80\udec3" },
+            { id: "sort",  glyph: "\udb81\udcba" },
+            { id: "order", glyph: "\udb82\udcdf" }
           ]
           delegate: Item {
             required property var modelData
@@ -756,8 +758,7 @@ Rectangle {
               if (modelData.id === "sort")
                 return h.sortBy === "action" ? "by name"
                   : (h.sortBy === "key" ? "by key" : "by group")
-              return h.searchMode === "keys" ? "key"
-                : (h.searchMode === "action" ? "description" : "all")
+              return h.rowLayout === "action" ? "keys last" : "keys first"
             }
             width: controlRow.width / 3
             height: glyphText.height + modeText.height + Style.space(2)
@@ -802,54 +803,104 @@ Rectangle {
                 else if (modelData.id === "sort")
                   h.cycleSortBy()
                 else
-                  h.cycleSearchMode()
+                  h.cycleRowLayout()
               }
             }
           }
         }
       }
 
-      // The filter itself. Typing anywhere in the overlay lands here, so
-      // this shows what is being filtered on rather than competing with
-      // the overlay's key grab for focus; clicking it clears.
-      Rectangle {
+      // The filter icon sits with what it is filtering on. Clicking the
+      // icon changes what is matched; the box shows the filter rather
+      // than taking focus for it -- typing anywhere in the overlay
+      // already lands there, and a real field would have to fight the
+      // layer's keyboard grab. Clicking the box clears.
+      Row {
         width: parent.width
-        height: Math.max(Style.space(20), filterText.implicitHeight + 6)
-        radius: 4
-        color: "transparent"
-        border.width: 1
-        border.color: filterArea.containsMouse ? side.chipFg : side.borderColor
-        opacity: filterArea.containsMouse ? 1 : 0.8
+        spacing: Style.space(6)
 
         Text {
-          id: filterText
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.leftMargin: Style.space(5)
-          anchors.rightMargin: Style.space(5)
-          anchors.verticalCenter: parent.verticalCenter
-          readonly property string hint: {
-            var h = side.host
-            if (!h)
-              return "type to filter"
-            return h.searchMode === "keys" ? "press a key"
-              : (h.searchMode === "action" ? "type a description" : "type to filter")
-          }
-          text: (side.host && side.host.filterText) ? side.host.filterText : hint
+          id: filterGlyph
+          anchors.verticalCenter: filterBox.verticalCenter
+          text: "\udb80\ude32"
           textFormat: Text.PlainText
-          color: (side.host && side.host.filterText) ? side.chipFg : side.foreground
-          opacity: (side.host && side.host.filterText) ? 1 : 0.4
+          color: filterModeArea.containsMouse ? side.chipFg : side.foreground
+          opacity: filterModeArea.containsMouse ? 1 : 0.75
           font.family: side.fontFamily
-          font.pixelSize: side.subFontSize
-          elide: Text.ElideRight
+          font.pixelSize: Math.round(side.rootFontSize * 3.4)
+
+          MouseArea {
+            id: filterModeArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: if (side.host) side.host.cycleSearchMode()
+          }
         }
 
+        Rectangle {
+          id: filterBox
+          width: parent.width - filterGlyph.width - Style.space(6)
+          height: Math.max(Style.space(20), filterText.implicitHeight + 6)
+          radius: 4
+          color: "transparent"
+          border.width: 1
+          border.color: filterArea.containsMouse ? side.chipFg : side.borderColor
+          opacity: filterArea.containsMouse ? 1 : 0.8
+
+          Text {
+            id: filterText
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            anchors.verticalCenter: parent.verticalCenter
+            readonly property string hint: {
+              var h = side.host
+              if (!h)
+                return "type to filter"
+              return h.searchMode === "keys" ? "press a key"
+                : (h.searchMode === "action" ? "type a description" : "type to filter")
+            }
+            text: (side.host && side.host.filterText) ? side.host.filterText : hint
+            textFormat: Text.PlainText
+            color: (side.host && side.host.filterText) ? side.chipFg : side.foreground
+            opacity: (side.host && side.host.filterText) ? 1 : 0.4
+            font.family: side.fontFamily
+            font.pixelSize: side.subFontSize
+            elide: Text.ElideRight
+          }
+
+          MouseArea {
+            id: filterArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: if (side.host) side.host.setFilter("")
+          }
+        }
+      }
+
+      // Everything else, inside the tree's border rather than loose in
+      // the card's padding beneath it.
+      Text {
+        id: optionsLink
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
+        text: (side.host && side.host.optionsMenuOpen ? "▾ " : "▴ ") + "Other Options"
+        textFormat: Text.PlainText
+        color: side.foreground
+        opacity: optionsLinkArea.containsMouse || (side.host && side.host.optionsMenuOpen)
+          ? 0.9 : 0.45
+        font.family: side.fontFamily
+        font.pixelSize: Math.round(Style.font.body * 1.2)
+
         MouseArea {
-          id: filterArea
+          id: optionsLinkArea
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: if (side.host) side.host.setFilter("")
+          onClicked: if (side.host) side.host.toggleOptionsMenu()
         }
       }
     }

@@ -46,11 +46,13 @@ Type while it is open to filter, including digits.
 
 **Sidebar** — the tree
 
-Under the tree sit the three settings worth reaching for while reading the
-board, without opening Other Options: **Grouping** 󰋃, **Sort** 󰒺 and **Filter**
-󰈲. Each shows its current mode underneath and cycles on click. The box
-below them is the filter — typing anywhere in the overlay lands there, and
-clicking it clears. Filtering by key holds a *single* key, so a keystroke
+Under the tree sit the settings worth reaching for while reading the board,
+without opening the popup: **Grouping** 󰋃, **Sort** 󰒺 and **Order** 󰣟, each
+showing its current mode underneath and cycling on click. Order swaps
+between keys first and keys last. Below them the **Filter** 󰈲 shares a row
+with what is being filtered on — clicking the icon changes what is matched,
+and typing anywhere in the overlay lands in the box. Clicking the box
+clears. Filtering by key holds a *single* key, so a keystroke
 replaces what is in the box rather than adding to it, and it matches whole
 keys only — pressing `k` finds binds on K, not every chord with a `k`
 somewhere in a key's name. A digit matches the ranges that contain it, so
@@ -78,7 +80,7 @@ when the box is already empty.
   always be brought back. Carets show the state: collapsed when everything
   under a parent is hidden, expanded while any of it still shows.
 
-**Other Options** (bottom-left, under the tree)
+**Other Options** (at the foot of the tree, under the filter)
 
 *Display*
 

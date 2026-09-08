@@ -1684,40 +1684,22 @@ Item {
             }
           }
 
-          Text {
-            id: optionsLabel
-            // Centred under the tree rather than jammed into the corner:
-            // it belongs to that column, and the sidebar starts at the
-            // card's left inset, which is this item's own left edge.
-            x: card.contentLeftInset + Math.round((sideBar.width - width) / 2)
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Style.spacing.sm
-            textFormat: Text.PlainText
-            text: (root.optionsMenuOpen ? "▾ " : "▴ ") + "Other Options"
-            color: root.foreground
-            opacity: optionsArea.containsMouse || root.optionsMenuOpen ? 0.9 : 0.45
-            font.family: root.fontFamily
-            font.pixelSize: Math.round(Style.font.body * 1.2)
-
-            MouseArea {
-              id: optionsArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: root.toggleOptionsMenu()
-            }
-          }
 
           KeymapOptionsMenu {
+            id: optionsMenu
             host: root
             visible: root.optionsMenuOpen
             anchors.left: parent.left
-            anchors.bottom: optionsLabel.top
+            anchors.bottom: parent.bottom
             anchors.leftMargin: Style.spacing.sm
-            anchors.bottomMargin: Style.space(4)
-            // All the room there is between the top of the card and the
-            // trigger; the popup scrolls rather than overflow past it.
-            maxHeight: Math.max(Style.space(280), optionsLabel.y - Style.space(16))
+            // Just above the "Other Options" link, which sits inside the
+            // tree's border at the foot of the sidebar now.
+            anchors.bottomMargin: card.contentBottomInset
+              + sideBar.optionsLinkHeight + Style.space(8)
+            // All the room there is above it; past that the popup scrolls
+            // rather than overflow.
+            maxHeight: Math.max(Style.space(280),
+              card.height - optionsMenu.anchors.bottomMargin - Style.space(20))
           }
 
           KeymapBranchMenu {
