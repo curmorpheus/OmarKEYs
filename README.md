@@ -49,8 +49,9 @@ Type while it is open to filter, including digits.
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups
 - **Active Apps**: live windows, grouped by the keymap sheet they share
-  (Web apps, Terminals, File managers) and then by app. Click a window to
-  load its sheet, double-click to focus it. Apps with no bundled sheet sit
+  (Web apps, Terminals, File managers) and then by app. Click any row in
+  the branch — the kind, the app, or a window under it — to load that
+  app's keys; double-click a window to focus it. Apps with no bundled sheet sit
   under **No keymap sheet**, pinned to the bottom.
 - Click an area or group to *solo* it — everything else hides so the board
   shows only what you clicked. Clicking **Omarchy** restores all of them.

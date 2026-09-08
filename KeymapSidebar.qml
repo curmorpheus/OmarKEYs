@@ -483,15 +483,17 @@ Rectangle {
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
+                  // A kind groups the apps that share one sheet, so any of
+                  // them names it. Hiding is the button's job, revealed on
+                  // hover -- clicking the row shows the keys, the way every
+                  // other row in this branch does.
                   onClicked: {
                     var h = side.host
                     if (!h)
                       return
-                    var classes = []
                     var apps = kindCol.modelData.apps || []
-                    for (var ci = 0; ci < apps.length; ci++)
-                      classes.push(apps[ci].class)
-                    h.setAppsVisible(classes, kindCol.modelData.hidden)
+                    if (apps.length)
+                      h.selectSource(apps[0].class)
                   }
                 }
               }
@@ -643,6 +645,13 @@ Rectangle {
                       MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
+                        // Same as the app row above it: click shows that
+                        // app's keymap, double-click goes to the window.
+                        onClicked: {
+                          var h = side.host
+                          if (h)
+                            h.selectSource(appCol.modelData.class)
+                        }
                         onDoubleClicked: {
                           var h = side.host
                           if (h)
@@ -685,6 +694,13 @@ Rectangle {
                       MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
+                        // Same as the app row above it: click shows that
+                        // app's keymap, double-click goes to the window.
+                        onClicked: {
+                          var h = side.host
+                          if (h)
+                            h.selectSource(appCol.modelData.class)
+                        }
                         onDoubleClicked: {
                           var h = side.host
                           if (h)
