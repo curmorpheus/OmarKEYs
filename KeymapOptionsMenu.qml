@@ -147,7 +147,8 @@ Rectangle {
             if (modelData.id === "caps")
               return menu.host.iconBorders ? "on" : "off"
             if (modelData.id === "group")
-              return menu.host.grouping === "off" ? "off" : "by topic"
+              return menu.host.grouping === "off" ? "off"
+                : (menu.host.grouping === "keytype" ? "by key type" : "by topic")
             if (modelData.id === "sort")
               return menu.host.sortBy === "action" ? "by name"
                 : (menu.host.sortBy === "key" ? "by key" : "by group")
@@ -198,7 +199,7 @@ Rectangle {
               else if (modelData.id === "layout")
                 h.cycleRowLayout()
               else if (modelData.id === "group")
-                h.toggleGrouping()
+                h.cycleGrouping()
               else if (modelData.id === "sort")
                 h.cycleSortBy()
               else

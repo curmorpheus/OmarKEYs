@@ -42,7 +42,7 @@ Item {
   property string chipStyle: "icons"    // full | short | icons
   property string rowLayout: "action"   // keys | action
   property string sortBy: "action"      // section | action | key
-  property string grouping: "topic"     // topic | off
+  property string grouping: "topic"     // topic | keytype | off
   property string searchMode: "all"     // all | keys | action
   // Which keyboard's keycaps the modifier chips imitate. Mac symbols all
   // four; the PC layouts print words, so they only supply a Super logo.
@@ -186,7 +186,8 @@ Item {
           root.rowLayout = cfg.rowLayout
         if (cfg.sortBy === "action" || cfg.sortBy === "section" || cfg.sortBy === "key")
           root.sortBy = cfg.sortBy
-        if (cfg.grouping === "topic" || cfg.grouping === "off")
+        if (cfg.grouping === "topic" || cfg.grouping === "keytype"
+            || cfg.grouping === "off")
           root.grouping = cfg.grouping
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
@@ -1002,8 +1003,9 @@ Item {
     root.saveConfig()
   }
 
-  function toggleGrouping() {
-    root.grouping = root.grouping === "topic" ? "off" : "topic"
+  function cycleGrouping() {
+    root.grouping = root.grouping === "topic" ? "keytype"
+      : (root.grouping === "keytype" ? "off" : "topic")
     root.saveConfig()
   }
 

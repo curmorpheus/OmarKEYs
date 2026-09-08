@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.displayClasses = displayClasses;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.keyTypeOf = keyTypeOf; this.displayClasses = displayClasses;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -477,4 +477,36 @@ test("the Omarchy mark is one glyph, shared by the tree and the keyboard set", (
   assert.equal(context.modifierIcon("Super", "omarchy"), context.omarchyIcon())
   // In the overlay's font, so it draws as a shape rather than a box.
   assert.equal(context.isIconGlyph(context.omarchyIcon()), true)
+})
+
+test("grouping by key type buckets on the key you press", () => {
+  assert.equal(context.keyTypeOf("Super + 4"), "Numbers")
+  assert.equal(context.keyTypeOf("Super + Ctrl + 1-9, 0"), "Numbers")
+  assert.equal(context.keyTypeOf("Super + Shift + K"), "Alpha")
+  assert.equal(context.keyTypeOf("Super + Return"), "Special")
+  assert.equal(context.keyTypeOf("Super + bracketleft"), "Special")
+  assert.equal(context.keyTypeOf("Super + F9"), "Special", "a function key is not a letter")
+  // Not keys on a keyboard: a mouse button, a media key, and a gesture --
+  // the gesture survives splitKeys whole, so it is caught before the rest.
+  assert.equal(context.keyTypeOf("Super + Left + Mouse + Button"), "Non-keyboard")
+  assert.equal(context.keyTypeOf("XF86AudioMute"), "Non-keyboard")
+  assert.equal(context.keyTypeOf("Double-tap Super"), "Non-keyboard")
+  assert.equal(context.keyTypeOf("Hold Super 5s"), "Non-keyboard")
+
+  context.setSections([
+    { title: "One", rows: [{ keys: "Super + K", action: "k" },
+                           { keys: "XF86AudioMute", action: "mute" }] },
+    { title: "Two", rows: [{ keys: "Super + 4", action: "four" },
+                           { keys: "Super + Return", action: "ret" }] }
+  ])
+  context.setConfig({ grouping: "keytype", sortBy: "action" })
+  const g = context.filtered("")
+  assert.equal(JSON.stringify(g.map((s) => s.title)),
+    JSON.stringify(["Numbers", "Alpha", "Special", "Non-keyboard"]), "fixed order")
+  assert.equal(JSON.stringify(g.map((s) => s.rows.length)), JSON.stringify([1, 1, 1, 1]))
+  // Buckets gather across topics, and an empty one is left out entirely.
+  context.setSections([{ title: "One", rows: [{ keys: "Super + K", action: "k" }] }])
+  context.setConfig({ grouping: "keytype", sortBy: "action" })
+  assert.equal(JSON.stringify(context.filtered("").map((s) => s.title)),
+    JSON.stringify(["Alpha"]), "no bare headings for empty buckets")
 })

@@ -242,6 +242,29 @@ function sortKeyOf(keys) {
   return parts.length ? parts[parts.length - 1] : ""
 }
 
+// The four buckets "group by key type" sorts into, in the order they are
+// shown. Numbers and letters are what you hunt for most; special keys are
+// the named and punctuation caps; anything that is not a key on the
+// keyboard at all -- mouse buttons, media keys, Super gestures -- goes
+// last rather than being filed under a letter it does not have.
+var KEY_TYPES = ["Numbers", "Alpha", "Special", "Non-keyboard"]
+
+function keyTypeOf(keys) {
+  var raw = String(keys || "")
+  // A gesture is a way of holding a key, not a key, and its whole chord
+  // survives splitKeys intact -- so it has to be spotted before the rest.
+  if (/^(Double-tap|Hold )/i.test(raw))
+    return "Non-keyboard"
+  var key = sortKeyOf(raw)
+  if (keyClass(key) !== "key")
+    return "Non-keyboard"
+  if (/^[0-9]/.test(key))
+    return "Numbers"
+  if (/^[A-Za-z]$/.test(key))
+    return "Alpha"
+  return "Special"
+}
+
 function keyClass(name) {
   var key = String(name || "")
   if (key === "LMB" || key === "RMB" || key === "MMB" || key.indexOf("Wheel") === 0)
@@ -558,7 +581,8 @@ function setConfig(cfg) {
     rowLayout: (cfg && cfg.rowLayout === "keys") ? "keys" : "action",
     sortBy: (cfg && (cfg.sortBy === "section" || cfg.sortBy === "key"))
       ? cfg.sortBy : "action",
-    grouping: (cfg && cfg.grouping === "off") ? "off" : "topic",
+    grouping: (cfg && (cfg.grouping === "off" || cfg.grouping === "keytype"))
+      ? cfg.grouping : "topic",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
       ? cfg.searchMode : "all",
     keyboardType: normalizeKeyboardOS(cfg
@@ -802,17 +826,36 @@ function filtered(query) {
     if (rows.length)
       out.push({ title: section.title, rows: rows })
   }
-  if (grouping() === "off") {
-    // One untitled run. Topic order is what the sections were for, so
-    // with them off an unsorted list would be in no order at all --
-    // fall back to the action when nothing else was asked for.
-    var flat = []
-    for (var i = 0; i < out.length; i++)
-      flat = flat.concat(out[i].rows)
-    flat.sort(compareRows)
-    return flat.length ? [{ title: "", rows: flat }] : []
+  if (grouping() === "topic")
+    return out
+
+  // Both remaining modes regroup across topics, so the topic sections are
+  // only ever a staging step here.
+  var flat = []
+  for (var i = 0; i < out.length; i++)
+    flat = flat.concat(out[i].rows)
+  flat.sort(compareRows)
+
+  if (grouping() === "keytype") {
+    var buckets = {}
+    for (var f = 0; f < flat.length; f++) {
+      var type = keyTypeOf(flat[f].keys)
+      if (!buckets[type])
+        buckets[type] = []
+      buckets[type].push(flat[f])
+    }
+    var typed = []
+    for (var t = 0; t < KEY_TYPES.length; t++) {
+      // An empty bucket is left out rather than shown as a bare heading.
+      if (buckets[KEY_TYPES[t]])
+        typed.push({ title: KEY_TYPES[t], rows: buckets[KEY_TYPES[t]] })
+    }
+    return typed
   }
-  return out
+
+  // Ungrouped: one untitled run. Topic order is what the sections were
+  // for, so with them off an unsorted list would be in no order at all.
+  return flat.length ? [{ title: "", rows: flat }] : []
 }
 
 function columns(query) {
