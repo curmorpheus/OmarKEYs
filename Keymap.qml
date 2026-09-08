@@ -41,7 +41,7 @@ Item {
   // compared against each other rather than rebuilt to try.
   property string chipStyle: "icons"    // full | short | icons
   property string rowLayout: "action"   // keys | action
-  property string sortBy: "action"      // section | action | key
+  property string sortBy: "key"         // section | action | key
   property string grouping: "topic"     // topic | keytype | off
   property string searchMode: "all"     // all | keys | action
   // Which keyboard's keycaps the modifier chips imitate. Mac symbols all
@@ -49,7 +49,7 @@ Item {
   property string keyboardType: "windows" // text | mac | windows | omarchy
   // Draw keys as keycaps. Only keys you press get one -- an action the key
   // performs, or a mouse button, is not a cap and does not want a box.
-  property bool iconBorders: true
+  property bool iconBorders: false
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
   // Icons carry their own size: a glyph reads smaller than a letter, and
@@ -954,11 +954,11 @@ Item {
   function restoreDefaults() {
     root.chipStyle = "icons"
     root.rowLayout = "action"
-    root.sortBy = "action"
+    root.sortBy = "key"
     root.grouping = "topic"
     root.searchMode = "all"
     root.keyboardType = "windows"
-    root.iconBorders = true
+    root.iconBorders = false
     root.fontScale = 1.0
     root.iconScale = 1.35
     root.modSuper = "any"

@@ -52,6 +52,9 @@ test("navList and sectionStarts cover filtered rows", () => {
 })
 
 test("digit blocks map onto the first ten sections", () => {
+  // Pinned to topic order: this is about which section a digit lands on,
+  // not about how rows are sorted inside one. The default sort is by key.
+  context.setConfig({ sortBy: "section", grouping: "topic" })
   const items = context.navList("")
   const starts = context.sectionStarts(items)
   const titles = starts.map((i) => items[i].sectionTitle)
@@ -59,6 +62,7 @@ test("digit blocks map onto the first ten sections", () => {
   assert.equal(titles[9], "Notifications")
   assert.ok(items[0].runnable)
   assert.equal(items[0].shortcut.key, "space")
+  context.setConfig({})
 })
 
 test("config hold time and double-tap appear on Main", () => {

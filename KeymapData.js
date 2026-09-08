@@ -579,8 +579,8 @@ function setConfig(cfg) {
     chipStyle: (cfg && (cfg.chipStyle === "short" || cfg.chipStyle === "full"))
       ? cfg.chipStyle : "icons",
     rowLayout: (cfg && cfg.rowLayout === "keys") ? "keys" : "action",
-    sortBy: (cfg && (cfg.sortBy === "section" || cfg.sortBy === "key"))
-      ? cfg.sortBy : "action",
+    sortBy: (cfg && (cfg.sortBy === "section" || cfg.sortBy === "action"))
+      ? cfg.sortBy : "key",
     grouping: (cfg && (cfg.grouping === "off" || cfg.grouping === "keytype"))
       ? cfg.grouping : "topic",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
@@ -603,7 +603,7 @@ function searchMode() {
 }
 
 function sortBy() {
-  return currentConfig.sortBy || "section"
+  return currentConfig.sortBy || "key"
 }
 
 function grouping() {

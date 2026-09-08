@@ -20,7 +20,7 @@ Rectangle {
   // Set only when the board is not grouped by topic: with the headings
   // gone this is the only place a row's topic survives.
   property string topic: ""
-  property bool iconBorders: true
+  property bool iconBorders: false
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35

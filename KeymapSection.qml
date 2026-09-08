@@ -22,7 +22,7 @@ Rectangle {
   property string qualifier: ""
   property string chipStyle: "full"
   property string keyboardType: "windows"
-  property bool iconBorders: true
+  property bool iconBorders: false
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35

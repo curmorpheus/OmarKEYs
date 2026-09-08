@@ -68,10 +68,10 @@ Type while it is open to filter, including digits.
 |---|---|---|
 | Keys | full / short / icons | icons |
 | Keyboard type | text / ⌘ mac /  windows /  omarchy | windows |
-| Icon borders | on / off | on |
+| Icon borders | on / off | off |
 | Order | keys first / action first | action first |
 | Grouping | by topic / by key type / off | by topic |
-| Sort | by group / by name / by key | by name |
+| Sort | by group / by name / by key | by key |
 | Find | all / keys / name | all |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
