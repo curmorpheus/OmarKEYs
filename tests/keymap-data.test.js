@@ -591,3 +591,28 @@ test("filtering by key finds the key pressed, not letters in its name", () => {
   assert.equal(JSON.stringify(found("ackspac")), JSON.stringify(["backspace"]))
   context.setConfig({})
 })
+
+test("a captured keystroke filters as a whole chord", () => {
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + K", action: "plain" },
+    { keys: "Super + Shift + K", action: "shifted" },
+    { keys: "Ctrl + K", action: "ctrl" },
+    { keys: "Super + Return", action: "terminal" }
+  ]}])
+  context.setConfig({ searchMode: "keys" })
+  const found = (q) => context.filtered(q).flatMap((s) => s.rows).map((r) => r.action)
+
+  // Every key in the capture has to be in the row, or capturing Super+K
+  // would show every K bind whatever else it needs held down.
+  assert.equal(JSON.stringify(found("Super + K")), JSON.stringify(["plain", "shifted"]))
+  assert.equal(JSON.stringify(found("Ctrl + K")), JSON.stringify(["ctrl"]))
+  assert.equal(JSON.stringify(found("Super + Shift + K")), JSON.stringify(["shifted"]))
+  // A bare key still finds every chord that uses it.
+  assert.equal(found("K").length, 3)
+  // Modifiers on their own narrow rather than match nothing.
+  assert.equal(JSON.stringify(found("Shift")), JSON.stringify(["shifted"]))
+  // Escape is capturable even though it is the overlay's way out.
+  context.setSections([{ title: "One", rows: [{ keys: "Super + Escape", action: "sys" }] }])
+  assert.equal(JSON.stringify(found("Escape")), JSON.stringify(["sys"]))
+  context.setConfig({})
+})

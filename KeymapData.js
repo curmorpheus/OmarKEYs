@@ -648,11 +648,22 @@ function keyMatchesQuery(keys, q) {
   if (!query)
     return true
   var parts = collapseMouse(splitKeys(keys))
-  for (var i = 0; i < parts.length; i++) {
-    if (partMatchesKey(parts[i], query))
-      return true
+  // A captured keystroke arrives as a whole chord ("super + shift + k"),
+  // so every key in it has to be in the row -- otherwise capturing
+  // Super+K would show every K bind whatever else it needs held down.
+  var wanted = splitKeys(query)
+  if (!wanted.length)
+    return true
+  for (var w = 0; w < wanted.length; w++) {
+    var hit = false
+    for (var i = 0; i < parts.length && !hit; i++) {
+      if (partMatchesKey(parts[i], wanted[w]))
+        hit = true
+    }
+    if (!hit)
+      return false
   }
-  return false
+  return true
 }
 
 // Whole keys only, never a fragment of one.

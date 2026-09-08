@@ -149,6 +149,7 @@ Item {
     root.contextAddressLatched = false
     root.branchMenuOpen = false
     root.optionsMenuOpen = false
+    root.filterCapturing = false
     root.selected = 0
     root.applyConfigToData()
     root.refreshKeymap()
@@ -685,6 +686,53 @@ Item {
   // replaces what is in the box rather than adding to it. Typing "gh"
   // looking for h would otherwise leave you filtering on a chord nothing
   // is bound to.
+  // Armed by clicking the filter box in key mode. The next keystroke is
+  // taken whole -- Return and Escape included, which is the only way to
+  // filter on them, since they do other jobs the rest of the time.
+  property bool filterCapturing: false
+
+  function toggleFilterCapture() {
+    root.filterCapturing = !root.filterCapturing
+  }
+
+  function isModifierKey(event) {
+    return event.key === Qt.Key_Shift || event.key === Qt.Key_Control
+      || event.key === Qt.Key_Alt || event.key === Qt.Key_AltGr
+      || event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L
+      || event.key === Qt.Key_Super_R || event.key === Qt.Key_CapsLock
+  }
+
+  // The chord a captured keystroke stands for. Modifiers come along with
+  // the key rather than counting as the key, so holding Super and hitting
+  // K gives "Super + K" and not two captures.
+  function captureChord(event) {
+    var name = root.namedFilterKey(event)
+    if (!name && event.key === Qt.Key_Escape)
+      name = "Escape"
+    if (!name && event.key >= Qt.Key_A && event.key <= Qt.Key_Z)
+      name = String.fromCharCode(65 + (event.key - Qt.Key_A))
+    if (!name && event.key >= Qt.Key_0 && event.key <= Qt.Key_9)
+      name = String(event.key - Qt.Key_0)
+    if (!name && event.text && event.text.length === 1
+        && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127)
+      name = event.text
+    if (!name)
+      return ""
+    var parts = []
+    if (event.modifiers & Qt.MetaModifier)
+      parts.push("Super")
+    if (event.modifiers & Qt.ControlModifier)
+      parts.push("Ctrl")
+    if (event.modifiers & Qt.AltModifier)
+      parts.push("Alt")
+    // Shift is part of the chord, not of the letter: Hyprland writes
+    // "Super + Shift + B", never "Super + B" with a capital B.
+    if (event.modifiers & Qt.ShiftModifier)
+      parts.push("Shift")
+    parts.push(name)
+    return parts.join(" + ")
+  }
+
   // What a bare named key would filter on. Letters, digits and punctuation
   // already arrive as text; these are the ones that do not.
   function namedFilterKey(event) {
@@ -1407,6 +1455,20 @@ Item {
       }
       return
     }
+    // Armed capture runs ahead of every control key, or Escape and Return
+    // would never reach it.
+    if (root.filterCapturing) {
+      if (root.isModifierKey(event))
+        return
+      var captured = root.captureChord(event)
+      if (captured) {
+        root.filterCapturing = false
+        root.setFilter(captured)
+      }
+      event.accepted = true
+      return
+    }
+
     if (event.key === Qt.Key_Escape) {
       if (root.branchMenuOpen || root.optionsMenuOpen) {
         root.branchMenuOpen = false

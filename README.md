@@ -49,10 +49,15 @@ Type while it is open to filter, including digits.
 Under the tree sit the settings worth reaching for while reading the board,
 without opening the popup: **Grouping** 󰋃, **Sort** 󰒺 and **Order** 󰣟, each
 showing its current mode underneath and cycling on click. Order swaps
-between keys first and keys last. Below them the **Filter** 󰈲 shares a row
-with what is being filtered on — clicking the icon changes what is matched,
-and typing anywhere in the overlay lands in the box. Clicking the box
-clears. Filtering by key holds a *single* key, so a keystroke
+between keys first and keys last. The **Filter** 󰈲 keeps its own column under Grouping, mode label and all,
+with the box beside it across the other two. Clicking the icon changes what
+is matched; typing anywhere in the overlay lands in the box.
+
+In key mode, clicking the box arms it: the next keystroke is taken whole,
+modifiers included, so `Super+Shift+B` filters on that chord and finds the
+binds that use all of it. That is the only way to filter on Return or
+Escape, which do other jobs the rest of the time. Elsewhere, clicking the
+box clears it. Filtering by key holds a *single* key, so a keystroke
 replaces what is in the box rather than adding to it, and it matches whole
 keys only — pressing `k` finds binds on K, not every chord with a `k`
 somewhere in a key's name. A digit matches the ranges that contain it, so
@@ -61,9 +66,9 @@ somewhere in a key's name. A digit matches the ranges that contain it, so
 In key mode the named keys filter as themselves too, so pressing Delete
 finds what Delete is bound to. Keys that also drive the overlay — Return,
 Tab, Backspace and the arrows — filter only while the box is empty; once
-there are results they go back to moving through them. **Escape** is the
-one key you cannot filter on: it clears the box, and closes the overlay
-when the box is already empty.
+there are results they go back to moving through them. **Escape** clears the
+box, and closes the overlay when the box is already empty — so to filter
+*on* Escape, arm the box and press it.
 
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups

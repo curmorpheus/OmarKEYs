@@ -810,24 +810,48 @@ Rectangle {
         }
       }
 
-      // The filter icon sits with what it is filtering on. Clicking the
-      // icon changes what is matched; the box shows the filter rather
-      // than taking focus for it -- typing anywhere in the overlay
-      // already lands there, and a real field would have to fight the
-      // layer's keyboard grab. Clicking the box clears.
+      // The filter keeps its own column under Grouping, mode label and
+      // all, so it reads as the fourth of the same kind of control. What
+      // it is filtering on takes the width of the other two.
       Row {
+        id: filterRow
         width: parent.width
-        spacing: Style.space(6)
 
-        Text {
-          id: filterGlyph
-          anchors.verticalCenter: filterBox.verticalCenter
-          text: "\udb80\ude32"
-          textFormat: Text.PlainText
-          color: filterModeArea.containsMouse ? side.chipFg : side.foreground
-          opacity: filterModeArea.containsMouse ? 1 : 0.75
-          font.family: side.fontFamily
-          font.pixelSize: Math.round(side.rootFontSize * 3.4)
+        Item {
+          width: controlRow.width / 3
+          height: filterGlyph.height + filterMode.height + Style.space(2)
+
+          Text {
+            id: filterGlyph
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "\udb80\ude32"
+            textFormat: Text.PlainText
+            color: filterModeArea.containsMouse ? side.chipFg : side.foreground
+            opacity: filterModeArea.containsMouse ? 1 : 0.75
+            font.family: side.fontFamily
+            font.pixelSize: Math.round(side.rootFontSize * 3.4)
+          }
+
+          Text {
+            id: filterMode
+            anchors.top: filterGlyph.bottom
+            anchors.topMargin: Style.space(2)
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: {
+              var h = side.host
+              if (!h)
+                return ""
+              return h.searchMode === "keys" ? "key"
+                : (h.searchMode === "action" ? "description" : "all")
+            }
+            textFormat: Text.PlainText
+            color: filterModeArea.containsMouse ? side.chipFg : side.foreground
+            opacity: 0.55
+            font.family: side.fontFamily
+            font.pixelSize: side.subFontSize
+            elide: Text.ElideRight
+          }
 
           MouseArea {
             id: filterModeArea
@@ -838,15 +862,19 @@ Rectangle {
           }
         }
 
+        // Sits across the other two columns, level with the glyph rather
+        // than the label under it.
         Rectangle {
           id: filterBox
-          width: parent.width - filterGlyph.width - Style.space(6)
+          y: Math.round(filterGlyph.height / 2 - height / 2)
+          width: filterRow.width - controlRow.width / 3
           height: Math.max(Style.space(20), filterText.implicitHeight + 6)
           radius: 4
           color: "transparent"
           border.width: 1
-          border.color: filterArea.containsMouse ? side.chipFg : side.borderColor
-          opacity: filterArea.containsMouse ? 1 : 0.8
+          border.color: (side.host && side.host.filterCapturing) ? side.chipFg
+            : (filterArea.containsMouse ? side.chipFg : side.borderColor)
+          opacity: filterArea.containsMouse || (side.host && side.host.filterCapturing) ? 1 : 0.8
 
           Text {
             id: filterText
@@ -855,17 +883,22 @@ Rectangle {
             anchors.leftMargin: Style.space(5)
             anchors.rightMargin: Style.space(5)
             anchors.verticalCenter: parent.verticalCenter
+            readonly property bool arming: !!(side.host && side.host.filterCapturing)
             readonly property string hint: {
               var h = side.host
               if (!h)
                 return "type to filter"
-              return h.searchMode === "keys" ? "press a key"
+              if (h.filterCapturing)
+                return "press any key…"
+              return h.searchMode === "keys" ? "click, then press a key"
                 : (h.searchMode === "action" ? "type a description" : "type to filter")
             }
-            text: (side.host && side.host.filterText) ? side.host.filterText : hint
+            text: (!arming && side.host && side.host.filterText)
+              ? side.host.filterText : hint
             textFormat: Text.PlainText
-            color: (side.host && side.host.filterText) ? side.chipFg : side.foreground
-            opacity: (side.host && side.host.filterText) ? 1 : 0.4
+            color: (arming || (side.host && side.host.filterText))
+              ? side.chipFg : side.foreground
+            opacity: (!arming && side.host && side.host.filterText) ? 1 : 0.5
             font.family: side.fontFamily
             font.pixelSize: side.subFontSize
             elide: Text.ElideRight
@@ -876,7 +909,18 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: if (side.host) side.host.setFilter("")
+            // In key mode the box takes the next keystroke whole, which is
+            // the only way to filter on Return or Escape -- they do other
+            // jobs the rest of the time. Elsewhere a click just clears.
+            onClicked: {
+              var h = side.host
+              if (!h)
+                return
+              if (h.searchMode === "keys")
+                h.toggleFilterCapture()
+              else
+                h.setFilter("")
+            }
           }
         }
       }
