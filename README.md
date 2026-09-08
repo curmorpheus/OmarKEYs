@@ -73,9 +73,11 @@ Type while it is open to filter, including digits.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 
-*Filters* — Super, Shift, Ctrl and Alt in a 2×2 grid, each **A**ll,
-**M**ust or **H**ide. Click a key to cycle it, or click a legend word to
-set all four.
+*Filters* — Super, Shift, Ctrl and Alt in a 2×2 grid. A **clear** key is
+**A**ll and carries no mark; click it to require it (**M**ust), again to
+drop rows that use it (**H**ide), again to clear. Only the states you
+chose are marked, so anything showing a letter is a filter you set. The
+legend words set all four at once.
 
 *Opening* — Super+K on/off, double-tap Super on/off, and hold-Super
 duration (1–10s).

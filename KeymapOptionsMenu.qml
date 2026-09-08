@@ -317,6 +317,17 @@ Rectangle {
       font.pixelSize: menu.labelSize
     }
 
+    // The mark column keeps this width whether or not a key carries one,
+    // so clearing a key does not shuffle the caps sideways.
+    Text {
+      id: markMetric
+      visible: false
+      text: "M"
+      font.bold: true
+      font.family: menu.fontFamily
+      font.pixelSize: menu.labelSize
+    }
+
     Grid {
       id: modGrid
       width: content.width
@@ -334,7 +345,11 @@ Rectangle {
             : modelData === "Shift" ? menu.host.modShift
             : modelData === "Ctrl" ? menu.host.modCtrl
             : menu.host.modAlt
-          readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "A")
+          // A clear key is "All" and carries no mark: that is the resting
+          // state of every key, so marking it says nothing and four "A"s
+          // read as though something were set. Only Must and Hide, the
+          // states you chose, announce themselves.
+          readonly property string mark: mode === "must" ? "M" : (mode === "hide" ? "H" : "")
 
           width: modGrid.width / 2
           height: capMetric.implicitHeight + Style.space(8)
@@ -344,7 +359,7 @@ Rectangle {
             id: keyCap
             // Centres the key and its state as one group in the half-column.
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.horizontalCenterOffset: -(Style.space(3) + markLabel.implicitWidth) / 2
+            anchors.horizontalCenterOffset: -(Style.space(3) + markLabel.width) / 2
             anchors.verticalCenter: parent.verticalCenter
             width: capMetric.implicitWidth + Style.space(12)
             height: capMetric.implicitHeight + Style.space(8)
@@ -371,6 +386,8 @@ Rectangle {
             anchors.left: keyCap.right
             anchors.leftMargin: Style.space(3)
             anchors.verticalCenter: parent.verticalCenter
+            width: markMetric.implicitWidth
+            horizontalAlignment: Text.AlignLeft
             text: cell.mark
             textFormat: Text.PlainText
             color: cell.mode === "any" ? menu.foreground : menu.chipFg
