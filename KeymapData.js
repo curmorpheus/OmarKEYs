@@ -226,6 +226,22 @@ var KEY_SYMBOLS = {
 // A chip is one of three things, and they do not want the same treatment:
 // a key you press, an action the key performs, or a mouse button. Only
 // the first is a keycap, so only the first takes a border.
+var MODIFIER_PARTS = {
+  Super: true, Shift: true, Ctrl: true, Control: true, Alt: true
+}
+
+// What a chord is *about*: the key you actually press. Sorting on the
+// whole string files every Super bind under S, which is no order at all
+// when almost everything starts with Super.
+function sortKeyOf(keys) {
+  var parts = collapseMouse(splitKeys(keys))
+  for (var i = parts.length - 1; i >= 0; i--) {
+    if (!MODIFIER_PARTS[parts[i]])
+      return parts[i]
+  }
+  return parts.length ? parts[parts.length - 1] : ""
+}
+
 function keyClass(name) {
   var key = String(name || "")
   if (key === "LMB" || key === "RMB" || key === "MMB" || key.indexOf("Wheel") === 0)
@@ -530,7 +546,9 @@ function setConfig(cfg) {
     chipStyle: (cfg && (cfg.chipStyle === "short" || cfg.chipStyle === "full"))
       ? cfg.chipStyle : "icons",
     rowLayout: (cfg && cfg.rowLayout === "keys") ? "keys" : "action",
-    sortBy: (cfg && cfg.sortBy === "section") ? "section" : "action",
+    sortBy: (cfg && (cfg.sortBy === "section" || cfg.sortBy === "key"))
+      ? cfg.sortBy : "action",
+    grouping: (cfg && cfg.grouping === "off") ? "off" : "topic",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
       ? cfg.searchMode : "all",
     keyboardType: normalizeKeyboardOS(cfg
@@ -552,6 +570,36 @@ function searchMode() {
 
 function sortBy() {
   return currentConfig.sortBy || "section"
+}
+
+function grouping() {
+  return currentConfig.grouping || "topic"
+}
+
+function compareRows(a, b) {
+  var mode = sortBy()
+  var av, bv
+  if (mode === "key") {
+    av = sortKeyOf(a.keys).toLowerCase()
+    bv = sortKeyOf(b.keys).toLowerCase()
+    // Letters and digits first. Punctuation sorts below them in code
+    // order, which would open the list with , - . / before any key you
+    // are likely to be hunting for.
+    var ar = /^[a-z0-9]/.test(av) ? 0 : 1
+    var br = /^[a-z0-9]/.test(bv) ? 0 : 1
+    if (ar !== br)
+      return ar - br
+  } else {
+    av = String(a.action).toLowerCase()
+    bv = String(b.action).toLowerCase()
+  }
+  if (av !== bv)
+    return av < bv ? -1 : 1
+  // Same key, so fall back to the action -- two rows on the same chord
+  // should still land in a stable order rather than however they arrived.
+  var aa = String(a.action).toLowerCase()
+  var ba = String(b.action).toLowerCase()
+  return aa < ba ? -1 : (aa > ba ? 1 : 0)
 }
 
 // Which field the query is tested against. "Search by modifiers" means the
@@ -739,14 +787,20 @@ function filtered(query) {
       if (rowMatchesQuery(row, section.title, q))
         rows.push(row)
     }
-    if (sortBy() === "action") {
-      rows = rows.slice().sort(function (a, b) {
-        return String(a.action).toLowerCase() < String(b.action).toLowerCase() ? -1
-          : (String(a.action).toLowerCase() > String(b.action).toLowerCase() ? 1 : 0)
-      })
-    }
+    if (sortBy() !== "section")
+      rows = rows.slice().sort(compareRows)
     if (rows.length)
       out.push({ title: section.title, rows: rows })
+  }
+  if (grouping() === "off") {
+    // One untitled run. Topic order is what the sections were for, so
+    // with them off an unsorted list would be in no order at all --
+    // fall back to the action when nothing else was asked for.
+    var flat = []
+    for (var i = 0; i < out.length; i++)
+      flat = flat.concat(out[i].rows)
+    flat.sort(compareRows)
+    return flat.length ? [{ title: "", rows: flat }] : []
   }
   return out
 }
@@ -755,6 +809,17 @@ function columns(query) {
   var all = filtered(query)
   var left = []
   var right = []
+  // Ungrouped: there is one block, so alternating sections would leave the
+  // right column empty. Split the run down the middle instead.
+  if (all.length === 1 && all[0].title === "") {
+    var rows = all[0].rows
+    var half = Math.ceil(rows.length / 2)
+    if (half)
+      left.push({ title: "", rows: rows.slice(0, half), sectionIndex: 0 })
+    if (rows.length > half)
+      right.push({ title: "", rows: rows.slice(half), sectionIndex: 0 })
+    return { left: left, right: right }
+  }
   for (var i = 0; i < all.length; i++) {
     var block = { title: all[i].title, rows: all[i].rows, sectionIndex: i }
     if (i % 2 === 0)

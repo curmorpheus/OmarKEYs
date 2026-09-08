@@ -69,7 +69,8 @@ Type while it is open to filter, including digits.
 | Keyboard type | text / mac / windows / omarchy | windows |
 | Icon borders | on / off | on |
 | Order | keys first / action first | action first |
-| Sort | by group / by name | by name |
+| Grouping | by topic / off | by topic |
+| Sort | by group / by name / by key | by name |
 | Find | all / keys / name | all |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
@@ -93,6 +94,12 @@ the words, so those sets supply a logo for Super and leave the rest as
 text. Omarchy's own mark is block-drawing art rather than a font glyph,
 so that set uses the Arch logo. Every glyph was checked against the
 overlay's font before mapping.
+
+**Grouping** off drops the topic cards and lists every row as one run,
+split down the middle across the two columns. **Sort by key** files a
+chord under the key you actually press — `Super+Shift+K` sorts under `K`.
+Sorting on the whole chord would file almost everything under S, since
+almost every bind starts with Super.
 
 **Icon borders** draws a cap around each key. Only keys you press get
 one — a glyph standing for what the key *does* (volume, brightness) or for

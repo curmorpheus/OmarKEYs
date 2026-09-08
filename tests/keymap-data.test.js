@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.displayClasses = displayClasses;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.displayClasses = displayClasses;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -404,4 +404,67 @@ test("Delete reads DEL rather than a glyph that looks like a close button", () =
   assert.equal(context.shortKey("Delete"), "DEL")
   // Still a word, so it is drawn as a capped chip rather than a loose glyph.
   assert.equal(context.isIconGlyph("DEL"), false)
+})
+
+test("sort by key files a chord under the key you press", () => {
+  // Sorting the whole chord string files every Super bind under S, which
+  // is no order at all when almost everything starts with Super.
+  assert.equal(context.sortKeyOf("Super + Shift + K"), "K")
+  assert.equal(context.sortKeyOf("Super + Ctrl + Alt + Delete"), "Delete")
+  assert.equal(context.sortKeyOf("K"), "K")
+  // A collapsed mouse button is the key here, not the word "Button".
+  assert.equal(context.sortKeyOf("Super + Left + Mouse + Button"), "LMB")
+  // All modifiers: nothing else to file it under, so use what is there.
+  assert.equal(context.sortKeyOf("Super + Shift"), "Shift")
+  assert.equal(context.sortKeyOf(""), "")
+
+  // Letters and digits lead. Punctuation sorts below them in code order,
+  // which would otherwise open the list with , - . / before any key you
+  // are likely to be hunting for.
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + comma", action: "c" },
+    { keys: "Super + B", action: "b" },
+    { keys: "Super + 1", action: "a" }
+  ]}])
+  context.setConfig({ sortBy: "key", grouping: "topic" })
+  assert.equal(JSON.stringify(context.filtered("")[0].rows.map((r) => context.sortKeyOf(r.keys))),
+    JSON.stringify(["1", "B", "comma"]))
+
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + Z", action: "alpha" },
+    { keys: "Super + A", action: "zulu" }
+  ]}])
+  context.setConfig({ sortBy: "key", grouping: "topic" })
+  assert.equal(JSON.stringify(context.filtered("").map((s) => s.rows.map((r) => r.keys))),
+    JSON.stringify([["Super + A", "Super + Z"]]), "by key")
+  context.setConfig({ sortBy: "action", grouping: "topic" })
+  assert.equal(JSON.stringify(context.filtered("").map((s) => s.rows.map((r) => r.keys))),
+    JSON.stringify([["Super + Z", "Super + A"]]), "by name")
+})
+
+test("grouping off is one untitled run, split down the middle", () => {
+  context.setSections([
+    { title: "One", rows: [{ keys: "Super + B", action: "bravo" }] },
+    { title: "Two", rows: [{ keys: "Super + A", action: "alpha" },
+                           { keys: "Super + C", action: "charlie" }] }
+  ])
+  context.setConfig({ grouping: "topic", sortBy: "action" })
+  const grouped = context.filtered("")
+  assert.equal(grouped.length, 2, "topics stay apart")
+  assert.equal(JSON.stringify(grouped.map((s) => s.title)), JSON.stringify(["One", "Two"]))
+
+  context.setConfig({ grouping: "off", sortBy: "action" })
+  const flat = context.filtered("")
+  assert.equal(flat.length, 1, "one block")
+  assert.equal(flat[0].title, "", "untitled, so the board draws no heading")
+  assert.equal(JSON.stringify(flat[0].rows.map((r) => r.action)),
+    JSON.stringify(["alpha", "bravo", "charlie"]), "sorted across topics, not within them")
+
+  // One block would otherwise pile into the left column and leave the
+  // right one empty.
+  const cols = context.columns("")
+  assert.equal(cols.left.length, 1)
+  assert.equal(cols.right.length, 1)
+  assert.equal(cols.left[0].rows.length + cols.right[0].rows.length, 3)
+  assert.equal(cols.left[0].rows.length, 2, "odd counts lean left")
 })

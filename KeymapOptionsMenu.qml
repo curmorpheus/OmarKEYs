@@ -101,6 +101,7 @@ Rectangle {
         { id: "super",  label: "Keyboard type" },
         { id: "caps",   label: "Icon borders" },
         { id: "layout", label: "Order" },
+        { id: "group",  label: "Grouping" },
         { id: "sort",   label: "Sort" },
         { id: "search", label: "Find" }
       ]
@@ -121,8 +122,11 @@ Rectangle {
           }
           if (modelData.id === "caps")
             return menu.host.iconBorders ? "on" : "off"
+          if (modelData.id === "group")
+            return menu.host.grouping === "off" ? "off" : "by topic"
           if (modelData.id === "sort")
-            return menu.host.sortBy === "action" ? "by name" : "by group"
+            return menu.host.sortBy === "action" ? "by name"
+              : (menu.host.sortBy === "key" ? "by key" : "by group")
           return menu.host.searchMode === "keys" ? "keys"
             : (menu.host.searchMode === "action" ? "name" : "all")
         }
@@ -169,6 +173,8 @@ Rectangle {
               h.toggleIconBorders()
             else if (modelData.id === "layout")
               h.cycleRowLayout()
+            else if (modelData.id === "group")
+              h.toggleGrouping()
             else if (modelData.id === "sort")
               h.cycleSortBy()
             else

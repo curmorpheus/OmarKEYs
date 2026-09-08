@@ -48,9 +48,12 @@ Rectangle {
     anchors.margins: Style.spacing.sm
     spacing: Style.space(5)
 
+    // Ungrouped rows arrive as one untitled block; an empty heading would
+    // still reserve its line and a blank gap above the rows.
     Item {
       width: sectionCol.width
-      height: titleRow.height
+      visible: section.title.length > 0
+      height: visible ? titleRow.height : 0
 
       Row {
         id: titleRow

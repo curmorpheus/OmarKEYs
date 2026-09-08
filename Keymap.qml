@@ -41,7 +41,8 @@ Item {
   // compared against each other rather than rebuilt to try.
   property string chipStyle: "icons"    // full | short | icons
   property string rowLayout: "action"   // keys | action
-  property string sortBy: "action"      // section | action
+  property string sortBy: "action"      // section | action | key
+  property string grouping: "topic"     // topic | off
   property string searchMode: "all"     // all | keys | action
   // Which keyboard's keycaps the modifier chips imitate. Mac symbols all
   // four; the PC layouts print words, so they only supply a Super logo.
@@ -123,6 +124,7 @@ Item {
       chipStyle: root.chipStyle,
       rowLayout: root.rowLayout,
       sortBy: root.sortBy,
+      grouping: root.grouping,
       searchMode: root.searchMode,
       keyboardType: root.keyboardType,
       iconBorders: root.iconBorders,
@@ -182,8 +184,10 @@ Item {
           root.chipStyle = cfg.chipStyle
         if (cfg.rowLayout === "action" || cfg.rowLayout === "keys")
           root.rowLayout = cfg.rowLayout
-        if (cfg.sortBy === "action" || cfg.sortBy === "section")
+        if (cfg.sortBy === "action" || cfg.sortBy === "section" || cfg.sortBy === "key")
           root.sortBy = cfg.sortBy
+        if (cfg.grouping === "topic" || cfg.grouping === "off")
+          root.grouping = cfg.grouping
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
         // keyboardOS and superIcon are earlier names for this setting.
@@ -922,7 +926,8 @@ Item {
   }
 
   function cycleSortBy() {
-    root.sortBy = root.sortBy === "section" ? "action" : "section"
+    root.sortBy = root.sortBy === "section" ? "action"
+      : (root.sortBy === "action" ? "key" : "section")
     root.saveConfig()
   }
 
@@ -949,6 +954,7 @@ Item {
     root.chipStyle = "icons"
     root.rowLayout = "action"
     root.sortBy = "action"
+    root.grouping = "topic"
     root.searchMode = "all"
     root.keyboardType = "windows"
     root.iconBorders = true
@@ -993,6 +999,11 @@ Item {
     root.keyboardType = root.keyboardType === "text" ? "mac"
       : (root.keyboardType === "mac" ? "windows"
       : (root.keyboardType === "windows" ? "omarchy" : "text"))
+    root.saveConfig()
+  }
+
+  function toggleGrouping() {
+    root.grouping = root.grouping === "topic" ? "off" : "topic"
     root.saveConfig()
   }
 
