@@ -119,7 +119,8 @@ exclusive: picking a window swaps the whole board to that app's sheet.
 
 ### Run a command (dispatch, not chord replay)
 
-- [x] Click or Enter runs the highlighted Omarchy bind and closes the overlay
+- [x] Double-click or Enter runs the highlighted Omarchy bind and closes
+      the overlay; a single click only highlights
 - [x] `dump-keymap` recovers each bind's real dispatcher+arg (stubbed Lua
       `bind()`, because `hyprctl binds` reports every Lua bind as `__lua`)
 - [x] `run-shortcut --dispatch <kind> <arg>` runs that action (`exec`,
