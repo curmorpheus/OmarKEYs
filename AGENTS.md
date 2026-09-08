@@ -21,7 +21,7 @@ so `omarchy plugin add <git-url>` works.
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Channel picker state: switch + sync |
-| `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
+| `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly / Untested |
 | `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
 | `install.sh` | Install plugin (real directory; `--dev` to symlink), wire Hyprland |
 | `RELEASE.md` | Release notes. Grok updates this when promoting `beta` → `main`. |
@@ -58,8 +58,8 @@ tested on `beta`.
 | `main` | Main | Grok | `beta`, when Claude calls one finished |
 | `beta` | Beta | Claude | `develop` |
 | `develop` | Nightly | Claude | `develop-claude`; PRs from `develop-cursor` |
-| `develop-claude` | Nightly | Claude | direct work |
-| `develop-cursor` | Nightly | Cursor | direct work; PRs into `develop` |
+| `develop-claude` | Untested | Claude | direct work |
+| `develop-cursor` | Untested | Cursor | direct work; PRs into `develop` |
 
 Claude works on `develop-claude` and brings it into `develop` once it is
 approved, then ships `develop` to `beta`. Grok pulls a finished `beta`
@@ -80,7 +80,7 @@ They are not interchangeable, though:
 | On channel | Use |
 |---|---|
 | Main | `omarchy plugin update`, or the picker |
-| Beta, Nightly | the picker's **Sync** only |
+| Beta, Nightly, Untested | the picker's **Sync** only |
 
 `omarchy plugin update` fetches `origin HEAD`, which is always `main`, and
 fast-forwards whatever branch is checked out onto it. Run it while the

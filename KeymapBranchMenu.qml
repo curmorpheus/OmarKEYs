@@ -19,7 +19,7 @@ Rectangle {
   readonly property bool dirty: host ? host.gitDirty : false
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
-  property bool nightlyOpen: !!(host && host.gitChannel === "nightly")
+  property bool untestedOpen: !!(host && host.gitChannel === "untested")
 
   width: Style.space(280)
   height: Math.min(Style.space(320), content.implicitHeight + Style.spacing.sm * 2)
@@ -145,19 +145,20 @@ Rectangle {
       font.capitalization: Font.AllUppercase
     }
 
-    // Main and Beta are one click. Nightly is a disclosure: it opens the
-    // full branch list rather than switching, so nobody lands on a working
-    // branch by accident, and picking one costs a single restart.
+    // The three channels are each the tip of one branch, so each is one
+    // click. Untested is a disclosure: it opens the rest of the branches
+    // rather than switching, so nobody lands on one by accident.
     Repeater {
       model: [
         { id: "main", label: "Main", note: "stable" },
         { id: "beta", label: "Beta", note: "tested, ahead of stable" },
-        { id: "nightly", label: "Nightly", note: "every working branch" }
+        { id: "nightly", label: "Nightly", note: "develop" },
+        { id: "untested", label: "Untested", note: "every other branch" }
       ]
       delegate: Rectangle {
         required property var modelData
         readonly property bool current: !!(host && host.gitChannel === modelData.id)
-        readonly property bool isNightly: modelData.id === "nightly"
+        readonly property bool isUntested: modelData.id === "untested"
         width: content.width
         height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
         radius: 4
@@ -172,7 +173,7 @@ Rectangle {
           anchors.verticalCenter: parent.verticalCenter
           text: (current ? "• " : "  ")
             + modelData.label
-            + (isNightly ? (menu.nightlyOpen ? "  ▾" : "  ▸") : "")
+            + (isUntested ? (menu.untestedOpen ? "  ▾" : "  ▸") : "")
             + "   " + modelData.note
           textFormat: Text.PlainText
           color: current ? menu.chipFg : menu.foreground
@@ -192,8 +193,8 @@ Rectangle {
             var h = menu.host
             if (!h || h.gitBusy)
               return
-            if (isNightly) {
-              menu.nightlyOpen = !menu.nightlyOpen
+            if (isUntested) {
+              menu.untestedOpen = !menu.untestedOpen
               return
             }
             if (current)
@@ -206,7 +207,7 @@ Rectangle {
 
     Flickable {
       width: parent.width
-      visible: menu.nightlyOpen
+      visible: menu.untestedOpen
       height: visible ? Math.min(Style.space(150), branchCol.height) : 0
       clip: true
       contentWidth: width
@@ -220,8 +221,8 @@ Rectangle {
         spacing: 1
 
         Repeater {
-          // Main and Beta already have their own rows above.
-          model: host ? host.nightlyBranches : []
+          // Main, Beta and Nightly already have their own rows above.
+          model: host ? host.untestedBranches : []
           delegate: Rectangle {
             required property var modelData
             readonly property bool current: !!(host && modelData === host.gitBranch)

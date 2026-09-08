@@ -12,7 +12,8 @@ overlay's corner picker maps to one of its branches:
 | `main` | Main | Grok promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
 | `beta` | Beta | Claude |
 | `develop` | Nightly | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
-| `develop-claude` | Nightly | Claude's working branch |
+| `develop-claude` | Untested | Claude's working branch |
+| `develop-cursor` | Untested | Cursor's working branch |
 
 Cursor does not land on `main`.
 
@@ -121,6 +122,12 @@ above, plus hidden groups and apps and the search box.
 the channel you are on is behind its remote. Click it to switch channel or
 sync — see [Updating](#updating).
 
+Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,
+`develop`), so each is one click. **Untested** is not a channel you switch
+to — it opens the list of every other branch, so nobody lands on a working
+branch by accident. On Untested the corner also names the branch, since
+the channel alone no longer implies it.
+
 App windows with a bundled sheet (Chromium, Ghostty, Nautilus) can be
 selected in the overlay; those sheets live in `sheets/`.
 
@@ -215,7 +222,7 @@ overlay's own corner picker. They divide up like this:
 | On channel | Use |
 |---|---|
 | Main | `omarchy plugin update`, or the picker |
-| Beta / Nightly | the picker's **Sync** |
+| Beta / Nightly / Untested | the picker's **Sync** |
 
 `omarchy plugin update` always fetches the default branch (`main`) and
 fast-forwards the checked-out branch onto it, so running it while on Beta
@@ -262,7 +269,7 @@ user bindings file so Super+chords stay unmodified.
 | `KeymapSection.qml` / `KeymapRow.qml` | One topic card and one command row |
 | `KeymapHideButton.qml` | Show/Hide control, used at every level of the tree |
 | `KeymapOptionsMenu.qml` | Options popup: display, modifiers, opening gestures |
-| `KeymapBranchMenu.qml` | Corner channel picker: Main / Beta / Nightly |
+| `KeymapBranchMenu.qml` | Corner channel picker: Main / Beta / Nightly / Untested |
 | `KeymapData.js` | Filter, catalog, shortcut parse, fallback list |
 | `dump-keymap` | Live Hyprland binds → JSON sections |
 | `run-shortcut` | Runs a row after the overlay closes: dispatches the bind's own action, or sends the chord for app-sheet rows |

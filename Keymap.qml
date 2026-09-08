@@ -371,13 +371,16 @@ Item {
   // Nightly is the escape hatch that opens up every working branch.
   readonly property string mainBranch: "main"
   readonly property string betaBranch: "beta"
+  readonly property string nightlyBranch: "develop"
 
   function channelFor(branch) {
     if (branch === root.mainBranch)
       return "main"
     if (branch === root.betaBranch)
       return "beta"
-    return "nightly"
+    if (branch === root.nightlyBranch)
+      return "nightly"
+    return "untested"
   }
 
   readonly property string gitChannel: root.channelFor(root.gitBranch)
@@ -387,23 +390,31 @@ Item {
       return "Main"
     if (channel === "beta")
       return "Beta"
-    return "Nightly"
+    if (channel === "nightly")
+      return "Nightly"
+    return "Untested"
   }
 
+  // Each of the three channels is the tip of one branch, so switching is
+  // one click. Untested is not a channel you switch to -- it is the rest
+  // of the branches, and the menu opens it as a list.
   function switchChannel(channel) {
     if (channel === "main")
       root.switchBranch(root.mainBranch)
     else if (channel === "beta")
       root.switchBranch(root.betaBranch)
+    else if (channel === "nightly")
+      root.switchBranch(root.nightlyBranch)
   }
 
-  // Everything that is not one of the two release channels. Those have
-  // their own rows in the menu, so listing them again only adds noise.
-  readonly property var nightlyBranches: {
+  // Everything the three channels do not already name. They have their own
+  // rows in the menu, so listing them again only adds noise.
+  readonly property var untestedBranches: {
     var out = []
     var list = root.gitBranches || []
     for (var i = 0; i < list.length; i++) {
-      if (list[i] !== root.mainBranch && list[i] !== root.betaBranch)
+      if (list[i] !== root.mainBranch && list[i] !== root.betaBranch
+          && list[i] !== root.nightlyBranch)
         out.push(list[i])
     }
     return out
@@ -1520,11 +1531,11 @@ Item {
             visible: !!(root.gitBranch || root.gitHash)
             textFormat: Text.PlainText
             // Lead with the channel: that is the part most people care
-            // about. The branch name only adds information on Nightly,
+            // about. The branch name only adds information on Untested,
             // where it is not implied by the channel.
             text: (root.branchMenuOpen ? "▾ " : "▴ ")
               + root.channelLabel(root.gitChannel)
-              + (root.gitChannel === "nightly" && root.gitBranch ? " · " + root.gitBranch : "")
+              + (root.gitChannel === "untested" && root.gitBranch ? " · " + root.gitBranch : "")
               + (root.gitHash ? " @ " + root.gitHash : "")
               + (root.gitUpdateAvailable ? " •" : "")
             color: root.gitUpdateAvailable ? root.chipFg : root.foreground
