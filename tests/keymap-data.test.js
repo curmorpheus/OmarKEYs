@@ -566,7 +566,27 @@ test("filtering by key finds the key pressed, not letters in its name", () => {
   assert.equal(JSON.stringify(found("3")), JSON.stringify(["workspaces"]))
   assert.equal(JSON.stringify(found("0")), JSON.stringify(["workspaces"]))
 
+  // Named keys filter as themselves, so pressing Delete finds Delete.
+  context.setSections([{ title: "One", rows: [
+    { keys: "Ctrl + Alt + Delete", action: "close all" },
+    { keys: "Super + Return", action: "terminal" },
+    { keys: "Super + Left", action: "focus left" },
+    { keys: "Super + F9", action: "dictate" },
+    { keys: "Super + Space", action: "menu" }
+  ]}])
+  context.setConfig({ searchMode: "keys" })
+  assert.equal(JSON.stringify(found("Delete")), JSON.stringify(["close all"]))
+  assert.equal(JSON.stringify(found("return")), JSON.stringify(["terminal"]))
+  assert.equal(JSON.stringify(found("Left")), JSON.stringify(["focus left"]))
+  assert.equal(JSON.stringify(found("F9")), JSON.stringify(["dictate"]))
+  assert.equal(JSON.stringify(found("Space")), JSON.stringify(["menu"]))
+  // Still whole keys: "e" is not Delete, Return or Space.
+  assert.equal(JSON.stringify(found("e")), JSON.stringify([]))
+
   // Description mode is unchanged: it still matches inside the text.
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + Shift + Backspace", action: "backspace" }
+  ]}])
   context.setConfig({ searchMode: "action" })
   assert.equal(JSON.stringify(found("ackspac")), JSON.stringify(["backspace"]))
   context.setConfig({})

@@ -685,6 +685,54 @@ Item {
   // replaces what is in the box rather than adding to it. Typing "gh"
   // looking for h would otherwise leave you filtering on a chord nothing
   // is bound to.
+  // What a bare named key would filter on. Letters, digits and punctuation
+  // already arrive as text; these are the ones that do not.
+  function namedFilterKey(event) {
+    if (event.key >= Qt.Key_F1 && event.key <= Qt.Key_F12)
+      return "F" + (1 + event.key - Qt.Key_F1)
+    switch (event.key) {
+    case Qt.Key_Return:
+    case Qt.Key_Enter:     return "Return"
+    case Qt.Key_Tab:
+    case Qt.Key_Backtab:   return "Tab"
+    case Qt.Key_Backspace: return "Backspace"
+    case Qt.Key_Delete:    return "Delete"
+    case Qt.Key_Insert:    return "Insert"
+    case Qt.Key_Home:      return "Home"
+    case Qt.Key_End:       return "End"
+    case Qt.Key_PageUp:    return "PageUp"
+    case Qt.Key_PageDown:  return "PageDown"
+    case Qt.Key_Left:      return "Left"
+    case Qt.Key_Right:     return "Right"
+    case Qt.Key_Up:        return "Up"
+    case Qt.Key_Down:      return "Down"
+    case Qt.Key_Space:     return "Space"
+    case Qt.Key_Print:     return "Print"
+    }
+    return ""
+  }
+
+  // Some of those keys also drive the overlay. They filter only while the
+  // box is empty: the first press picks the key, and once there are
+  // results the same key goes back to moving through them. Everything
+  // else -- Delete, Home, the function keys -- has no other job here and
+  // always filters.
+  function keyDrivesOverlay(name) {
+    return name === "Return" || name === "Tab" || name === "Backspace"
+      || name === "Left" || name === "Right" || name === "Up" || name === "Down"
+  }
+
+  // Whether this keystroke should land in the filter rather than do its
+  // usual job. Only in key mode, and never for a chord.
+  function filterCapturesKey(event) {
+    if (root.searchMode !== "keys" || root.chordMods(event) || (event.modifiers & Qt.ShiftModifier))
+      return false
+    var name = root.namedFilterKey(event)
+    if (!name)
+      return false
+    return !root.keyDrivesOverlay(name) || !root.filterText
+  }
+
   function appendFilter(text) {
     root.setFilter(root.searchMode === "keys"
       ? String(text)
@@ -1373,6 +1421,9 @@ Item {
         && (event.modifiers & Qt.MetaModifier)
         && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier))) {
       root.dismiss()
+      event.accepted = true
+    } else if (root.filterCapturesKey(event)) {
+      root.appendFilter(root.namedFilterKey(event))
       event.accepted = true
     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
       root.executeSelected()

@@ -56,6 +56,13 @@ keys only — pressing `k` finds binds on K, not every chord with a `k`
 somewhere in a key's name. A digit matches the ranges that contain it, so
 `3` finds the `1-9` workspace binds.
 
+In key mode the named keys filter as themselves too, so pressing Delete
+finds what Delete is bound to. Keys that also drive the overlay — Return,
+Tab, Backspace and the arrows — filter only while the box is empty; once
+there are results they go back to moving through them. **Escape** is the
+one key you cannot filter on: it clears the box, and closes the overlay
+when the box is already empty.
+
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups
 - **Active Apps**: live windows, grouped by the keymap sheet they share
