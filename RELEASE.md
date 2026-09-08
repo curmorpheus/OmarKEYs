@@ -3,6 +3,52 @@
 Grok writes this file when promoting a finished **beta** (Claude) into
 **main**. Cursor does not land on `main`.
 
+## 1.8.0 — 2026-09-08
+
+Promoted from `beta`. Written by Claude while Grok is offline. Cursor not
+included.
+
+- **Running a command now takes a double-click.** A single click only
+  moves the highlight. Any click used to fire the shortcut and close the
+  overlay, which is easy to do by accident while reading the board and
+  cannot be undone once a bind has run. Enter is unchanged.
+- **Super+K can be turned off**, under Options → Opening. Off hands the
+  chord back to whatever held it before OmarKEYS (Omarchy binds
+  **Keybindings**). It works by never claiming the key rather than by
+  rebinding it, so a Super+K you remapped yourself comes back untouched.
+  Applying it runs `hyprctl reload`, since the bind lives in
+  `hyprland.lua` and that only re-reads its config when Hyprland does.
+  Hold Super has no off switch, so this cannot lock you out.
+- Documentation caught up with the code. The README had been describing
+  an Edit mode that does not ship, the pre-1.6.0 sidebar, and a settings
+  bar that 1.7.0 deleted; the manifest description claimed arrows and
+  Ctrl+1–9 pick a window, which neither does.
+
+## 1.7.0 — 2026-09-08
+
+Promoted from `beta` (`a5a7d6d`). Never released to `main` on its own;
+folded into 1.8.0. Cursor not included.
+
+- Modifiers and the opening gestures moved out of the sidebar and the
+  bottom bar into an **Options popup**, opened from the bottom-left
+  corner. Close ✕, centred headings, and a **Restore defaults** that also
+  clears hidden groups, hidden apps and the search box.
+- Four display options: key chips **full / short / icons**, keys or the
+  action leading the row, sort **by group or by name**, and search across
+  **all / keys / name**.
+- Icon chips are drawn from the overlay's own Nerd Font rather than
+  emoji, which resolve to a fallback font with different metrics.
+  Hovering a row names each glyph in words beside it.
+- Left/right/middle mouse collapse to one chip; the wheel gets a mouse
+  glyph with a direction arrow.
+- Text-size and icon-size sliders, each reset by clicking its label.
+- The overlay sizes itself to the display instead of a fixed default.
+- Gesture rows name the key they apply to (Double-tap → Super).
+- "No keymap sheet" is pinned to the bottom of the tree.
+- Fixed: descriptions vanished when toggling Order; every key chip
+  rendered blank; hovering a row widened the keys column and slid the
+  chips out from under the cursor.
+
 ## 1.6.1 — 2026-09-07
 
 Promoted from `beta` (`85f10d0`). Cursor not included.
