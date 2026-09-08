@@ -271,7 +271,7 @@ Rectangle {
     Text {
       width: parent.width
       horizontalAlignment: Text.AlignHCenter
-      text: "Modifiers"
+      text: "Filters"
       textFormat: Text.PlainText
       color: menu.chipFg
       font.family: menu.fontFamily

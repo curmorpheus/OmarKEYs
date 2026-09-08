@@ -73,7 +73,7 @@ Type while it is open to filter, including digits.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 
-*Modifiers* — Super, Shift, Ctrl and Alt in a 2×2 grid, each **A**ll,
+*Filters* — Super, Shift, Ctrl and Alt in a 2×2 grid, each **A**ll,
 **M**ust or **H**ide. Click a key to cycle it, or click a legend word to
 set all four.
 
