@@ -743,7 +743,7 @@ Rectangle {
         textFormat: Text.PlainText
         color: side.chipFg
         font.family: side.fontFamily
-        font.pixelSize: side.subFontSize
+        font.pixelSize: Math.round(side.rootFontSize * 1.2)
         font.bold: true
         font.capitalization: Font.AllUppercase
       }
@@ -902,8 +902,8 @@ Rectangle {
                 return "type to filter"
               if (h.filterCapturing)
                 return "press any key…"
-              return h.searchMode === "keys" ? "click, then press a key"
-                : (h.searchMode === "action" ? "type a description" : "type to filter")
+              return h.searchMode === "keys" ? "click to capture"
+                : (h.searchMode === "action" ? "type a word" : "type to filter")
             }
             text: (!arming && side.host && side.host.filterText)
               ? side.host.filterText : hint
@@ -912,9 +912,10 @@ Rectangle {
               ? side.chipFg : side.foreground
             opacity: (!arming && side.host && side.host.filterText) ? 1 : 0.5
             font.family: side.fontFamily
-            // The box grew to the glyph's height; the text in it did not,
-            // and read as a caption floating in an empty field.
-            font.pixelSize: Math.round(side.rootFontSize * 1.4)
+            // Sized to the width, not the height: the box is two thirds of
+            // a 200px sidebar, and at 1.4x the hint elided to "click,
+            // then …", which tells you nothing.
+            font.pixelSize: side.subFontSize
             elide: Text.ElideRight
           }
 
