@@ -47,7 +47,7 @@ Type while it is open to filter, including digits.
 **Sidebar** — the tree
 
 Under the tree sit the settings worth reaching for while reading the board,
-without opening the popup: **Grouping** 󰋃, **Sort** 󰒺 and **Order** 󰣟, each
+without opening the popup. They sit under an **Options** heading: **Grouping** 󰋃, **Sort** 󰒺 and **Order** 󰣟, each
 showing its current mode underneath and cycling on click. Order swaps
 between keys first and keys last. The **Filter** 󰈲 keeps its own column under Grouping, mode label and all,
 with the box beside it across the other two. Clicking the icon changes what
@@ -90,7 +90,7 @@ box, and closes the overlay when the box is already empty — so to filter
   always be brought back. Carets show the state: collapsed when everything
   under a parent is hidden, expanded while any of it still shows.
 
-**Other Options** (at the foot of the tree, under the filter)
+**All Options** (at the foot of the tree, under the filter)
 
 *Display*
 

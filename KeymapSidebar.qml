@@ -736,6 +736,18 @@ Rectangle {
         opacity: 0.5
       }
 
+      Text {
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
+        text: "Options"
+        textFormat: Text.PlainText
+        color: side.chipFg
+        font.family: side.fontFamily
+        font.pixelSize: side.subFontSize
+        font.bold: true
+        font.capitalization: Font.AllUppercase
+      }
+
       Row {
         id: controlRow
         width: parent.width
@@ -900,7 +912,9 @@ Rectangle {
               ? side.chipFg : side.foreground
             opacity: (!arming && side.host && side.host.filterText) ? 1 : 0.5
             font.family: side.fontFamily
-            font.pixelSize: side.subFontSize
+            // The box grew to the glyph's height; the text in it did not,
+            // and read as a caption floating in an empty field.
+            font.pixelSize: Math.round(side.rootFontSize * 1.4)
             elide: Text.ElideRight
           }
 
@@ -931,7 +945,7 @@ Rectangle {
         id: optionsLink
         width: parent.width
         horizontalAlignment: Text.AlignHCenter
-        text: (side.host && side.host.optionsMenuOpen ? "▾ " : "▴ ") + "Other Options"
+        text: (side.host && side.host.optionsMenuOpen ? "▾ " : "▴ ") + "All Options"
         textFormat: Text.PlainText
         color: side.foreground
         opacity: optionsLinkArea.containsMouse || (side.host && side.host.optionsMenuOpen)
