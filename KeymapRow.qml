@@ -17,6 +17,9 @@ Rectangle {
   // "full" | "short" chips, and whether keys or the action leads the row.
   property string chipStyle: "full"
   property string keyboardType: "windows"
+  // Set only when the board is not grouped by topic: with the headings
+  // gone this is the only place a row's topic survives.
+  property string topic: ""
   property bool iconBorders: true
   property string rowLayout: "keys"
   property real fontScale: 1.0
@@ -38,7 +41,13 @@ Rectangle {
   // so a hovered row grows its text into space that was already there and
   // nothing shifts.
   readonly property real keysWidth: Math.max(0, width * 0.52 - 8)
-  readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm)
+  readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm
+    - row.topicSpace)
+  // Never more than a third of the column: the description is what the row
+  // is for, and a long topic must not crowd it out.
+  readonly property real topicSpace: row.topic.length > 0
+    ? Math.min(topicMetric.implicitWidth, (width - keysWidth) * 0.33) + Style.space(8)
+    : 0
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
   signal highlighted(var item)
@@ -157,6 +166,34 @@ Rectangle {
     color: row.selected ? row.selectedFg : row.foreground
     font.family: row.fontFamily
     font.pixelSize: Math.round(Style.font.body * row.fontScale)
+    elide: Text.ElideRight
+  }
+
+  // Measured unelided and off-screen: sizing the action column from the
+  // visible label's width, when that label is itself sized from the
+  // column, is a binding loop waiting to happen.
+  Text {
+    id: topicMetric
+    visible: false
+    text: row.topic
+    font.family: row.fontFamily
+    font.pixelSize: Math.round(Style.font.caption * row.fontScale * 0.92)
+  }
+
+  // Quieter and smaller than the description it trails: it says where the
+  // row came from, not what it does.
+  Text {
+    id: topicLabel
+    visible: row.topic.length > 0
+    x: actionLabel.x + actionLabel.width + Style.space(8)
+    width: Math.max(0, row.topicSpace - Style.space(8))
+    anchors.verticalCenter: parent.verticalCenter
+    text: row.topic
+    textFormat: Text.PlainText
+    color: row.selected ? row.selectedFg : row.foreground
+    opacity: 0.4
+    font.family: row.fontFamily
+    font.pixelSize: Math.round(Style.font.caption * row.fontScale * 0.92)
     elide: Text.ElideRight
   }
 

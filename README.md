@@ -101,7 +101,9 @@ Numbers, Alpha, Special, Non-keyboard — filed on the key you actually
 press. Mouse buttons, media keys and the Super gestures are not keys on
 a keyboard, so they go last rather than under a letter they do not have.
 Off drops the cards entirely and lists every row as one run, split down
-the middle across the two columns. **Sort by key** files a
+the middle across the two columns. In both of those modes each row
+trails its topic in faint, smaller text after the description — once
+the headings are gone that is the only place it survives. **Sort by key** files a
 chord under the key you actually press — `Super+Shift+K` sorts under `K`.
 Sorting on the whole chord would file almost everything under S, since
 almost every bind starts with Super.

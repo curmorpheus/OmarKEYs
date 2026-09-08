@@ -830,10 +830,21 @@ function filtered(query) {
     return out
 
   // Both remaining modes regroup across topics, so the topic sections are
-  // only ever a staging step here.
+  // only ever a staging step here. Each row carries its topic out with it:
+  // once the headings are gone that is the only place it survives, and the
+  // row is the one place left to say it. Copies, so the source sections
+  // are not tagged for the mode they happen to be viewed in.
   var flat = []
-  for (var i = 0; i < out.length; i++)
-    flat = flat.concat(out[i].rows)
+  for (var i = 0; i < out.length; i++) {
+    for (var r2 = 0; r2 < out[i].rows.length; r2++) {
+      var src = out[i].rows[r2]
+      var copy = {}
+      for (var field in src)
+        copy[field] = src[field]
+      copy.topic = out[i].title
+      flat.push(copy)
+    }
+  }
   flat.sort(compareRows)
 
   if (grouping() === "keytype") {

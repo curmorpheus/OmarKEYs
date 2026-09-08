@@ -121,6 +121,7 @@ Rectangle {
         chipFg: section.chipFg
         selectedBg: section.selectedBg
         selectedFg: section.selectedFg
+        topic: modelData.topic || ""
         chipStyle: section.chipStyle
         keyboardType: section.keyboardType
         iconBorders: section.iconBorders

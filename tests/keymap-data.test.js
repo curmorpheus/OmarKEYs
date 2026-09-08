@@ -510,3 +510,29 @@ test("grouping by key type buckets on the key you press", () => {
   assert.equal(JSON.stringify(context.filtered("").map((s) => s.title)),
     JSON.stringify(["Alpha"]), "no bare headings for empty buckets")
 })
+
+test("rows carry their topic out when the headings no longer show it", () => {
+  context.setSections([
+    { title: "Windows", rows: [{ keys: "Super + W", action: "close" }] },
+    { title: "Media", rows: [{ keys: "XF86AudioMute", action: "mute" }] }
+  ])
+
+  // Grouped by topic the heading says it, so the row does not need to.
+  context.setConfig({ grouping: "topic", sortBy: "action" })
+  assert.equal(context.filtered("")[0].rows[0].topic, undefined)
+
+  // Ungrouped and by key type, the heading is gone or is a key bucket, so
+  // the topic only survives on the row.
+  for (const mode of ["off", "keytype"]) {
+    context.setConfig({ grouping: mode, sortBy: "action" })
+    const rows = context.filtered("").flatMap((s) => s.rows)
+    const byAction = Object.fromEntries(rows.map((r) => [r.action, r.topic]))
+    assert.equal(byAction.close, "Windows", mode)
+    assert.equal(byAction.mute, "Media", mode)
+  }
+
+  // Tagged on copies: switching back must not leave the source sections
+  // carrying a topic from the mode they were last viewed in.
+  context.setConfig({ grouping: "topic", sortBy: "action" })
+  assert.equal(context.filtered("")[0].rows[0].topic, undefined, "source untouched")
+})
