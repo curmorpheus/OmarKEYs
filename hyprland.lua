@@ -18,7 +18,7 @@ local function clamp(n, lo, hi)
 end
 
 local function read_config()
-  local cfg = { doubleTap = true, holdSeconds = 5 }
+  local cfg = { doubleTap = true, holdSeconds = 5, superK = true }
   local f = io.open(CONFIG_PATH, "r")
   if not f then
     return cfg
@@ -27,6 +27,9 @@ local function read_config()
   f:close()
   if raw:match('"doubleTap"%s*:%s*false') then
     cfg.doubleTap = false
+  end
+  if raw:match('"superK"%s*:%s*false') then
+    cfg.superK = false
   end
   local hold = tonumber(raw:match('"holdSeconds"%s*:%s*(%d+)'))
   if hold then
@@ -224,14 +227,22 @@ local function on_key(keycode, _, state)
   end
 end
 
-hl.unbind("SUPER + K")
-o.bind("SUPER + K", "OmarKEYS", function()
-  if st.overlay_open then
-    hide_overlay()
-  else
-    show_overlay()
-  end
-end)
+-- Claiming Super+K means unbinding whatever had it (Omarchy ships
+-- "Keybindings"). Turned off, we simply never take it, so the original
+-- bind survives untouched -- no need to know what it was in order to give
+-- it back. The overlay applies a change by asking Hyprland to reload:
+-- bindings.lua re-runs, restores its own Super+K, and this file re-reads
+-- the config and decides again.
+if read_config().superK then
+  hl.unbind("SUPER + K")
+  o.bind("SUPER + K", "OmarKEYS", function()
+    if st.overlay_open then
+      hide_overlay()
+    else
+      show_overlay()
+    end
+  end)
+end
 
 hl.on("input.keyboard.key", function(keycode, timestamp, state)
   local ok, err = pcall(on_key, keycode, timestamp, state)

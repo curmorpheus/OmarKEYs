@@ -33,6 +33,9 @@ Item {
   property bool contextAddressLatched: false
   property bool doubleTap: true
   property int holdSeconds: 5
+  // Whether OmarKEYS claims Super+K. Off leaves the chord to whatever had
+  // it before (Omarchy binds "Keybindings"); hyprland.lua acts on this.
+  property bool superK: true
   property var hiddenGroups: []
   // Layout experiments, switchable from the settings bar so they can be
   // compared against each other rather than rebuilt to try.
@@ -108,6 +111,7 @@ Item {
     return {
       doubleTap: root.doubleTap,
       holdSeconds: root.holdSeconds,
+      superK: root.superK,
       hiddenGroups: root.hiddenGroups,
       hiddenApps: root.hiddenApps,
       chipStyle: root.chipStyle,
@@ -155,6 +159,10 @@ Item {
           root.doubleTap = false
         else if (cfg.doubleTap === true)
           root.doubleTap = true
+        if (cfg.superK === false)
+          root.superK = false
+        else if (cfg.superK === true)
+          root.superK = true
         var hold = Number(cfg.holdSeconds)
         if (hold >= 1 && hold <= 10)
           root.holdSeconds = Math.round(hold)
@@ -306,6 +314,18 @@ Item {
     onLoaded: root.applyConfigText(text())
     onLoadFailed: root.saveConfig()
     onFileChanged: reload()
+  }
+
+  Timer {
+    id: hyprReloadTimer
+    interval: 150
+    repeat: false
+    onTriggered: hyprReloadProc.running = true
+  }
+
+  Process {
+    id: hyprReloadProc
+    command: ["hyprctl", "reload"]
   }
 
   Process {
@@ -911,7 +931,29 @@ Item {
     root.doubleTap = true
     root.holdSeconds = 5
     root.filterText = ""
+    var hadSuperK = root.superK
+    root.superK = true
     root.saveConfig()
+    if (!hadSuperK)
+      root.reloadHyprland()
+  }
+
+  // Super+K is bound in hyprland.lua, which only re-reads omarkeys.json
+  // when Hyprland reloads its config, so flipping this has to ask for one.
+  function setSuperK(on) {
+    var next = !!on
+    if (root.superK === next)
+      return
+    root.superK = next
+    root.saveConfig()
+    root.reloadHyprland()
+  }
+
+  // Debounced, and deliberately after the write: the config file has to be
+  // on disk before hyprland.lua reads it back, and a run of clicks should
+  // cost one reload rather than one each.
+  function reloadHyprland() {
+    hyprReloadTimer.restart()
   }
 
   function cycleSearchMode() {

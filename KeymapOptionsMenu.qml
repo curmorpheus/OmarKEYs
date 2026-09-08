@@ -416,6 +416,40 @@ Rectangle {
 
     Item {
       width: content.width
+      height: Math.max(Style.space(22), superKLabel.implicitHeight + 4)
+
+      Text {
+        id: superKLabel
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: "Super+K"
+        textFormat: Text.PlainText
+        color: menu.foreground
+        opacity: 0.75
+        font.family: menu.fontFamily
+        font.pixelSize: menu.labelSize
+      }
+
+      ToggleSwitch {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        checked: menu.host ? menu.host.superK : true
+        foreground: menu.foreground
+        accent: menu.chipFg
+        trackHeight: 16
+        activeFocusOnTab: false
+        // Not saveConfig(): turning this off has to reach Hyprland, which
+        // only re-reads the config on reload.
+        onToggled: {
+          var h = menu.host
+          if (h)
+            h.setSuperK(!h.superK)
+        }
+      }
+    }
+
+    Item {
+      width: content.width
       height: Math.max(Style.space(22), doubleTapLabel.implicitHeight + 4)
 
       Text {

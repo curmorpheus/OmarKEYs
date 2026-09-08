@@ -190,6 +190,10 @@ text per row, and no way to scan by what a command *does*.
 - [x] "No keymap sheet" pinned to the bottom of the tree
 - [x] Docs catch-up: README rewritten for the tree and Options popup;
       AGENTS.md channels table covers the full ladder
+- [x] Super+K on/off under Options → Opening. Off means `hyprland.lua`
+      never unbinds the chord, so the original survives without OmarKEYS
+      having to know what it was; the overlay applies it with
+      `hyprctl reload`. Hold Super has no off switch, so no lockout.
 
 ## Future
 

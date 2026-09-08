@@ -20,7 +20,9 @@ Cursor does not land on `main`.
 
 - Double-tap Super (optional)
 - Hold Super (default 5 seconds)
-- Super+K
+- Super+K (optional)
+
+Hold Super always works, so turning the other two off cannot lock you out.
 
 **Close**
 
@@ -73,7 +75,15 @@ With icons on, hovering a row spells each glyph out in words beside it.
 **M**ust or **H**ide. Click a key to cycle it, or click a legend word to
 set all four.
 
-*Opening* — double-tap Super on/off, and hold-Super duration (1–10s).
+*Opening* — Super+K on/off, double-tap Super on/off, and hold-Super
+duration (1–10s).
+
+Turning **Super+K** off hands the chord back to whatever held it before
+OmarKEYS (Omarchy binds it to **Keybindings**). It works by not claiming
+the key rather than by rebinding it, so your own remap of Super+K survives
+untouched. The bind lives in `hyprland.lua`, which only re-reads its config
+when Hyprland does, so flipping this runs `hyprctl reload` — the same
+reload the installer does, and it costs nothing else.
 
 **Restore defaults** (bottom right of the popup) resets every one of the
 above, plus hidden groups and apps and the search box.
@@ -97,7 +107,7 @@ your user's permissions, so here is everything OmarKEYS reaches for.
 
 | Command | Used for |
 |---|---|
-| `hyprctl` | Read binds and clients; dispatch the action of a row you run |
+| `hyprctl` | Read binds and clients; dispatch the action of a row you run; reload the config when Super+K is toggled |
 | `python3` | `dump-keymap`, `apply-edit`, `plugin-git`, and JSON quoting in `run-shortcut` |
 | `lua` | Read the real action of each bind out of your Hyprland Lua config |
 | `git` | Branch picker (status, fetch, checkout, fast-forward) and the edit history |
