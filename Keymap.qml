@@ -1724,10 +1724,15 @@ Item {
             anchors.margins: Style.spacing.sm
             visible: !!(root.gitBranch || root.gitHash)
             textFormat: Text.PlainText
-            // Lead with the channel: that is the part most people care
-            // about. The branch name only adds information on Untested,
-            // where it is not implied by the channel.
+            // Says what it is before it says which one. Unlabelled, a bare
+            // "Nightly @ 21d223c" in a corner reads as a build stamp
+            // rather than something you can click and change.
+            //
+            // Then the channel, which is the part most people care about.
+            // The branch name only adds information on Untested, where it
+            // is not implied by the channel.
             text: (root.branchMenuOpen ? "▾ " : "▴ ")
+              + "Version: "
               + root.channelLabel(root.gitChannel)
               + (root.gitChannel === "untested" && root.gitBranch ? " · " + root.gitBranch : "")
               + (root.gitHash ? " @ " + root.gitHash : "")

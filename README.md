@@ -169,7 +169,7 @@ reload the installer does, and it costs nothing else.
 **Restore defaults** (bottom right of the popup) resets every one of the
 above, plus hidden groups and apps and the search box.
 
-**Channel** (bottom-right corner) reads `Channel @ hash`, with a `•` when
+**Version** (bottom-right corner) reads `Version: Channel @ hash`, with a `•` when
 the channel you are on is behind its remote. The picker names the date
 the loaded version was built, and says how each other channel compares to
 it — *same*, or how many days *newer* or *older*. Click it to switch channel or
