@@ -17,7 +17,7 @@ Rectangle {
   property color selectedBg: Color.menu.selectedBackground
   property color selectedFg: Color.menu.selectedText
   property string chipStyle: "full"
-  property string superIcon: "text"
+  property string keyboardOS: "windows"
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35
@@ -93,7 +93,7 @@ Rectangle {
         selectedBg: section.selectedBg
         selectedFg: section.selectedFg
         chipStyle: section.chipStyle
-        superIcon: section.superIcon
+        keyboardOS: section.keyboardOS
         rowLayout: section.rowLayout
         fontScale: section.fontScale
         iconScale: section.iconScale

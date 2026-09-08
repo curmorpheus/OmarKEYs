@@ -278,13 +278,6 @@ var KEY_ICONS = {
   XF86TouchpadToggle: "\udb80\udd68",
   XF86TouchpadOn: "\udb80\udd68",
   XF86TouchpadOff: "\udb80\udd68",
-  // The Mac modifier symbols. Unlike the rest of this table these are
-  // real Unicode rather than private-use glyphs, so isIconGlyph knows
-  // them by name -- a codepoint range cannot find them.
-  Control: "\u2303",
-  Ctrl: "\u2303",
-  Shift: "\u21e7",
-  Alt: "\u2325",
   LMB: "\udb80\udf7d L",
   RMB: "\udb80\udf7d R",
   MMB: "\udb80\udf7d M",
@@ -352,28 +345,43 @@ function displayNames(keys) {
   return out
 }
 
-// Super has no one true symbol: it is the Windows key on most keyboards,
-// Command on a Mac layout, and neither if you just want the word. All
-// three are in the overlay's own Nerd Font, checked before mapping -- the
-// Windows and Superpowers glyphs are private-use, Command is real Unicode.
+// One modifier keycap looks like four different things depending on the
+// keyboard in front of you, so the whole set moves together rather than
+// Super picking a symbol on its own.
 //
-// Command, not Option: on a Mac keyboard under Linux it is Command that
-// reports KEY_LEFTMETA and so arrives as Super, while Option is Alt. The
-// kernel's own hid_apple names them that way -- its swap_opt_cmd
-// parameter reads "Swap the Option (Alt) and Command (Flag) keys".
-var SUPER_ICONS = {
-  command: "\u2318",
-  windows: "\udb81\uddb3",
-  superman: "\uf2dd"
+// Mac is the only layout that symbols all four; a PC keycap prints the
+// words, which is why the Windows and Omarchy sets carry a logo for Super
+// and leave the rest to fall back to text. Command, not Option, is Super:
+// on a Mac keyboard under Linux it is Command that reports KEY_LEFTMETA,
+// while Option arrives as Alt. The kernel's own hid_apple says so -- its
+// swap_opt_cmd parameter reads "Swap the Option (Alt) and Command (Flag)
+// keys". Every glyph here was checked against the overlay's font.
+var KEYBOARD_SETS = {
+  text: {},
+  mac: {
+    Super: "\u2318",
+    Control: "\u2303",
+    Ctrl: "\u2303",
+    Shift: "\u21e7",
+    Alt: "\u2325"
+  },
+  windows: { Super: "\udb81\uddb3" },
+  omarchy: { Super: "\uf303" }
 }
 
-function normalizeSuperIcon(value) {
+// Values from when this was a Super-only glyph picker, so a saved setting
+// keeps its meaning instead of snapping back to the default.
+var LEGACY_KEYBOARD_OS = { command: "mac", option: "mac", superman: "windows" }
+
+function normalizeKeyboardOS(value) {
   var key = String(value || "")
-  // Briefly shipped as "option" on develop before the Mac mapping was
-  // checked; carry those settings over rather than silently resetting.
-  if (key === "option")
-    return "command"
-  return SUPER_ICONS[key] ? key : "text"
+  if (LEGACY_KEYBOARD_OS[key])
+    return LEGACY_KEYBOARD_OS[key]
+  return KEYBOARD_SETS[key] ? key : "windows"
+}
+
+function modifierIcon(name, os) {
+  return KEYBOARD_SETS[normalizeKeyboardOS(os)][String(name || "")] || ""
 }
 
 // Shapes that live outside the private use areas, so the chip cannot spot
@@ -392,12 +400,7 @@ function isIconGlyph(text) {
   return cp >= 0xF0000 || (cp >= 0xE000 && cp <= 0xF8FF)
 }
 
-function superIconFor(style) {
-  // Through the normalizer, so the legacy name resolves here too rather
-  // than only on the way in from the config file.
-  var key = normalizeSuperIcon(style || (currentConfig && currentConfig.superIcon))
-  return SUPER_ICONS[key] || ""
-}
+
 
 function iconKey(name) {
   return KEY_ICONS[String(name || "")] || ""
@@ -416,31 +419,25 @@ function shortKey(name) {
   return key.length <= 5 ? key : key.slice(0, 5)
 }
 
-function displayKeys(keys, style, superStyle) {
+function displayKeys(keys, style, keyboardOS) {
   var parts = collapseMouse(splitKeys(keys))
-  // The Super glyph is a choice of its own, so it overrides whatever the
-  // chip style would have produced -- picking one is pointless if it only
-  // shows in icon mode.
-  var sup = superIconFor(superStyle)
-  if (style === "icons") {
-    var iconed = []
-    for (var j = 0; j < parts.length; j++) {
-      if (parts[j] === "Super" && sup) {
-        iconed.push(sup)
-        continue
-      }
-      // Anything without an icon keeps its short text, so the row stays
-      // readable rather than half-blank.
-      iconed.push(iconKey(parts[j]) || shortKey(parts[j]))
-    }
-    return iconed
-  }
+  // The keyboard set overrides whatever the chip style would have drawn:
+  // choosing a layout is pointless if its keycaps only show in icon mode.
+  var os = keyboardOS || (currentConfig && currentConfig.keyboardOS)
   var out = []
   for (var i = 0; i < parts.length; i++) {
-    if (parts[i] === "Super" && sup)
-      out.push(sup)
-    else
-      out.push(style === "short" ? shortKey(parts[i]) : parts[i])
+    var mod = modifierIcon(parts[i], os)
+    if (mod) {
+      out.push(mod)
+      continue
+    }
+    if (style === "icons") {
+      // Anything without an icon keeps its short text, so the row stays
+      // readable rather than half-blank.
+      out.push(iconKey(parts[i]) || shortKey(parts[i]))
+      continue
+    }
+    out.push(style === "short" ? shortKey(parts[i]) : parts[i])
   }
   return out
 }
@@ -468,7 +465,7 @@ function setConfig(cfg) {
     sortBy: (cfg && cfg.sortBy === "section") ? "section" : "action",
     searchMode: (cfg && (cfg.searchMode === "keys" || cfg.searchMode === "action"))
       ? cfg.searchMode : "all",
-    superIcon: normalizeSuperIcon(cfg && cfg.superIcon)
+    keyboardOS: normalizeKeyboardOS(cfg && (cfg.keyboardOS || cfg.superIcon))
   }
 }
 

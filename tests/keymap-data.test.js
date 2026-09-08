@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -209,12 +209,12 @@ test("display options: short chips, action sort, and the two search modes", () =
   context.setConfig({ chipStyle: "short" })
   // JSON.stringify, not deepEqual: values cross the vm realm boundary, so
   // their prototypes differ even when the contents match.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Backspace", "short")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + Backspace", "short", "text")),
     JSON.stringify(["Sup", "Shft", "Bksp"]))
   assert.equal(context.shortKey("XF86AudioRaiseVolume"), "Raise")
-  assert.ok(context.displayKeys("Super + Shift + Backspace", "short").every((k) => k.length <= 5))
+  assert.ok(context.displayKeys("Super + Shift + Backspace", "short", "text").every((k) => k.length <= 5))
   // Full style is untouched.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Return", "full")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + Return", "full", "text")),
     JSON.stringify(["Super", "Return"]))
 
   // Sorting by description orders rows within their section.
@@ -242,33 +242,32 @@ test("icon chips use in-font glyphs and fall back to text when unmapped", () => 
   assert.equal(vol.length, 1)
   assert.ok(vol[0].codePointAt(0) >= 0xF0000, "expected a Nerd Font glyph")
   // A mouse button keeps its side, which a bare mouse glyph would lose.
-  assert.ok(context.displayKeys("Super + Left + Mouse + Button", "icons")[1].endsWith("L"))
+  assert.ok(context.displayKeys("Super + Left + Mouse + Button", "icons", "text")[1].endsWith("L"))
   // Named keys are glyphs too, so a row does not mix icons with text arrows.
-  const named = context.displayKeys("Super + Shift + Return", "icons")
+  const named = context.displayKeys("Super + Shift + Return", "icons", "text")
   assert.ok(named[2].codePointAt(0) >= 0xF0000, "Return should be a glyph")
-  assert.ok(context.displayKeys("Super + Left", "icons")[1].codePointAt(0) >= 0xF0000,
+  assert.ok(context.displayKeys("Super + Left", "icons", "text")[1].codePointAt(0) >= 0xF0000,
     "arrow keys should be glyphs, not text arrows")
-  // Modifiers carry the Mac symbols; a plain letter has no icon and keeps
-  // its short text rather than going blank. Super stays a word here only
-  // because this row is rendered with the Super icon set to text.
+  // With the keyboard set to text the modifiers stay words, and a plain
+  // letter has no icon so it keeps its short text rather than going blank.
   assert.equal(JSON.stringify(context.displayKeys("Super + Shift + B", "icons", "text")),
-    JSON.stringify(["Sup", "\u21e7", "B"]))
-  assert.equal(context.displayKeys("Ctrl + B", "icons")[0], "\u2303")
-  assert.equal(context.displayKeys("Alt + B", "icons")[0], "\u2325")
+    JSON.stringify(["Sup", "Shft", "B"]))
+  assert.equal(context.displayKeys("Ctrl + B", "icons", "mac")[0], "\u2303")
+  assert.equal(context.displayKeys("Alt + B", "icons", "mac")[0], "\u2325")
 })
 
 test("a mouse bind is one chip, and only real arrow keys become arrows", () => {
   // Hyprland reports "Super + Left + Mouse + Button" as four words; left as
   // four chips the button reads as an arrow key, and short mode abbreviated
   // that "Left" to an arrow outright.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Left + Mouse + Button", "full")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + Left + Mouse + Button", "full", "text")),
     JSON.stringify(["Super", "LMB"]))
-  assert.equal(JSON.stringify(context.displayKeys("Super + Right + Mouse + Button", "short")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + Right + Mouse + Button", "short", "text")),
     JSON.stringify(["Sup", "RMB"]))
-  assert.equal(JSON.stringify(context.displayKeys("Super + mouse_down", "full")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + mouse_down", "full", "text")),
     JSON.stringify(["Super", "Wheel↓"]))
   // The arrow key itself still shortens to an arrow, which is the point.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Left", "short")),
+  assert.equal(JSON.stringify(context.displayKeys("Super + Left", "short", "text")),
     JSON.stringify(["Sup", "←"]))
 })
 
@@ -289,39 +288,56 @@ test("hovering an icon names it in words, not in raw key tokens", () => {
 test("a gesture shows the key it applies to, at every chip style", () => {
   // "Double-tap Super" is one token, so abbreviating it cut the key off and
   // left "Doubl" - a gesture with nothing to perform it on.
-  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "full")),
+  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "full", "text")),
     JSON.stringify(["Double-tap", "Super"]))
-  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "short")),
+  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "short", "text")),
     JSON.stringify(["Double-tap", "Sup"]))
   // The hold time stays with the gesture, and follows the configured value.
-  assert.equal(JSON.stringify(context.displayKeys("Hold Super 8s", "icons")),
+  assert.equal(JSON.stringify(context.displayKeys("Hold Super 8s", "icons", "text")),
     JSON.stringify(["Hold 8s", "Sup"]))
   // Gestures are still not dispatchable; splitting them is display only.
   assert.equal(context.isRunnable("Double-tap Super"), false)
   assert.equal(context.isRunnable("Hold Super 5s"), false)
 })
 
-test("the Super glyph is a choice, and it overrides every chip style", () => {
-  // Picking a Super symbol is pointless if it only shows in icon mode, so
-  // it replaces the key in full and short chips too.
+test("the keyboard set moves all four modifiers, in every chip style", () => {
+  // Choosing a layout is pointless if its keycaps only show in icon mode,
+  // so the set overrides full and short chips too.
   assert.equal(context.displayKeys("Super + K", "full", "text")[0], "Super")
   assert.equal(context.displayKeys("Super + K", "short", "text")[0], "Sup")
-  const win = context.displayKeys("Super + K", "full", "windows")[0]
-  assert.equal(win.codePointAt(0), 0xF05B3, "expected the Windows key glyph")
-  assert.equal(context.displayKeys("Super + K", "short", "windows")[0], win)
-  assert.equal(context.displayKeys("Super + K", "icons", "windows")[0], win)
-  // Command, not Option: on a Mac keyboard it is Command that reports
-  // KEY_LEFTMETA and so arrives as Super. Real Unicode, not private-use.
+
+  // Mac is the only layout that symbols all four.
+  const mac = context.displayKeys("Super + Ctrl + Shift + Alt + K", "full", "mac")
+  assert.equal(JSON.stringify(mac.slice(0, 4)),
+    JSON.stringify(["\u2318", "\u2303", "\u21e7", "\u2325"]))
+  assert.equal(context.displayKeys("Super + K", "short", "mac")[0], "\u2318")
+  assert.equal(context.displayKeys("Super + K", "icons", "mac")[0], "\u2318")
+
+  // A PC keycap prints the words, so those sets only supply a Super logo
+  // and the rest fall back to text.
+  assert.equal(context.displayKeys("Super + K", "full", "windows")[0].codePointAt(0), 0xF05B3)
+  assert.equal(context.displayKeys("Super + K", "full", "omarchy")[0].codePointAt(0), 0xF303)
+  assert.equal(JSON.stringify(context.displayKeys("Super + Ctrl + K", "full", "windows").slice(1)),
+    JSON.stringify(["Ctrl", "K"]))
+  assert.equal(JSON.stringify(context.displayKeys("Super + Ctrl + K", "full", "omarchy").slice(1)),
+    JSON.stringify(["Ctrl", "K"]))
+
+  // Only modifiers are swapped; the rest of the chord is untouched.
+  assert.equal(context.displayKeys("Super + K", "full", "mac")[1], "K")
+})
+
+test("settings from the old Super-only picker keep their meaning", () => {
+  // It shipped on develop as command/option/superman before this became a
+  // keyboard choice; those should not snap back to the default.
+  assert.equal(context.normalizeKeyboardOS("command"), "mac")
+  assert.equal(context.normalizeKeyboardOS("option"), "mac")
+  assert.equal(context.normalizeKeyboardOS("superman"), "windows")
   assert.equal(context.displayKeys("Super + K", "full", "command")[0].codePointAt(0), 0x2318)
-  // The value briefly shipped as "option"; it carries over to Command
-  // rather than resetting to the word.
-  assert.equal(context.displayKeys("Super + K", "full", "option")[0].codePointAt(0), 0x2318)
-  assert.equal(context.displayKeys("Super + K", "full", "superman")[0].codePointAt(0), 0xF2DD)
-  // Only Super is swapped; the rest of the chord is untouched.
-  assert.equal(JSON.stringify(context.displayKeys("Super + Shift + K", "full", "windows").slice(1)),
-    JSON.stringify(["Shift", "K"]))
-  // An unknown value falls back to the word rather than drawing nothing.
-  assert.equal(context.displayKeys("Super + K", "full", "nonsense")[0], "Super")
+  // Anything unrecognised lands on the default rather than drawing nothing.
+  assert.equal(context.normalizeKeyboardOS("nonsense"), "windows")
+  assert.equal(context.normalizeKeyboardOS(""), "windows")
+  // A non-modifier never picks up a keycap.
+  assert.equal(context.modifierIcon("K", "mac"), "")
 })
 
 test("a chip is a shape or a word, and the symbols are neither private-use", () => {

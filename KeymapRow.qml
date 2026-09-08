@@ -16,14 +16,14 @@ Rectangle {
   property color selectedFg: Color.menu.selectedText
   // "full" | "short" chips, and whether keys or the action leads the row.
   property string chipStyle: "full"
-  property string superIcon: "text"
+  property string keyboardOS: "windows"
   property string rowLayout: "keys"
   property real fontScale: 1.0
   property real iconScale: 1.35
   readonly property bool keysFirst: rowLayout !== "action"
   // Both renderings of the same chord, index for index: collapseMouse runs
   // for either style, so a chip and its full name share a position.
-  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle, row.superIcon)
+  readonly property var chipLabels: KeymapData.displayKeys(modelData.keys, row.chipStyle, row.keyboardOS)
   readonly property var chipNames: KeymapData.displayNames(modelData.keys)
   // An icon says what key it is only once you know the glyph, so hovering
   // the line spells it out beside it.

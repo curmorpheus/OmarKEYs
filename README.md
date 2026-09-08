@@ -65,28 +65,38 @@ Type while it is open to filter, including digits.
 | Option | Values | Default |
 |---|---|---|
 | Keys | full / short / icons | icons |
-| Super icon | text / command / windows / superman | windows |
+| Super keyboard OS | text / mac / windows / omarchy | windows |
 | Order | keys first / action first | action first |
 | Sort | by group / by name | by name |
 | Find | all / keys / name | all |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
 
-With icons on, the modifiers carry the Mac symbols — ⌃ Control, ⇧ Shift,
-⌥ Alt — and hovering a row spells each glyph out in words beside it.
+With icons on, hovering a row spells each glyph out in words beside it.
 
-**Super** has no one true symbol — it is the Windows key on most
-keyboards and Command on a Mac layout — so it is a setting of its own:
-the word, ⌘, the Windows key, or the Superpowers mark. Unlike the other
-key chips it applies in every chip style, since picking a symbol is
-pointless if it only shows in icon mode. All three glyphs are in the
-overlay's own font.
+**Super keyboard OS** picks which keyboard's keycaps the modifier chips
+imitate. It moves all four modifiers together, and applies in every chip
+style — choosing a layout is pointless if its keycaps only show in icon
+mode.
 
-Command rather than Option, because on a Mac keyboard under Linux it is
-Command that reports `KEY_LEFTMETA` and therefore arrives as Super, while
-Option arrives as Alt. The kernel names them that way itself: `hid_apple`'s
+| Set | Super | Ctrl | Shift | Alt |
+|---|---|---|---|---|
+| text | Super | Ctrl | Shift | Alt |
+| mac | ⌘ | ⌃ | ⇧ | ⌥ |
+| windows |  | Ctrl | Shift | Alt |
+| omarchy |  | Ctrl | Shift | Alt |
+
+Mac is the only layout that gives all four a symbol; a PC keycap prints
+the words, so those sets supply a logo for Super and leave the rest as
+text. Omarchy's own mark is block-drawing art rather than a font glyph,
+so that set uses the Arch logo. Every glyph was checked against the
+overlay's font before mapping.
+
+Command is Super, not Option: on a Mac keyboard under Linux it is Command
+that reports `KEY_LEFTMETA` and therefore arrives as Super, while Option
+arrives as Alt. The kernel names them that way itself — `hid_apple`'s
 `swap_opt_cmd` parameter reads *"Swap the Option (Alt) and Command (Flag)
-keys"*, and its default is the unswapped Mac layout.
+keys"*, defaulting to the unswapped Mac layout.
 
 *Filters* — Super, Shift, Ctrl and Alt in a 2×2 grid. A **clear** key is
 **A**ll and carries no mark; click it to require it (**M**ust), again to

@@ -98,7 +98,7 @@ Rectangle {
     Repeater {
       model: [
         { id: "chips",  label: "Keys" },
-        { id: "super",  label: "Super icon" },
+        { id: "super",  label: "Super keyboard OS" },
         { id: "layout", label: "Order" },
         { id: "sort",   label: "Sort" },
         { id: "search", label: "Find" }
@@ -114,11 +114,9 @@ Rectangle {
           if (modelData.id === "layout")
             return menu.host.rowLayout === "action" ? "action first" : "keys first"
           if (modelData.id === "super") {
-            // Shows the glyph it will draw, not the word for it: the
-            // point of the setting is which shape ends up in the chip.
-            return menu.host.superIcon === "command" ? "\u2318"
-              : (menu.host.superIcon === "windows" ? "\udb81\uddb3"
-              : (menu.host.superIcon === "superman" ? "\uf2dd" : "text"))
+            // The keyboard's name rather than its Super glyph: the setting
+            // now moves all four modifiers, so one symbol undersells it.
+            return menu.host.keyboardOS
           }
           if (modelData.id === "sort")
             return menu.host.sortBy === "action" ? "by name" : "by group"
@@ -163,7 +161,7 @@ Rectangle {
             if (modelData.id === "chips")
               h.cycleChipStyle()
             else if (modelData.id === "super")
-              h.cycleSuperIcon()
+              h.cycleKeyboardOS()
             else if (modelData.id === "layout")
               h.cycleRowLayout()
             else if (modelData.id === "sort")

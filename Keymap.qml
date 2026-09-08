@@ -43,9 +43,9 @@ Item {
   property string rowLayout: "action"   // keys | action
   property string sortBy: "action"      // section | action
   property string searchMode: "all"     // all | keys | action
-  // How the Super key draws in a chip. Its symbol is a matter of which
-  // keyboard you grew up on, so it is a choice rather than a default.
-  property string superIcon: "windows"  // text | command | windows | superman
+  // Which keyboard's keycaps the modifier chips imitate. Mac symbols all
+  // four; the PC layouts print words, so they only supply a Super logo.
+  property string keyboardOS: "windows" // text | mac | windows | omarchy
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
   // Icons carry their own size: a glyph reads smaller than a letter, and
@@ -121,7 +121,7 @@ Item {
       rowLayout: root.rowLayout,
       sortBy: root.sortBy,
       searchMode: root.searchMode,
-      superIcon: root.superIcon,
+      keyboardOS: root.keyboardOS,
       fontScale: root.fontScale,
       iconScale: root.iconScale,
       modifiers: {
@@ -182,11 +182,14 @@ Item {
           root.sortBy = cfg.sortBy
         if (cfg.searchMode === "keys" || cfg.searchMode === "action" || cfg.searchMode === "all")
           root.searchMode = cfg.searchMode
-        if (cfg.superIcon === "option")
-          root.superIcon = "command"
-        else if (cfg.superIcon === "text" || cfg.superIcon === "command"
-            || cfg.superIcon === "windows" || cfg.superIcon === "superman")
-          root.superIcon = cfg.superIcon
+        // superIcon is the old Super-only name for this setting.
+        var os = cfg.keyboardOS || cfg.superIcon
+        if (os === "command" || os === "option")
+          root.keyboardOS = "mac"
+        else if (os === "superman")
+          root.keyboardOS = "windows"
+        else if (os === "text" || os === "mac" || os === "windows" || os === "omarchy")
+          root.keyboardOS = os
         var scale = Number(cfg.fontScale)
         if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
@@ -928,7 +931,7 @@ Item {
     root.rowLayout = "action"
     root.sortBy = "action"
     root.searchMode = "all"
-    root.superIcon = "windows"
+    root.keyboardOS = "windows"
     root.fontScale = 1.0
     root.iconScale = 1.35
     root.modSuper = "any"
@@ -966,10 +969,10 @@ Item {
     hyprReloadTimer.restart()
   }
 
-  function cycleSuperIcon() {
-    root.superIcon = root.superIcon === "text" ? "command"
-      : (root.superIcon === "command" ? "windows"
-      : (root.superIcon === "windows" ? "superman" : "text"))
+  function cycleKeyboardOS() {
+    root.keyboardOS = root.keyboardOS === "text" ? "mac"
+      : (root.keyboardOS === "mac" ? "windows"
+      : (root.keyboardOS === "windows" ? "omarchy" : "text"))
     root.saveConfig()
   }
 
