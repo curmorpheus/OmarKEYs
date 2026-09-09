@@ -99,8 +99,7 @@ box, and closes the overlay when the box is already empty — so to filter
 | Keyboard 󰧹 | text / ⌘ mac /  windows /  omarchy | windows |
 | Keys 󰌌 | full / short / icons | icons |
 | Border 󰃇 | on / off | off |
-| Text size | slider, click the label to reset | 1.0 |
-| Icon size | slider (icons only), click to reset | 1.35 |
+| Size | slider, click the label to reset | 1.0 |
 
 The first three sit side by side — title, icon, current setting — with a
 sample chord ruled off beneath them, drawn as the board would draw it. The
@@ -141,6 +140,12 @@ the headings are gone that is the only place it survives. **Sort by key** files 
 chord under the key you actually press — `Super+Shift+K` sorts under `K`.
 Sorting on the whole chord would file almost everything under S, since
 almost every bind starts with Super.
+
+One **Size** slider covers everything. Icons still have to be drawn
+larger than letters to read the same size, but by how much depends on
+whether they are capped — a border lends a glyph presence, loose beside
+boxed text chips it needs more — so that compensation is derived rather
+than being a second slider to keep in step.
 
 **Icon borders** draws a cap around each key. Only keys you press get
 one — a glyph standing for what the key *does* (volume, brightness) or for

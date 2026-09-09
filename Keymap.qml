@@ -63,9 +63,12 @@ Item {
   property bool iconBorders: false
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
-  // Icons carry their own size: a glyph reads smaller than a letter, and
-  // how much smaller depends on the font, so it is worth its own control.
-  property real iconScale: 1.35
+  // Icons no longer carry their own slider. A glyph still has to be drawn
+  // larger than a letter to read the same, but by how much depends on
+  // whether it is in a cap: a bordered chip lends the glyph presence, so
+  // it needs less; loose beside boxed text chips it needs more. Derived,
+  // so one size control covers everything.
+  readonly property real iconScale: root.iconBorders ? 1.30 : 1.45
   // Apps switched off in the tree, by window class. A hidden app leaves the
   // list rather than sitting there dimmed: this is a live window list, so a
   // permanent dimmed entry is just clutter of a different kind. Showing the
@@ -141,7 +144,6 @@ Item {
       keyboardType: root.keyboardType,
       iconBorders: root.iconBorders,
       fontScale: root.fontScale,
-      iconScale: root.iconScale,
       modifiers: {
         Super: root.modSuper,
         Shift: root.modShift,
@@ -223,9 +225,6 @@ Item {
         var scale = Number(cfg.fontScale)
         if (scale >= 0.6 && scale <= 1.4)
           root.fontScale = scale
-        var icons = Number(cfg.iconScale)
-        if (icons >= 1.0 && icons <= 2.0)
-          root.iconScale = icons
         if (cfg.modifiers && typeof cfg.modifiers === "object") {
           root.modSuper = KeymapData.normalizeModifierMode(cfg.modifiers.Super)
           root.modShift = KeymapData.normalizeModifierMode(cfg.modifiers.Shift)
@@ -1124,13 +1123,6 @@ Item {
     root.saveConfig()
   }
 
-  function setIconScale(value) {
-    var next = Math.max(1.0, Math.min(2.0, Math.round(Number(value) * 20) / 20))
-    if (next === root.iconScale)
-      return
-    root.iconScale = next
-    root.saveConfig()
-  }
 
   // Everything the options panel can change, back to how it ships - the
   // filters and hidden branches included, since those are the settings
@@ -1144,7 +1136,6 @@ Item {
     root.keyboardType = "windows"
     root.iconBorders = false
     root.fontScale = 1.0
-    root.iconScale = 1.35
     root.modSuper = "any"
     root.modShift = "any"
     root.modCtrl = "any"

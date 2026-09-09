@@ -269,7 +269,7 @@ Rectangle {
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           text: (menu.host && Math.abs(menu.host.fontScale - 1) > 0.001)
-            ? "Text size · reset" : "Text size"
+            ? "Size · reset" : "Size"
           textFormat: Text.PlainText
           color: sizeResetArea.containsMouse ? menu.chipFg : menu.foreground
           opacity: 0.75
@@ -301,56 +301,6 @@ Rectangle {
           tickColor: menu.color
           onMoved: function(v) { if (menu.host) menu.host.fontScale = v }
           onReleased: function(v) { if (menu.host) menu.host.setFontScale(v) }
-        }
-      }
-
-      Item {
-        readonly property bool live: !!(menu.host && menu.host.chipStyle === "icons")
-        width: content.width
-        height: Math.max(Style.space(22), iconSizeLabel.implicitHeight + 4)
-        // Shown always, dimmed when it would do nothing, so the control does
-        // not appear and disappear as the chip style cycles.
-        opacity: live ? 1 : 0.35
-
-        Text {
-          id: iconSizeLabel
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          text: !parent.live ? "Icon size (icons off)"
-            : ((menu.host && Math.abs(menu.host.iconScale - 1.35) > 0.001)
-              ? "Icon size · reset" : "Icon size")
-          textFormat: Text.PlainText
-          color: iconResetArea.containsMouse ? menu.chipFg : menu.foreground
-          opacity: 0.75
-          font.family: menu.fontFamily
-          font.pixelSize: menu.labelSize
-
-          MouseArea {
-            id: iconResetArea
-            anchors.fill: parent
-            hoverEnabled: true
-            enabled: parent.parent.live
-            cursorShape: Qt.PointingHandCursor
-            onClicked: if (menu.host) menu.host.setIconScale(1.35)
-          }
-        }
-
-        PanelSlider {
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          width: Style.space(130)
-          enabled: parent.live
-          minimum: 1.0
-          maximum: 2.0
-          step: 0.05
-          activeFocusOnTab: false
-          value: menu.host ? menu.host.iconScale : 1.35
-          fillColor: menu.chipFg
-          knobColor: menu.chipFg
-          trackColor: Qt.rgba(menu.chipFg.r, menu.chipFg.g, menu.chipFg.b, 0.22)
-          tickColor: menu.color
-          onMoved: function(v) { if (menu.host) menu.host.iconScale = v }
-          onReleased: function(v) { if (menu.host) menu.host.setIconScale(v) }
         }
       }
 
