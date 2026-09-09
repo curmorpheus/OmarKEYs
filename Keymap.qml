@@ -1519,13 +1519,18 @@ Item {
       root.editStatus = ""
   }
 
-  // Double-click a workspace branch to go to it. Same path as running a
-  // row: the dispatcher, not a replayed chord.
+  // Double-click a workspace branch to go to it.
+  //
+  // The same call Omarchy's own "Switch to workspace N" bind makes, and
+  // for the same reason the overlay dispatches actions instead of
+  // replaying chords: with the Lua config provider, `hyprctl dispatch`
+  // parses its argument as Lua, so a bare `dispatch workspace 3` becomes
+  // `hl.dispatch(workspace 3)` and dies with a syntax error.
   function focusWorkspace(id) {
     if (!id || root.launching)
       return
-    root.pendingDispatcher = "workspace"
-    root.pendingArg = String(id)
+    root.pendingDispatcher = "lua"
+    root.pendingArg = 'hl.dsp.focus({ workspace = "' + id + '" })'
     root.pendingFocus = ""
     root.launching = true
     root.dismiss()
