@@ -19,7 +19,6 @@ Rectangle {
   readonly property bool dirty: host ? host.gitDirty : false
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
-  property bool untestedOpen: !!(host && host.gitChannel === "untested")
 
   width: Style.space(280)
   height: Math.min(Style.space(320), content.implicitHeight + Style.spacing.sm * 2)
@@ -186,20 +185,23 @@ Rectangle {
       font.capitalization: Font.AllUppercase
     }
 
-    // The three channels are each the tip of one branch, so each is one
-    // click. Untested is a disclosure: it opens the rest of the branches
-    // rather than switching, so nobody lands on one by accident.
+    // Three channels, each the tip of one branch, each one click.
+    //
+    // The working branches used to be listed here too, behind an Untested
+    // disclosure. They are gone: most of them predate this picker, so
+    // switching to one left you running code with no way to fetch or
+    // switch back out -- a one-way door into a branch you only meant to
+    // glance at. Anything not on a channel is still named in the corner,
+    // and any channel here will get you out of it.
     Repeater {
       model: [
         { id: "main", label: "Main", note: "stable" },
         { id: "beta", label: "Beta", note: "tested, ahead of stable" },
-        { id: "nightly", label: "Nightly", note: "develop" },
-        { id: "untested", label: "Untested", note: "every other branch" }
+        { id: "nightly", label: "Nightly", note: "develop" }
       ]
       delegate: Rectangle {
         required property var modelData
         readonly property bool current: !!(host && host.gitChannel === modelData.id)
-        readonly property bool isUntested: modelData.id === "untested"
         width: content.width
         height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
         radius: 4
@@ -214,11 +216,10 @@ Rectangle {
           anchors.verticalCenter: parent.verticalCenter
           // The note says what the channel is; the age says whether it is
           // worth switching to, which is the actual question being asked.
-          readonly property string age: (isUntested || !host) ? ""
+          readonly property string age: !host ? ""
             : host.versionAge(host.branchForChannel(modelData.id))
           text: (current ? "• " : "  ")
             + modelData.label
-            + (isUntested ? (menu.untestedOpen ? "  ▾" : "  ▸") : "")
             + "   " + modelData.note
             + (age ? "  ·  " + age : "")
           textFormat: Text.PlainText
@@ -239,76 +240,9 @@ Rectangle {
             var h = menu.host
             if (!h || h.gitBusy)
               return
-            if (isUntested) {
-              menu.untestedOpen = !menu.untestedOpen
-              return
-            }
             if (current)
               return
             h.switchChannel(modelData.id)
-          }
-        }
-      }
-    }
-
-    Flickable {
-      width: parent.width
-      visible: menu.untestedOpen
-      height: visible ? Math.min(Style.space(150), branchCol.height) : 0
-      clip: true
-      contentWidth: width
-      contentHeight: branchCol.height
-      boundsBehavior: Flickable.StopAtBounds
-      activeFocusOnTab: false
-
-      Column {
-        id: branchCol
-        width: parent.width
-        spacing: 1
-
-        Repeater {
-          // Main, Beta and Nightly already have their own rows above.
-          model: host ? host.untestedBranches : []
-          delegate: Rectangle {
-            required property var modelData
-            readonly property bool current: !!(host && modelData === host.gitBranch)
-            readonly property string age: host ? host.versionAge(modelData) : ""
-            width: branchCol.width
-            height: Math.max(Style.space(20), branchLabel.implicitHeight + 4)
-            radius: 4
-            color: branchArea.containsMouse && !current && !menu.busy && !menu.dirty
-              ? menu.borderColor
-              : "transparent"
-
-            Text {
-              id: branchLabel
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.leftMargin: 16
-              anchors.rightMargin: 6
-              anchors.verticalCenter: parent.verticalCenter
-              text: (current ? "• " : "") + modelData + (age ? "  ·  " + age : "")
-              textFormat: Text.PlainText
-              color: current ? menu.chipFg : menu.foreground
-              opacity: (menu.dirty && !current) ? 0.45 : 1
-              font.family: menu.fontFamily
-              font.pixelSize: menu.labelSize
-              font.bold: current
-              elide: Text.ElideMiddle
-            }
-
-            MouseArea {
-              id: branchArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                var h = menu.host
-                if (!h || h.gitBusy || current)
-                  return
-                h.switchBranch(modelData)
-              }
-            }
           }
         }
       }

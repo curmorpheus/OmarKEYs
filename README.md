@@ -12,8 +12,8 @@ overlay's corner picker maps to one of its branches:
 | `main` | Main | Grok promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
 | `beta` | Beta | Claude |
 | `develop` | Nightly | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
-| `develop-claude` | Untested | Claude's working branch |
-| `develop-cursor` | Untested | Cursor's working branch |
+| `develop-claude` | not in the picker | Claude's working branch |
+| `develop-cursor` | not in the picker | Cursor's working branch |
 
 Cursor does not land on `main`.
 
@@ -184,10 +184,12 @@ disk looks like one that never came. Click it to switch channel or
 sync — see [Updating](#updating).
 
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,
-`develop`), so each is one click. **Untested** is not a channel you switch
-to — it opens the list of every other branch, so nobody lands on a working
-branch by accident. On Untested the corner also names the branch, since
-the channel alone no longer implies it.
+`develop`), and each is one click. Those are the only destinations: the
+working branches were listed here once, but most of them predate the
+picker, so switching to one left you running code that could not fetch or
+switch back out. A checkout on any other branch is still named
+**Untested** in the corner, with the branch beside it, and any channel
+will get you out of it.
 
 Each group heading says which keymap it came from: the Omarchy mark for
 Omarchy's own binds, or the app's name in brackets when a sheet is loaded.

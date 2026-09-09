@@ -459,8 +459,9 @@ Item {
   }
 
   // Each of the three channels is the tip of one branch, so switching is
-  // one click. Untested is not a channel you switch to -- it is the rest
-  // of the branches, and the menu opens it as a list.
+  // one click. "Untested" is not a channel you can pick -- it is what a
+  // checkout on any other branch is called, so the corner can name it
+  // rather than pretend it is one of the three.
   function switchChannel(channel) {
     if (channel === "main")
       root.switchBranch(root.mainBranch)
@@ -468,19 +469,6 @@ Item {
       root.switchBranch(root.betaBranch)
     else if (channel === "nightly")
       root.switchBranch(root.nightlyBranch)
-  }
-
-  // Everything the three channels do not already name. They have their own
-  // rows in the menu, so listing them again only adds noise.
-  readonly property var untestedBranches: {
-    var out = []
-    var list = root.gitBranches || []
-    for (var i = 0; i < list.length; i++) {
-      if (list[i] !== root.mainBranch && list[i] !== root.betaBranch
-          && list[i] !== root.nightlyBranch)
-        out.push(list[i])
-    }
-    return out
   }
 
   function toggleOptionsMenu() {
