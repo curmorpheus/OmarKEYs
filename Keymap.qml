@@ -110,12 +110,17 @@ Item {
 
   // One entry per kind, not per app. Apps of a kind share a sheet, so
   // listing them separately would repeat the same bindings once per
-  // window that happens to be open.
+  // window that happens to be open. Scoped to the selected workspace, so
+  // the board answers the same question the tree does: what is here, and
+  // what does it answer to.
   readonly property var appSheets: {
     var out = []
     var seen = ({})
     var list = root.clients || []
+    var only = root.workspaceFilter
     for (var i = 0; i < list.length; i++) {
+      if (only > 0 && !root.appOnWorkspace(list[i], only))
+        continue
       var sheet = list[i].sheet || ""
       if (!sheet || seen[sheet])
         continue
@@ -124,6 +129,10 @@ Item {
     }
     return out
   }
+
+  // The workspace filter is a view of the same client list, so the board
+  // has to be rebuilt when it moves; appSheets alone changing loads nothing.
+  onWorkspaceFilterChanged: if (root.appsActive) root.loadAppSheets()
 
   readonly property bool allGroupsVisible: {
     var list = root.groupList
@@ -337,10 +346,14 @@ Item {
     var queue = root.sheetQueue
     if (!queue.length) {
       root.sheetPath = ""
+      var where = root.workspaceFilter > 0
+        ? "on workspace " + root.workspaceFilter
+        : "on screen"
       KeymapData.setSections(root.mergedSections.length
         ? root.mergedSections
         : [{ title: "Active Apps",
-             rows: [{ keys: "—", action: "No app on screen has a bundled keymap sheet" }] }])
+             rows: [{ keys: "—",
+                      action: "No app " + where + " has a bundled keymap sheet" }] }])
       root.rebuild()
       return
     }
@@ -1601,6 +1614,17 @@ Item {
   // The workspace an app sits on, or 0 when its windows disagree. An app
   // with windows in two places has no single one to label, and guessing
   // one would be worse than showing none.
+  // Whether an app has any window on the given workspace. The filter asks
+  // this of the board the same way appTree asks it of the tree.
+  function appOnWorkspace(app, ws) {
+    var windows = (app && app.windows) || []
+    for (var i = 0; i < windows.length; i++) {
+      if ((windows[i].workspace || 0) === ws)
+        return true
+    }
+    return false
+  }
+
   function appWorkspace(app) {
     var windows = (app && app.windows) || []
     if (!windows.length)
