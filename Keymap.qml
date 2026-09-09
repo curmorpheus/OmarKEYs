@@ -411,6 +411,8 @@ Item {
   readonly property string nightlyBranch: "develop"
 
   function channelFor(branch) {
+    if (root.gitDetached)
+      return "version"
     if (branch === root.mainBranch)
       return "main"
     if (branch === root.betaBranch)
@@ -425,6 +427,12 @@ Item {
   // When the loaded commit was made, and the same for every branch you
   // could switch to, so the picker can say how far apart they are.
   property string gitDate: ""
+  // Released versions that can be loaded, and whether we are sitting on
+  // one. A tag checkout is detached, so the branch name is "HEAD" and the
+  // tag is the only thing that names where you are.
+  property var gitVersions: []
+  property bool gitDetached: false
+  property string gitDescribe: ""
   property double gitEpoch: 0
   property var gitCommits: ({})
 
@@ -470,6 +478,8 @@ Item {
       return "Beta"
     if (channel === "nightly")
       return "Nightly"
+    if (channel === "version")
+      return "Version"
     return "Untested"
   }
 
@@ -477,6 +487,16 @@ Item {
   // one click. "Untested" is not a channel you can pick -- it is what a
   // checkout on any other branch is called, so the corner can name it
   // rather than pretend it is one of the three.
+  // A tag, not a branch: plugin-git checks the tree carries the version
+  // marker before loading it, so a build with no picker in it can never be
+  // the thing you land on.
+  function loadVersion(tag) {
+    if (!tag)
+      return
+    root.gitError = ""
+    root.switchBranch(tag)
+  }
+
   function switchChannel(channel) {
     if (channel === "main")
       root.switchBranch(root.mainBranch)
@@ -510,7 +530,9 @@ Item {
   }
 
   function switchBranch(name) {
-    if (!name || name === root.gitBranch)
+    if (!name)
+      return
+    if (name === root.gitBranch && !root.gitDetached)
       return
     root.gitError = ""
     root.runGit(["switch", String(name)], true)
@@ -544,6 +566,9 @@ Item {
     root.gitHash = data.hash || ""
     root.gitBranches = data.branches || []
     root.gitDate = data.date || ""
+    root.gitVersions = data.versions || []
+    root.gitDetached = data.detached === true
+    root.gitDescribe = data.describe || ""
     root.gitEpoch = Number(data.epoch) || 0
     root.gitCommits = data.commits || ({})
     root.gitDirty = data.dirty === true
@@ -1779,7 +1804,10 @@ Item {
             text: (root.branchMenuOpen ? "▾ " : "▴ ")
               + "Version: "
               + root.channelLabel(root.gitChannel)
-              + (root.gitChannel === "untested" && root.gitBranch ? " · " + root.gitBranch : "")
+              + (root.gitChannel === "version" && root.gitDescribe
+                ? " · " + root.gitDescribe
+                : (root.gitChannel === "untested" && root.gitBranch
+                  ? " · " + root.gitBranch : ""))
               + (root.gitHash ? " @ " + root.gitHash : "")
               + (root.shellStale ? "  · restart to load" : "")
               + (root.gitUpdateAvailable ? " •" : "")

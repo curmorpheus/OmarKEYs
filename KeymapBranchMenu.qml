@@ -20,7 +20,7 @@ Rectangle {
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
 
-  width: Style.space(280)
+  width: Style.space(400)
   height: Math.min(Style.space(320), content.implicitHeight + Style.spacing.sm * 2)
   radius: 6
   color: host ? host.background : Color.menu.background
@@ -174,75 +174,169 @@ Rectangle {
     }
 
     // Update row: only offers the button when there is something to pull.
-    Text {
+    // Channel picks a line of work that keeps moving; Version picks a
+    // release that does not. Side by side because they answer the same
+    // question -- what should this be running -- two different ways.
+    Row {
       width: parent.width
-      text: "Channel"
-      textFormat: Text.PlainText
-      color: menu.chipFg
-      font.family: menu.fontFamily
-      font.pixelSize: menu.labelSize
-      font.bold: true
-      font.capitalization: Font.AllUppercase
-    }
+      spacing: Style.space(10)
 
-    // Three channels, each the tip of one branch, each one click.
-    //
-    // The working branches used to be listed here too, behind an Untested
-    // disclosure. They are gone: most of them predate this picker, so
-    // switching to one left you running code with no way to fetch or
-    // switch back out -- a one-way door into a branch you only meant to
-    // glance at. Anything not on a channel is still named in the corner,
-    // and any channel here will get you out of it.
-    Repeater {
-      model: [
-        { id: "main", label: "Main", note: "stable" },
-        { id: "beta", label: "Beta", note: "tested, ahead of stable" },
-        { id: "nightly", label: "Nightly", note: "develop" }
-      ]
-      delegate: Rectangle {
-        required property var modelData
-        readonly property bool current: !!(host && host.gitChannel === modelData.id)
-        width: content.width
-        height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
-        radius: 4
-        color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
+      Column {
+        id: channelCol
+        width: (parent.width - Style.space(10)) / 2
+        spacing: Style.space(4)
 
         Text {
-          id: channelLabel
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.leftMargin: 6
-          anchors.rightMargin: 6
-          anchors.verticalCenter: parent.verticalCenter
-          // The note says what the channel is; the age says whether it is
-          // worth switching to, which is the actual question being asked.
-          readonly property string age: !host ? ""
-            : host.versionAge(host.branchForChannel(modelData.id))
-          text: (current ? "• " : "  ")
-            + modelData.label
-            + "   " + modelData.note
-            + (age ? "  ·  " + age : "")
+          width: parent.width
+          text: "Channel"
           textFormat: Text.PlainText
-          color: current ? menu.chipFg : menu.foreground
-          opacity: (menu.dirty && !current) ? 0.45 : 1
+          color: menu.chipFg
           font.family: menu.fontFamily
           font.pixelSize: menu.labelSize
-          font.bold: current
-          elide: Text.ElideRight
+          font.bold: true
+          font.capitalization: Font.AllUppercase
         }
 
-        MouseArea {
-          id: channelArea
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            var h = menu.host
-            if (!h || h.gitBusy)
-              return
-            if (current)
-              return
-            h.switchChannel(modelData.id)
+        Repeater {
+          model: [
+            { id: "main", label: "Main", note: "stable" },
+            { id: "beta", label: "Beta", note: "tested" },
+            { id: "nightly", label: "Nightly", note: "develop" }
+          ]
+          delegate: Rectangle {
+            required property var modelData
+            readonly property bool current: !!(host && host.gitChannel === modelData.id)
+            readonly property string age: !host ? ""
+              : host.versionAge(host.branchForChannel(modelData.id))
+            width: channelCol.width
+            height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
+            radius: 4
+            color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
+
+            Text {
+              id: channelLabel
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: 6
+              anchors.rightMargin: 6
+              anchors.verticalCenter: parent.verticalCenter
+              text: (current ? "• " : "  ") + modelData.label
+                + "  ·  " + (age ? age : modelData.note)
+              textFormat: Text.PlainText
+              color: current ? menu.chipFg : menu.foreground
+              opacity: (menu.dirty && !current) ? 0.45 : 1
+              font.family: menu.fontFamily
+              font.pixelSize: menu.labelSize
+              font.bold: current
+              elide: Text.ElideRight
+            }
+
+            MouseArea {
+              id: channelArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var h = menu.host
+                if (!h || h.gitBusy || current)
+                  return
+                h.switchChannel(modelData.id)
+              }
+            }
+          }
+        }
+      }
+
+      Column {
+        id: versionCol
+        width: (parent.width - Style.space(10)) / 2
+        spacing: Style.space(4)
+
+        Text {
+          width: parent.width
+          text: "Version"
+          textFormat: Text.PlainText
+          color: menu.chipFg
+          font.family: menu.fontFamily
+          font.pixelSize: menu.labelSize
+          font.bold: true
+          font.capitalization: Font.AllUppercase
+        }
+
+        // Only releases carrying the version marker appear -- plugin-git
+        // filters the rest out, because a build with no picker in it has
+        // no way back once you are on it.
+        Text {
+          width: parent.width
+          visible: !host || !host.gitVersions || host.gitVersions.length === 0
+          text: "none released yet"
+          textFormat: Text.PlainText
+          color: menu.foreground
+          opacity: 0.45
+          font.family: menu.fontFamily
+          font.pixelSize: menu.labelSize
+          wrapMode: Text.WordWrap
+        }
+
+        Flickable {
+          width: parent.width
+          visible: !!(host && host.gitVersions && host.gitVersions.length)
+          height: visible ? Math.min(Style.space(150), versionList.height) : 0
+          clip: true
+          contentWidth: width
+          contentHeight: versionList.height
+          boundsBehavior: Flickable.StopAtBounds
+          activeFocusOnTab: false
+
+          Column {
+            id: versionList
+            width: parent.width
+            spacing: 1
+
+            Repeater {
+              model: host ? host.gitVersions : []
+              delegate: Rectangle {
+                required property var modelData
+                readonly property bool current: !!(host && host.gitDetached
+                  && host.gitDescribe === modelData.tag)
+                width: versionList.width
+                height: Math.max(Style.space(20), versionLabel.implicitHeight + 4)
+                radius: 4
+                color: versionArea.containsMouse && !current && !menu.busy && !menu.dirty
+                  ? menu.borderColor : "transparent"
+
+                Text {
+                  id: versionLabel
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.leftMargin: 6
+                  anchors.rightMargin: 6
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: (current ? "• " : "") + modelData.tag
+                    + (modelData.date ? "  ·  " + modelData.date : "")
+                  textFormat: Text.PlainText
+                  color: current ? menu.chipFg : menu.foreground
+                  opacity: menu.dirty && !current ? 0.45 : 1
+                  font.family: menu.fontFamily
+                  font.pixelSize: menu.labelSize
+                  font.bold: current
+                  elide: Text.ElideRight
+                }
+
+                MouseArea {
+                  id: versionArea
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = menu.host
+                    if (!h || h.gitBusy || current)
+                      return
+                    h.loadVersion(modelData.tag)
+                  }
+                }
+              }
+            }
           }
         }
       }

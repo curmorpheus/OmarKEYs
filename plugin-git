@@ -175,6 +175,68 @@ def head_commit() -> dict:
         return {"epoch": 0, "date": ""}
 
 
+def detached() -> bool:
+    return git("symbolic-ref", "-q", "HEAD").returncode != 0
+
+
+def describe() -> str:
+    proc = git("describe", "--tags", "--always")
+    return out(proc.stdout) if proc.returncode == 0 else ""
+
+
+def manifest_at(ref: str) -> dict:
+    """The manifest as of some ref, without checking it out."""
+    proc = git("show", f"{ref}:manifest.json")
+    if proc.returncode != 0:
+        return {}
+    try:
+        return json.loads(out(proc.stdout))
+    except ValueError:
+        return {}
+
+
+def loadable(ref: str) -> bool:
+    """Whether a version can be switched to and back out of again.
+
+    The floor is the marker in the tree, never the tag. A tag is a label a
+    person can put on any commit; it says nothing about what that commit's
+    code can do. Older builds have no picker at all -- switching to one
+    strands you there with no way to fetch or switch back.
+    """
+    return bool(manifest_at(ref).get("versionPicker"))
+
+
+def is_tag(name: str) -> bool:
+    return git("rev-parse", "--verify", "--quiet", f"refs/tags/{name}").returncode == 0
+
+
+def versions() -> list[dict]:
+    """Tags that can be loaded, newest first."""
+    proc = git(
+        "for-each-ref",
+        "--sort=-creatordate",
+        "--format=%(refname:short)%09%(objectname:short)%09%(creatordate:short)",
+        "refs/tags",
+    )
+    if proc.returncode != 0:
+        return []
+    found = []
+    for line in out(proc.stdout).splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        tag, sha, date = parts
+        if not loadable(tag):
+            continue
+        found.append({
+            "tag": tag,
+            "hash": sha[:7],
+            "date": date,
+            "version": manifest_at(tag).get("version", ""),
+        })
+    return found
+
+
 def divergence(branch: str) -> tuple[str, int, int]:
     """(upstream, ahead, behind) for branch, or ("", 0, 0) with no upstream."""
     upstream = upstream_ref(branch)
@@ -210,6 +272,10 @@ def status_payload(error: str = "") -> dict:
         "date": head["date"],
         "epoch": head["epoch"],
         "commits": ref_commits(),
+        "detached": detached(),
+        "describe": describe(),
+        "version": manifest_at("HEAD").get("version", ""),
+        "versions": versions(),
     }
 
 
@@ -236,6 +302,8 @@ def cmd_switch(args: argparse.Namespace) -> dict:
     branch = (args.branch or "").strip()
     if not branch:
         return status_payload("no branch given")
+    if is_tag(branch):
+        return switch_to_tag(branch)
     if branch == current_branch():
         return status_payload()
     dirty = git("status", "--porcelain")
@@ -288,6 +356,26 @@ def fast_forward() -> str:
     if proc.returncode != 0:
         return git_error(proc)
     return ""
+
+
+def switch_to_tag(tag: str) -> dict:
+    """Load a released version. Detached on purpose: a tag is a point, not
+    a line of work, and committing onto it by accident helps nobody."""
+    if not loadable(tag):
+        return status_payload(
+            f"{tag} predates the version picker; it could not switch back"
+        )
+    dirty = git("status", "--porcelain")
+    if out(dirty.stdout):
+        return status_payload("uncommitted changes; refusing to switch")
+    proc = git("checkout", "--detach", tag)
+    if proc.returncode != 0:
+        return status_payload(git_error(proc))
+    return status_payload()
+
+
+def cmd_versions(_args: argparse.Namespace) -> dict:
+    return status_payload()
 
 
 def cmd_sync(_args: argparse.Namespace) -> dict:
