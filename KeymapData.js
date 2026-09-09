@@ -1001,6 +1001,48 @@ function isRunnable(keys) {
   return true
 }
 
+// Super+K / hold / double-tap are how you get back into the overlay.
+// Remapping them from Edit is how you lock yourself out.
+function isProtectedOpener(keys) {
+  var k = String(keys || "")
+  if (/^(Double-tap|Hold )/i.test(k))
+    return true
+  var parts = splitKeys(k)
+  return parts.length === 2 && parts[0] === "Super" && parts[1] === "K"
+}
+
+function chordKey(keys) {
+  return splitKeys(keys).map(function(part) {
+    var p = String(part || "")
+    if (p === "Control")
+      return "ctrl"
+    return p.toLowerCase()
+  }).join("+")
+}
+
+// First live row bound to this chord, or null. exceptKeys skips the row
+// being remapped so a no-op recapture of the same shortcut is not a clash.
+function findBound(keys, exceptKeys) {
+  var want = chordKey(keys)
+  if (!want)
+    return null
+  var skip = exceptKeys ? chordKey(exceptKeys) : ""
+  var source = withGestures(activeSections(), currentConfig)
+  for (var s = 0; s < source.length; s++) {
+    var rows = source[s].rows || []
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r]
+      var have = chordKey(row.keys)
+      if (!have || have !== want)
+        continue
+      if (skip && have === skip)
+        continue
+      return { keys: row.keys, action: row.action, title: source[s].title }
+    }
+  }
+  return null
+}
+
 var KEY_SYMS = {
   Return: "Return",
   Enter: "Return",

@@ -22,7 +22,7 @@ so `omarchy plugin add <git-url>` works.
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Channel picker state: switch + sync |
-| `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
+| `KeymapBranchMenu.qml` | Corner picker: 1.0 / 2.0 tracks, then Main / Beta / Nightly |
 | `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
 | `install.sh` | Install plugin (real directory; `--dev` to symlink), wire Hyprland |
 | `RELEASE.md` | Release notes, written when promoting `beta` → `main`. |
@@ -58,14 +58,20 @@ tested on `beta`.
 |---|---|---|---|
 | `main` | Main | Claude | `beta` |
 | `beta` | Beta | Claude | `develop` |
-| `develop` | Nightly | Claude | `develop-claude`; PRs from `develop-cursor` |
+| `develop` | Nightly (1.0) | Claude | `develop-claude`; PRs from `develop-cursor` |
+| `2.0` | 2.0 (unreleased) | Grok | `develop`, one-way merge in |
 | `develop-claude` | — | Claude | direct work |
 | `develop-cursor` | — | Cursor | direct work; PRs into `develop` |
 
-Claude promotes all three: `develop-claude` into `develop` once it is
+Claude promotes the 1.0 ladder: `develop-claude` into `develop` once it is
 approved, `develop` to `beta`, and a finished `beta` into `main`, writing
-`RELEASE.md` at the last step. Grok reviews rather than promotes. Cursor
-does not land on `main`.
+`RELEASE.md` at the last step. Grok reviews 1.0 rather than promoting it,
+and owns the `2.0` branch. **Do not merge `2.0` into `develop`, and do not
+promote `2.0` to `beta` or `main` until that is asked for.** Cursor does
+not land on `main`.
+
+The overlay picker has a 1.0 / 2.0 track switch. 1.0 lands on Nightly
+(`develop`); 2.0 lands on branch `2.0`. Main and Beta stay 1.0-only.
 
 Write release-note and version changes on the branch that *feeds* the one
 being promoted, never directly on `beta` or `main` — a commit made on the

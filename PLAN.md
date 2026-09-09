@@ -204,11 +204,7 @@ text per row, and no way to scan by what a command *does*.
 
 ### Finish Phase 3 — View | Edit UI
 
-- [ ] Header toggle View | Edit (Omarchy branch only)
-- [ ] Dim non-editable rows; “press a new chord or Esc”
-- [ ] Enter stays View-only
-- [ ] Surface `apply-edit revert` / history in the overlay
-- [ ] `install.sh` wires `omarkeys-edits.lua` on first install (first edit already appends the dofile)
+Moved to the 2.0 section below. The 1.0 track stays view-only.
 
 ### 1.x — four-part versions, and tags that mean something
 
@@ -242,18 +238,31 @@ a landing on `develop` bumps the fourth. Today's 1.12.0 becomes 1.12.0.0.
 
 ### 2.0 — editable keymaps, versioned, with the defaults kept
 
-The backend is already built and unreachable: `apply-edit` remaps a chord
-into `omarkeys-edits.lua`, snapshots before every write into a git repo
-under `~/.local/state/omarchy/omarkeys-history`, and restores the previous
-state when a reload fails. `Keymap.qml` has `setEditMode` and
-`startCapture` that nothing calls. 2.0 is mostly surfacing that safely.
+Lives on branch `2.0` (Grok, `~/Work/omarkeys-grok`). Based on `develop`
+and kept in sync by merging `shared/develop` in; never merged back into
+`develop`, and not promoted to `beta` or `main` yet. Manifest version on
+this branch is `2.0.0.0`.
 
-- [ ] View | Edit toggle on the Omarchy branch: pick a row, press the new
-      chord, confirm. The capture primitive exists -- the filter's armed
-      capture takes a whole keystroke including modifiers, Return and
-      Escape, which is exactly what "press a new chord" needs.
-- [ ] Refuse a chord already bound, and say what holds it. The live dump
-      knows every bind, so this is a lookup rather than a guess.
+The overlay picker has a **1.0 / 2.0** track switch so the two lines can
+see each other. 1.0 lands on Nightly (`develop`); 2.0 lands on this
+branch. Main / Beta stay 1.0-only.
+
+The backend is already built and was unreachable: `apply-edit` remaps a
+chord into `omarkeys-edits.lua`, snapshots before every write into a git
+repo under `~/.local/state/omarchy/omarkeys-history`, and restores the
+previous state when a reload fails. `Keymap.qml` had `setEditMode` and
+`startCapture` that nothing called. 2.0 is mostly surfacing that safely.
+
+- [x] Branch `2.0` off latest `develop`; Grok works here
+- [x] 1.0 / 2.0 track switch in the corner picker
+- [x] View | Edit toggle on the Omarchy branch: pick a row, press the new
+      chord. Remap capture uses the filter's armed `captureChord` (whole
+      keystroke, modifiers and Return included). Esc cancels.
+- [x] Refuse a chord already bound, and say what holds it (`findBound`)
+- [x] Super+K / hold / double-tap cannot be remapped (lock-out guard)
+- [ ] Confirm step before `apply-edit` writes
+- [ ] Dim non-editable rows in Edit
+- [ ] Surface `apply-edit revert` / history in the overlay
 - [ ] **Two baselines, not one.** "Omarchy defaults" and "what your config
       looked like before OmarKEYS touched it" are different things the
       moment someone has customised `bindings.lua`, and conflating them

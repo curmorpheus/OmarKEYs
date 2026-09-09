@@ -3,19 +3,21 @@
 A Super+K alternative for [Omarchy](https://omarchy.org/). Topic-organized
 keymap overlay, summoned without eating Super+other shortcuts.
 
-Repo: https://github.com/romills/OmarKEYs. Work climbs one ladder —
+Repo: https://github.com/romills/OmarKEYs. 1.0 work climbs one ladder —
 `develop-claude` → `develop` → `beta` → `main` — and each channel in the
-overlay's corner picker maps to one of its branches:
+overlay's corner picker maps to one of its branches. **2.0 is a separate
+branch** (editable keymaps) and is not promoted to beta or main yet.
 
 | Branch | Channel | Owner |
 |---|---|---|
 | `main` | Main | Claude promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
 | `beta` | Beta | Claude |
-| `develop` | Nightly | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
+| `develop` | Nightly (1.0) | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
+| `2.0` | 2.0 | Grok; merge `develop` in, never merge back |
 | `develop-claude` | not in the picker | Claude's working branch |
 | `develop-cursor` | not in the picker | Cursor's working branch |
 
-Cursor does not land on `main`.
+The picker also has a 1.0 / 2.0 track switch. Cursor does not land on `main`.
 
 **Open**
 

@@ -469,6 +469,7 @@ Item {
 
   property string gitBranch: ""
   property string gitHash: ""
+  property string gitVersion: ""
   property var gitBranches: []
   property bool gitDirty: false
   property bool gitUpdateAvailable: false
@@ -498,6 +499,7 @@ Item {
   readonly property string mainBranch: "main"
   readonly property string betaBranch: "beta"
   readonly property string nightlyBranch: "develop"
+  readonly property string twoBranch: "2.0"
 
   function channelFor(branch) {
     if (root.gitDetached)
@@ -508,7 +510,20 @@ Item {
       return "beta"
     if (branch === root.nightlyBranch)
       return "nightly"
+    if (branch === root.twoBranch)
+      return "2.0"
     return "untested"
+  }
+
+  // 1.0 is main/beta/develop and 1.x tags. 2.0 is this branch (and later
+  // 2.x tags). Not a channel: 2.0 is not promoted to beta or main yet.
+  readonly property string gitTrack: {
+    if (root.gitBranch === root.twoBranch)
+      return "2.0"
+    var ver = String(root.gitVersion || "")
+    if (ver.indexOf("2.") === 0)
+      return "2.0"
+    return "1.0"
   }
 
   readonly property string gitChannel: root.channelFor(root.gitBranch)
@@ -556,6 +571,8 @@ Item {
       return root.betaBranch
     if (channel === "nightly")
       return root.nightlyBranch
+    if (channel === "2.0")
+      return root.twoBranch
     return ""
   }
 
@@ -591,6 +608,8 @@ Item {
       return "Beta"
     if (channel === "nightly")
       return "Nightly"
+    if (channel === "2.0")
+      return "2.0"
     if (channel === "version")
       return "Version"
     return "Untested"
@@ -617,6 +636,18 @@ Item {
       root.switchBranch(root.betaBranch)
     else if (channel === "nightly")
       root.switchBranch(root.nightlyBranch)
+    else if (channel === "2.0")
+      root.switchBranch(root.twoBranch)
+  }
+
+  // Track switch, not a channel. 1.0 lands on Nightly (develop), the 1.0
+  // development tip — Main/Beta stay one more click in the channel list.
+  // 2.0 is the `2.0` branch and is not promoted to beta or main.
+  function switchTrack(track) {
+    if (track === "2.0")
+      root.switchBranch(root.twoBranch)
+    else if (track === "1.0")
+      root.switchChannel("nightly")
   }
 
   function toggleOptionsMenu() {
@@ -684,6 +715,7 @@ Item {
     root.gitDescribe = data.describe || ""
     root.gitEpoch = Number(data.epoch) || 0
     root.gitCommits = data.commits || ({})
+    root.gitVersion = data.version || ""
     root.gitDirty = data.dirty === true
     root.gitBehind = data.behind || 0
     root.gitUpdateAvailable = data.updateAvailable === true
@@ -1524,14 +1556,14 @@ Item {
   function startCapture(keys, action) {
     if (!root.omarchyActive || !root.editMode)
       return
-    if (!KeymapData.isRunnable(keys)) {
+    if (KeymapData.isProtectedOpener(keys) || !KeymapData.isRunnable(keys)) {
       root.editStatus = "That row cannot be remapped"
       return
     }
     root.captureOldKeys = keys
     root.captureAction = action
     root.capturing = true
-    root.editStatus = "Press the new shortcut for “" + action + "”"
+    root.editStatus = "Press the new shortcut for “" + action + "”, or Esc"
   }
 
   function applyCapture(newHypr) {
@@ -1692,13 +1724,21 @@ Item {
         event.accepted = true
         return
       }
-      var chord = root.eventToHyprChord(event)
-      if (chord) {
-        root.applyCapture(chord)
-        event.accepted = true
-      } else {
-        event.accepted = true
+      if (root.isModifierKey(event))
+        return
+      // Same armed-capture primitive as the filter: a whole keystroke,
+      // modifiers included, Return included. Esc still cancels.
+      var captured = root.captureChord(event)
+      if (captured) {
+        var clash = KeymapData.findBound(captured, root.captureOldKeys)
+        if (clash) {
+          root.editStatus = "Already bound to “" + clash.action + "”"
+          event.accepted = true
+          return
+        }
+        root.applyCapture(root.toHyprChord(captured))
       }
+      event.accepted = true
       return
     }
     // Armed capture runs ahead of every control key, or Escape and Return
@@ -1916,7 +1956,7 @@ Item {
                   id: headerLabel
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  anchors.right: hintLabel.left
+                  anchors.right: headerRight.left
                   anchors.rightMargin: Style.spacing.md
                   text: root.filterText || "OmarKEYS"
                   textFormat: Text.PlainText
@@ -1927,16 +1967,68 @@ Item {
                   elide: Text.ElideRight
                 }
 
-                Text {
-                  id: hintLabel
+                Row {
+                  id: headerRight
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
-                  text: "↑↓ command · Ctrl+1–9 window · type to search · Enter run"
-                  textFormat: Text.PlainText
-                  color: root.foreground
-                  opacity: 0.72
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  spacing: Style.space(8)
+
+                  // 2.0: View | Edit. Omarchy binds only — app sheets are
+                  // not remapped from here.
+                  Row {
+                    visible: root.omarchyActive
+                    spacing: Style.space(4)
+
+                    Repeater {
+                      model: [
+                        { on: false, label: "View" },
+                        { on: true, label: "Edit" }
+                      ]
+                      delegate: Rectangle {
+                        required property var modelData
+                        readonly property bool selected: root.editMode === modelData.on
+                        width: modeLabel.implicitWidth + Style.space(10)
+                        height: modeLabel.implicitHeight + Style.space(4)
+                        radius: 3
+                        color: selected ? root.chipFg
+                          : (modeArea.containsMouse ? root.border : "transparent")
+                        border.width: selected ? 0 : 1
+                        border.color: root.border
+
+                        Text {
+                          id: modeLabel
+                          anchors.centerIn: parent
+                          text: modelData.label
+                          textFormat: Text.PlainText
+                          color: selected ? root.background : root.foreground
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                          font.capitalization: Font.AllUppercase
+                        }
+
+                        MouseArea {
+                          id: modeArea
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.setEditMode(modelData.on)
+                        }
+                      }
+                    }
+                  }
+
+                  Text {
+                    id: hintLabel
+                    text: root.editMode
+                      ? (root.editStatus || "Edit: pick a command, then press its new chord")
+                      : "↑↓ command · Ctrl+1–9 window · type to search · Enter run"
+                    textFormat: Text.PlainText
+                    color: root.foreground
+                    opacity: 0.72
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
                 }
               }
 
@@ -1979,6 +2071,8 @@ Item {
             // is not implied by the channel.
             text: (root.branchMenuOpen ? "▾ " : "▴ ")
               + "Version: "
+              + (root.gitTrack === "2.0" && root.gitChannel !== "2.0"
+                ? "2.0 · " : "")
               + root.channelLabel(root.gitChannel)
               + (root.gitChannel === "version" && root.gitDescribe
                 ? " · " + root.gitDescribe

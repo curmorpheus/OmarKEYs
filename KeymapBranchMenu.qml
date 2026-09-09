@@ -178,7 +178,71 @@ Rectangle {
       wrapMode: Text.WordWrap
     }
 
-    // Update row: only offers the button when there is something to pull.
+    // Track, then channel. 1.0 is the current release ladder (Main / Beta
+    // / Nightly). 2.0 is a separate branch and is not promoted yet.
+    Row {
+      width: parent.width
+      spacing: Style.space(6)
+
+      Repeater {
+        model: [
+          { id: "1.0", label: "1.0", note: "release track" },
+          { id: "2.0", label: "2.0", note: "editable keymaps" }
+        ]
+        delegate: Rectangle {
+          required property var modelData
+          readonly property bool current: !!(host && host.gitTrack === modelData.id)
+          width: (menu.width - Style.spacing.sm * 2 - Style.space(6)) / 2
+          height: trackLabel.implicitHeight + Style.space(6)
+          radius: 3
+          color: current ? menu.chipFg
+            : (trackArea.containsMouse && !menu.busy ? menu.borderColor : "transparent")
+          border.width: current ? 0 : 1
+          border.color: menu.borderColor
+
+          Text {
+            id: trackLabel
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: modelData.label
+            textFormat: Text.PlainText
+            color: current ? menu.color : menu.foreground
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            font.bold: true
+            font.capitalization: Font.AllUppercase
+          }
+
+          MouseArea {
+            id: trackArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              var h = menu.host
+              if (!h || h.gitBusy || current)
+                return
+              h.switchTrack(modelData.id)
+            }
+          }
+        }
+      }
+    }
+
+    Text {
+      width: parent.width
+      visible: !!(host && host.gitTrack === "2.0")
+      text: "2.0 is development only — not on Beta or Main yet"
+      textFormat: Text.PlainText
+      color: menu.foreground
+      opacity: 0.6
+      wrapMode: Text.WordWrap
+      font.family: menu.fontFamily
+      font.pixelSize: menu.labelSize
+      font.italic: true
+    }
+
     // Two tabs, inverted like every other heading here: the selected one
     // is filled, the other is an outline you can click.
     Row {

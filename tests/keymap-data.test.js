@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.sampleChord = sampleChord; this.keyTypeOf = keyTypeOf; this.displayClasses = displayClasses;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.sampleChord = sampleChord; this.keyTypeOf = keyTypeOf; this.displayClasses = displayClasses; this.findBound = findBound; this.isProtectedOpener = isProtectedOpener; this.chordKey = chordKey;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -689,4 +689,30 @@ test("the options sample chord looks different in every chip style", () => {
   const perKeyboard = ["text", "mac", "windows", "omarchy"]
     .map((kb) => JSON.stringify(context.displayKeys(chord, "icons", kb)))
   assert.equal(new Set(perKeyboard).size, 4, "keyboards are indistinguishable")
+})
+
+test("findBound reports the row that already holds a chord", () => {
+  context.setSections([
+    { title: "Main", rows: [
+      { keys: "Super + K", action: "OmarKEYS" },
+      { keys: "Super + W", action: "Close window" },
+      { keys: "Super + Return", action: "Terminal" }
+    ]}
+  ])
+  const hit = context.findBound("Super + W")
+  assert.equal(hit.action, "Close window")
+  assert.equal(hit.title, "Main")
+  // Recapturing the same chord is not a clash with itself.
+  assert.equal(context.findBound("Super + W", "Super + W"), null)
+  assert.equal(context.findBound("Super + W", "Super + K").action, "Close window")
+  assert.equal(context.findBound("Alt + F4"), null)
+  context.setSections(null)
+})
+
+test("opener chords stay out of the remap editor", () => {
+  assert.equal(context.isProtectedOpener("Super + K"), true)
+  assert.equal(context.isProtectedOpener("Double-tap Super"), true)
+  assert.equal(context.isProtectedOpener("Hold Super 5s"), true)
+  assert.equal(context.isProtectedOpener("Super + W"), false)
+  assert.equal(context.isProtectedOpener("Super + Shift + K"), false)
 })
