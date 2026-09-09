@@ -65,3 +65,27 @@ test("the duplicate check would have caught the one that broke the overlay", () 
   assert.equal(dupes.length, 1)
   assert.match(dupes[0], /'opacity' already set at line 3/)
 })
+
+// Splicing a block into a QML file by hand is easy to get wrong by one
+// brace, and qmllint did not object when it happened -- the file simply
+// stopped meaning what it looked like it meant.
+function braceDepth(source) {
+  let depth = 0
+  let min = 0
+  for (const raw of source.split("\n")) {
+    const code = raw.split("//")[0].replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    for (const ch of code) {
+      if (ch === "{") depth++
+      else if (ch === "}") { depth--; if (depth < min) min = depth }
+    }
+  }
+  return { depth, min }
+}
+
+test("every QML file closes every brace it opens", () => {
+  for (const file of qmlFiles) {
+    const { depth, min } = braceDepth(fs.readFileSync(path.join(root, file), "utf8"))
+    assert.equal(depth, 0, `${file} ends at brace depth ${depth}`)
+    assert.equal(min, 0, `${file} closes a brace it never opened`)
+  }
+})

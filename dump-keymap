@@ -749,6 +749,31 @@ def attach_sessions(windows: list[dict], sessions: list[dict]) -> None:
         unmatched[0]["exe"] = free[0]["exe"]
 
 
+def dump_workspaces() -> list[dict]:
+    """Workspaces that exist, by id. Hyprland only reports the ones that
+    are real -- an empty workspace nobody has visited is not one."""
+    try:
+        spaces = json.loads(subprocess.check_output(["hyprctl", "-j", "workspaces"], text=True))
+    except (OSError, json.JSONDecodeError, subprocess.CalledProcessError):
+        return []
+    out = []
+    for space in spaces:
+        try:
+            wid = int(space.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if wid <= 0:
+            # Special workspaces (scratchpad) have negative ids and are not
+            # somewhere you switch to by number.
+            continue
+        out.append({
+            "id": wid,
+            "name": str(space.get("name") or wid),
+            "windows": int(space.get("windows") or 0),
+        })
+    return sorted(out, key=lambda w: w["id"])
+
+
 def dump_clients() -> list[dict]:
     try:
         clients = json.loads(subprocess.check_output(["hyprctl", "-j", "clients"], text=True))
@@ -789,8 +814,17 @@ def dump_clients() -> list[dict]:
                 entry["title"] = title
                 entry["address"] = address
                 entry["label"] = client_label(cls, entry["sheet"], title)
+        # Per window, not per app: one class can have windows on several
+        # workspaces, so an app has no single workspace to belong to.
+        workspace = client.get("workspace") or {}
         grouped[cls]["windows"].append(
-            {"address": address, "title": title, "focused": focused}
+            {
+                "address": address,
+                "title": title,
+                "focused": focused,
+                "workspace": int(workspace.get("id") or 0),
+                "workspaceName": str(workspace.get("name") or ""),
+            }
         )
     for entry in grouped.values():
         if len(entry["windows"]) > 1 or entry["pid"]:
@@ -815,7 +849,8 @@ def dump() -> dict:
     digest = hashlib.sha256(
         json.dumps(sections, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()[:16]
-    return {"sections": sections, "clients": dump_clients(), "hash": digest}
+    return {"sections": sections, "clients": dump_clients(),
+            "workspaces": dump_workspaces(), "hash": digest}
 
 
 def main() -> None:

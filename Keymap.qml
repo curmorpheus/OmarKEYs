@@ -88,6 +88,7 @@ Item {
   property string keymapHash: ""
   property var omarchySections: []
   property var clients: []
+  property var workspaces: []
   property string activeSource: "omarchy"
   property bool editMode: false
   property bool capturing: false
@@ -255,6 +256,7 @@ Item {
       return
     if (data.clients) {
       root.clients = data.clients
+      root.workspaces = data.workspaces || []
       // Latch once per open: later refreshes must not re-point this at
       // something that took focus while the overlay was already up.
       if (!root.contextAddressLatched) {
@@ -944,6 +946,75 @@ Item {
   // so the sort below and the fallback cannot drift apart.
   readonly property string noSheetKind: "No keymap sheet"
 
+  // Windows grouped by the workspace they are on, then by kind, then by
+  // app -- the tree Active Apps already showed, with a workspace above it.
+  //
+  // Scoped per workspace rather than filtered: one app can have windows on
+  // several workspaces, so an app entry belongs to a workspace only for
+  // the windows it has there. Sharing the client object across workspaces
+  // would make each copy claim all of them.
+  readonly property var workspaceTree: {
+    var spaces = root.workspaces || []
+    var clients = root.clients || []
+    var order = []
+    var byId = ({})
+    for (var w = 0; w < spaces.length; w++) {
+      byId[spaces[w].id] = { id: spaces[w].id, name: spaces[w].name,
+        title: "Workspace " + spaces[w].name, kinds: [], kindIndex: ({}), hidden: true }
+      order.push(spaces[w].id)
+    }
+    for (var c = 0; c < clients.length; c++) {
+      var app = clients[c]
+      var windows = app.windows || []
+      var perSpace = ({})
+      for (var n = 0; n < windows.length; n++) {
+        var id = windows[n].workspace || 0
+        if (!byId[id])
+          continue
+        if (!perSpace[id])
+          perSpace[id] = []
+        perSpace[id].push(windows[n])
+      }
+      for (var key in perSpace) {
+        var space = byId[key]
+        var kind = app.kind || root.noSheetKind
+        if (space.kindIndex[kind] === undefined) {
+          space.kindIndex[kind] = space.kinds.length
+          space.kinds.push({ title: kind, apps: [], hidden: true })
+        }
+        var bucket = space.kinds[space.kindIndex[kind]]
+        var scoped = ({})
+        for (var f in app)
+          scoped[f] = app[f]
+        scoped.windows = perSpace[key]
+        scoped.count = perSpace[key].length
+        bucket.apps.push(scoped)
+        if (!root.appIsHidden(app.class)) {
+          bucket.hidden = false
+          space.hidden = false
+        }
+      }
+    }
+    var out = []
+    for (var o = 0; o < order.length; o++) {
+      var entry = byId[order[o]]
+      if (!entry.kinds.length)
+        continue
+      // Same rule as the flat tree: no-sheet apps sit last.
+      var kinds = []
+      var noSheet = []
+      for (var k = 0; k < entry.kinds.length; k++) {
+        if (entry.kinds[k].title === root.noSheetKind)
+          noSheet.push(entry.kinds[k])
+        else
+          kinds.push(entry.kinds[k])
+      }
+      entry.kinds = kinds.concat(noSheet)
+      out.push(entry)
+    }
+    return out
+  }
+
   readonly property var appTree: {
     var out = []
     var index = ({})
@@ -1446,6 +1517,19 @@ Item {
       root.editStatus = "Edit: select a command, then press its new chord"
     else
       root.editStatus = ""
+  }
+
+  // Double-click a workspace branch to go to it. Same path as running a
+  // row: the dispatcher, not a replayed chord.
+  function focusWorkspace(id) {
+    if (!id || root.launching)
+      return
+    root.pendingDispatcher = "workspace"
+    root.pendingArg = String(id)
+    root.pendingFocus = ""
+    root.launching = true
+    root.dismiss()
+    runTimer.restart()
   }
 
   function focusWindow(address) {
