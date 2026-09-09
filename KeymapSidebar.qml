@@ -502,6 +502,7 @@ Rectangle {
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
+                font.capitalization: Font.AllUppercase
                 elide: Text.ElideRight
 
                 MouseArea {
@@ -536,7 +537,7 @@ Rectangle {
 
                   Text {
                     anchors.left: parent.left
-                    anchors.leftMargin: 2
+                    anchors.leftMargin: 14
                     anchors.verticalCenter: parent.verticalCenter
                     width: 12
                     text: kindCol.modelData.hidden ? "▸" : "▾"
@@ -588,7 +589,7 @@ Rectangle {
                   Text {
                     id: kindLabel
                     anchors.left: parent.left
-                    anchors.leftMargin: 14
+                    anchors.leftMargin: 26
                     anchors.right: kindToggle.left
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
@@ -630,7 +631,7 @@ Rectangle {
                       id: winLabel
                       anchors.left: parent.left
                       anchors.right: parent.right
-                      anchors.leftMargin: 26
+                      anchors.leftMargin: 38
                       anchors.rightMargin: 6
                       anchors.verticalCenter: parent.verticalCenter
                       text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
@@ -693,7 +694,7 @@ Rectangle {
                           id: exeLabel
                           anchors.left: parent.left
                           anchors.right: parent.right
-                          anchors.leftMargin: 38
+                          anchors.leftMargin: 50
                           anchors.rightMargin: 6
                           anchors.verticalCenter: parent.verticalCenter
                           // An idle shell has no program to name, so its title
@@ -745,7 +746,7 @@ Rectangle {
                           id: titleLabel
                           anchors.left: parent.left
                           anchors.right: parent.right
-                          anchors.leftMargin: 50
+                          anchors.leftMargin: 62
                           anchors.rightMargin: 6
                           anchors.verticalCenter: parent.verticalCenter
                           text: winCol.modelData.title
