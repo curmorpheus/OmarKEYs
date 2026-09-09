@@ -346,7 +346,7 @@ user bindings file so Super+chords stay unmodified.
 | `plugin-git` | Channel picker's git backend: status, fetch, switch, sync |
 | `install.sh` | Install the plugin and wire the Hyprland gestures |
 | `sheets/` | Bundled app keymaps (Chromium, Ghostty, Nautilus) |
-| `tests/` | `node --test tests/keymap-data.test.js` |
+| `tests/` | `node --test tests/*.test.js` |
 | `hyprland.lua` | Super+K, double-tap, hold |
 
 ## License

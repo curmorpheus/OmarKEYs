@@ -581,11 +581,10 @@ Rectangle {
           id: holdLabel
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
-          opacity: (menu.host && !menu.host.holdEnabled) ? 0.4 : 0.75
           text: "Hold Super " + (menu.host ? menu.host.holdSeconds : 5) + "s"
           textFormat: Text.PlainText
           color: menu.foreground
-          opacity: 0.75
+          opacity: (menu.host && !menu.host.holdEnabled) ? 0.4 : 0.75
           font.family: menu.fontFamily
           font.pixelSize: menu.labelSize
         }

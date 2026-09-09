@@ -35,7 +35,7 @@ visible (search, hidden groups, modifier modes). Roadmap: `PLAN.md`.
 
 ```sh
 omarchy plugin validate .
-node --test tests/keymap-data.test.js
+node --test tests/*.test.js
 git diff --check
 ```
 
