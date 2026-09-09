@@ -34,12 +34,12 @@ Flickable {
   Row {
     id: columnsRow
     width: parent.width
-    spacing: Style.spacing.md
+    spacing: Style.space(12)
 
     Column {
       id: leftCol
       width: (columnsRow.width - columnsRow.spacing) / 2
-      spacing: Style.spacing.sm
+      spacing: Style.space(8)
 
       Repeater {
         model: host ? host.leftSections : []
@@ -94,7 +94,7 @@ Flickable {
     Column {
       id: rightCol
       width: (columnsRow.width - columnsRow.spacing) / 2
-      spacing: Style.spacing.sm
+      spacing: Style.space(8)
 
       Repeater {
         model: host ? host.rightSections : []

@@ -40,13 +40,19 @@ Rectangle {
   // from under the cursor. The column reserves room for the names instead,
   // so a hovered row grows its text into space that was already there and
   // nothing shifts.
-  readonly property real keysWidth: Math.max(0, width * 0.52 - 8)
-  readonly property real actionWidth: Math.max(0, width - keysWidth - 16 - Style.spacing.sm
-    - row.topicSpace)
+  // The gutters between the row's columns, named rather than spelled out
+  // as 8s and 4s across five expressions. At 4px the topic sat against the
+  // chips and the row read as one run of text; a column needs enough space
+  // beside it to be read as a column.
+  readonly property real edgePad: Style.space(8)
+  readonly property real gutter: Math.round(Style.space(14) * row.fontScale)
+  readonly property real keysWidth: Math.max(0, width * 0.52 - row.edgePad)
+  readonly property real actionWidth: Math.max(0, width - keysWidth
+    - row.edgePad * 2 - row.gutter - row.topicSpace)
   // Never more than a third of the column: the description is what the row
   // is for, and a long topic must not crowd it out.
   readonly property real topicSpace: row.topic.length > 0
-    ? Math.min(topicMetric.implicitWidth, (width - keysWidth) * 0.33) + Style.space(8)
+    ? Math.min(topicMetric.implicitWidth, (width - keysWidth) * 0.33) + row.gutter
     : 0
   signal clicked(string keys, string action)
   signal activated(string keys, string action)
@@ -60,7 +66,7 @@ Rectangle {
     : KeymapData.isRunnable(modelData.keys)
 
   width: parent ? parent.width : 0
-  height: Math.max(Style.space(22), actionLabel.implicitHeight + 4)
+  height: Math.max(Style.space(24), actionLabel.implicitHeight + Style.space(6))
   radius: 4
   color: selected ? row.selectedBg : "transparent"
   border.width: selected ? 1 : 0
@@ -89,7 +95,7 @@ Rectangle {
 
   Row {
     id: keysRow
-    x: row.keysFirst ? 8 : row.width - row.keysWidth - 8
+    x: row.keysFirst ? row.edgePad : row.width - row.keysWidth - row.edgePad
     anchors.verticalCenter: parent.verticalCenter
     width: row.keysWidth
     spacing: 4
@@ -164,7 +170,7 @@ Rectangle {
 
   Text {
     id: actionLabel
-    x: row.keysFirst ? row.keysWidth + 8 + Style.spacing.sm : 8
+    x: row.keysFirst ? row.keysWidth + row.edgePad + row.gutter : row.edgePad
     width: row.actionWidth
     anchors.verticalCenter: parent.verticalCenter
     text: row.modelData.action
@@ -191,8 +197,8 @@ Rectangle {
   Text {
     id: topicLabel
     visible: row.topic.length > 0
-    x: actionLabel.x + actionLabel.width + Style.space(8)
-    width: Math.max(0, row.topicSpace - Style.space(8))
+    x: actionLabel.x + actionLabel.width + row.gutter
+    width: Math.max(0, row.topicSpace - row.gutter)
     anchors.verticalCenter: parent.verticalCenter
     text: row.topic
     textFormat: Text.PlainText

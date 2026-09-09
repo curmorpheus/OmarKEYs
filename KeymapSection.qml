@@ -40,7 +40,10 @@ Rectangle {
     return ""
   }
 
-  implicitHeight: sectionCol.implicitHeight + Style.spacing.md
+  // Symmetric: the content is inset by the same pad on every side, where
+  // it used to sit 4 from the top and 2 from the bottom.
+  readonly property real pad: Style.space(8)
+  implicitHeight: sectionCol.implicitHeight + section.pad * 2
   radius: 6
   color: "transparent"
   border.width: 1
@@ -51,8 +54,8 @@ Rectangle {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
-    anchors.margins: Style.spacing.sm
-    spacing: Style.space(5)
+    anchors.margins: section.pad
+    spacing: Style.space(6)
 
     // Ungrouped rows arrive as one untitled block; an empty heading would
     // still reserve its line and a blank gap above the rows.
