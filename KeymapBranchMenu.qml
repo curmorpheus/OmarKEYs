@@ -38,28 +38,90 @@ Rectangle {
     anchors.margins: Style.spacing.sm
     spacing: Style.space(4)
 
-    Text {
+    // What is loaded, and the one action you take on it. The cloud is the
+    // check/sync button the full-width bar used to be; its label says
+    // which of the two clicking it will do.
+    Row {
       width: parent.width
-      text: "Loaded"
-      textFormat: Text.PlainText
-      color: menu.chipFg
-      font.family: menu.fontFamily
-      font.pixelSize: menu.labelSize
-      font.bold: true
-      font.capitalization: Font.AllUppercase
-    }
+      spacing: Style.space(8)
 
-    Text {
-      width: parent.width
-      text: (host ? host.channelLabel(host.gitChannel) : "unknown")
-        + (host && host.gitBranch ? "  ·  " + host.gitBranch : "")
-        + (host && host.gitHash ? " @ " + host.gitHash : "")
-        + (host && host.gitDate ? "  ·  " + host.gitDate : "")
-      textFormat: Text.PlainText
-      color: menu.foreground
-      font.family: menu.fontFamily
-      font.pixelSize: menu.labelSize
-      elide: Text.ElideMiddle
+      Item {
+        id: updateCell
+        width: Style.space(52)
+        height: cloudGlyph.height + updateLabel.height + Style.space(2)
+
+        Text {
+          id: cloudGlyph
+          anchors.horizontalCenter: parent.horizontalCenter
+          text: "\udb81\udd2a"
+          textFormat: Text.PlainText
+          color: (host && host.gitUpdateAvailable) ? menu.chipFg : menu.foreground
+          opacity: menu.busy ? 0.4 : (updateArea.containsMouse ? 1 : 0.8)
+          font.family: menu.fontFamily
+          font.pixelSize: Math.round(menu.labelSize * 3.2)
+        }
+
+        Text {
+          id: updateLabel
+          anchors.top: cloudGlyph.bottom
+          anchors.topMargin: Style.space(2)
+          width: parent.width
+          horizontalAlignment: Text.AlignHCenter
+          text: menu.busy ? "…"
+            : ((host && host.gitUpdateAvailable) ? "update" : "check")
+          textFormat: Text.PlainText
+          color: (host && host.gitUpdateAvailable) ? menu.chipFg : menu.foreground
+          opacity: 0.7
+          font.family: menu.fontFamily
+          font.pixelSize: menu.labelSize
+          font.bold: !!(host && host.gitUpdateAvailable)
+          elide: Text.ElideRight
+        }
+
+        MouseArea {
+          id: updateArea
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            var h = menu.host
+            if (!h || h.gitBusy)
+              return
+            if (h.gitUpdateAvailable)
+              h.syncBranch()
+            else
+              h.checkForUpdates()
+          }
+        }
+      }
+
+      // One fact per line, each labelled. As a single run they ran
+      // together into something that had to be parsed rather than read.
+      Column {
+        width: parent.width - updateCell.width - Style.space(8)
+        spacing: Style.space(2)
+
+        Repeater {
+          model: [
+            { label: "Updated", value: (host && host.gitDate) ? host.gitDate : "—" },
+            { label: "Branch", value: !host ? "—"
+              : host.channelLabel(host.gitChannel)
+                + (host.gitChannel === "untested" && host.gitBranch
+                  ? "  ·  " + host.gitBranch : "") },
+            { label: "Hash", value: (host && host.gitHash) ? host.gitHash : "—" }
+          ]
+          delegate: Text {
+            required property var modelData
+            width: parent.width
+            text: modelData.label + ": " + modelData.value
+            textFormat: Text.PlainText
+            color: menu.foreground
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            elide: Text.ElideRight
+          }
+        }
+      }
     }
 
     // Anything that would make a switch or sync refuse is worth saying
@@ -90,51 +152,6 @@ Rectangle {
     }
 
     // Update row: only offers the button when there is something to pull.
-    Rectangle {
-      width: parent.width
-      height: Math.max(Style.space(22), updateLabel.implicitHeight + 6)
-      radius: 4
-      color: updateArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
-      border.width: 1
-      border.color: menu.borderColor
-      opacity: menu.busy ? 0.5 : 1
-
-      Text {
-        id: updateLabel
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: 6
-        anchors.rightMargin: 6
-        anchors.verticalCenter: parent.verticalCenter
-        text: menu.busy ? "Working…"
-          : (host && host.gitUpdateAvailable)
-            ? "Sync to latest (" + (host ? host.gitBehind : 0) + " new)"
-            : "Check for updates"
-        textFormat: Text.PlainText
-        color: (host && host.gitUpdateAvailable) ? menu.chipFg : menu.foreground
-        font.family: menu.fontFamily
-        font.pixelSize: menu.labelSize
-        font.bold: !!(host && host.gitUpdateAvailable)
-        elide: Text.ElideRight
-      }
-
-      MouseArea {
-        id: updateArea
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: {
-          var h = menu.host
-          if (!h || h.gitBusy)
-            return
-          if (h.gitUpdateAvailable)
-            h.syncBranch()
-          else
-            h.checkForUpdates()
-        }
-      }
-    }
-
     Text {
       width: parent.width
       text: "Channel"
