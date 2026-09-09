@@ -45,12 +45,14 @@ Rectangle {
     anchors.right: parent.right
     anchors.top: parent.top
     anchors.margins: Style.spacing.sm
-    text: "✕"
+    // Bracketed so it reads as a button rather than a stray mark in the
+    // corner, and big enough to aim at.
+    text: "[ ✕ ]"
     textFormat: Text.PlainText
-    color: menu.foreground
-    opacity: closeArea.containsMouse ? 1 : 0.5
+    color: closeArea.containsMouse ? menu.chipFg : menu.foreground
+    opacity: closeArea.containsMouse ? 1 : 0.6
     font.family: menu.fontFamily
-    font.pixelSize: menu.labelSize
+    font.pixelSize: Math.round(menu.labelSize * 1.35)
 
     MouseArea {
       id: closeArea
