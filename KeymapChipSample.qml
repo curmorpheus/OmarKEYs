@@ -17,7 +17,9 @@ Row {
   property color chipFg: Color.menu.selectedText
   property color borderColor: Color.menu.border
   property real iconScale: 1.35
-  property real textScale: 1.0
+  // The board's scale, not one of its own. A preview drawn at a fixed size
+  // stops being a preview the moment the Size slider moves.
+  property real fontScale: 1.0
 
   readonly property var chipLabels:
     KeymapData.displayKeys(sample.keys, sample.chipStyle, sample.keyboardType)
@@ -51,7 +53,9 @@ Row {
         textFormat: Text.PlainText
         color: sample.chipFg
         font.family: sample.fontFamily
-        font.pixelSize: Math.round(Style.font.caption * sample.textScale
+        // Identical to KeymapRow's: same base, same scale, same icon
+        // compensation, so what you see here is what the board draws.
+        font.pixelSize: Math.round(Style.font.caption * sample.fontScale
           * (isIcon ? sample.iconScale : 1))
         font.bold: true
       }

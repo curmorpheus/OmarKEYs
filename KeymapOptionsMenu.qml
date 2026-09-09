@@ -247,7 +247,7 @@ Rectangle {
           chipFg: menu.chipFg
           borderColor: menu.borderColor
           iconScale: menu.host ? menu.host.iconScale : 1.35
-          textScale: 1.25
+          fontScale: menu.host ? menu.host.fontScale : 1.0
         }
       }
 
