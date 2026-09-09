@@ -73,7 +73,16 @@ Flickable {
           iconScale: host.iconScale
           onRowClicked: function(keys, action) { host.selectRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
-          onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
+          // Hold the references rather than resolving them later: by the
+          // time a deferred call runs, a rebuild may have destroyed this
+          // delegate, and then the name "board" resolves to nothing.
+          onRowHighlighted: function(item) {
+            var target = board
+            Qt.callLater(function() {
+              if (target && item)
+                target.revealItem(item)
+            })
+          }
         }
       }
     }
@@ -115,7 +124,16 @@ Flickable {
           iconScale: host.iconScale
           onRowClicked: function(keys, action) { host.selectRow(keys, action) }
           onRowActivated: function(keys, action) { host.activateRow(keys, action) }
-          onRowHighlighted: function(item) { Qt.callLater(function() { board.revealItem(item) }) }
+          // Hold the references rather than resolving them later: by the
+          // time a deferred call runs, a rebuild may have destroyed this
+          // delegate, and then the name "board" resolves to nothing.
+          onRowHighlighted: function(item) {
+            var target = board
+            Qt.callLater(function() {
+              if (target && item)
+                target.revealItem(item)
+            })
+          }
         }
       }
     }
