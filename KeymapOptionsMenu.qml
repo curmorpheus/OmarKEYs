@@ -117,94 +117,137 @@ Rectangle {
         font.capitalization: Font.AllUppercase
       }
 
-      // Icon, current setting under it, and a sample of what the setting
-      // does beside it. Grouping, Sort, Order and Find used to sit here as
-      // text rows; they have their own controls under the tree now, and
-      // two places to change one setting is one too many.
-      Repeater {
-        model: [
-          { id: "chips",  glyph: "\udb80\udf0c", sample: "Super + Ctrl + K" },
-          { id: "type",   glyph: "\udb82\uddf9", sample: "Super + Ctrl + Shift + Alt" },
-          { id: "border", glyph: "\udb80\udcc7", sample: "Super + K" }
-        ]
-        delegate: Item {
-          id: optionRow
-          required property var modelData
-          readonly property string value: {
-            var h = menu.host
-            if (!h)
-              return ""
-            if (modelData.id === "chips")
-              return h.chipStyle
-            if (modelData.id === "type")
-              return h.keyboardType
-            return h.iconBorders ? "border on" : "border off"
-          }
-          width: content.width
-          height: Math.max(Style.space(46), glyphText.height + valueText.height + Style.space(4))
+      // Three columns: title, icon, current setting. The sample sits under
+      // all three, ruled off, because it shows what they add up to rather
+      // than what any one of them does.
+      Row {
+        id: displayRow
+        width: parent.width
 
-          Text {
-            id: glyphText
-            x: Style.space(6)
-            text: modelData.glyph
-            textFormat: Text.PlainText
-            color: rowArea.containsMouse ? menu.chipFg : menu.foreground
-            opacity: rowArea.containsMouse ? 1 : 0.8
-            font.family: menu.fontFamily
-            font.pixelSize: Math.round(menu.labelSize * 2.6)
-          }
-
-          Text {
-            id: valueText
-            anchors.top: glyphText.bottom
-            anchors.topMargin: Style.space(2)
-            x: 0
-            width: glyphText.x + glyphText.width + Style.space(6)
-            horizontalAlignment: Text.AlignHCenter
-            text: optionRow.value
-            textFormat: Text.PlainText
-            color: rowArea.containsMouse ? menu.chipFg : menu.foreground
-            opacity: 0.6
-            font.family: menu.fontFamily
-            font.pixelSize: menu.labelSize
-            elide: Text.ElideRight
-          }
-
-          // Drawn with this row's own setting, not the board's, so the
-          // border row can show a cap while the board has none.
-          KeymapChipSample {
-            anchors.left: valueText.right
-            anchors.leftMargin: Style.space(10)
-            anchors.verticalCenter: glyphText.verticalCenter
-            keys: modelData.sample
-            chipStyle: menu.host ? menu.host.chipStyle : "icons"
-            keyboardType: menu.host ? menu.host.keyboardType : "windows"
-            iconBorders: menu.host ? menu.host.iconBorders : false
-            fontFamily: menu.fontFamily
-            chipBg: menu.host ? menu.host.chipBg : Color.menu.selectedBackground
-            chipFg: menu.chipFg
-            borderColor: menu.borderColor
-            iconScale: menu.host ? menu.host.iconScale : 1.35
-          }
-
-          MouseArea {
-            id: rowArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
+        Repeater {
+          model: [
+            { id: "chips",  title: "Keys",   glyph: "\udb80\udf0c" },
+            { id: "type",   title: "Type",   glyph: "\udb82\uddf9" },
+            { id: "border", title: "Border", glyph: "\udb80\udcc7" }
+          ]
+          delegate: Item {
+            id: optionCell
+            required property var modelData
+            readonly property bool iconsOn: !!(menu.host && menu.host.chipStyle === "icons")
+            // Keys and Border describe how an icon is drawn, so they read
+            // as inert while the chips are words. Still clickable: Keys is
+            // how you get icons back.
+            readonly property bool relevant: modelData.id === "type" || iconsOn
+            readonly property string value: {
               var h = menu.host
               if (!h)
-                return
+                return ""
               if (modelData.id === "chips")
-                h.cycleChipStyle()
-              else if (modelData.id === "type")
-                h.cycleKeyboardType()
-              else
-                h.toggleIconBorders()
+                return h.chipStyle
+              if (modelData.id === "type")
+                return h.keyboardType
+              return h.iconBorders ? "on" : "off"
+            }
+            width: displayRow.width / 3
+            height: titleText.height + cellGlyph.height + cellValue.height + Style.space(6)
+            opacity: relevant ? 1 : 0.4
+
+            Text {
+              id: titleText
+              width: parent.width
+              horizontalAlignment: Text.AlignHCenter
+              text: modelData.title
+              textFormat: Text.PlainText
+              color: cellArea.containsMouse ? menu.chipFg : menu.foreground
+              opacity: 0.8
+              font.family: menu.fontFamily
+              font.pixelSize: menu.labelSize
+              font.bold: true
+            }
+
+            Text {
+              id: cellGlyph
+              anchors.top: titleText.bottom
+              anchors.topMargin: Style.space(3)
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: modelData.glyph
+              textFormat: Text.PlainText
+              color: cellArea.containsMouse ? menu.chipFg : menu.foreground
+              font.family: menu.fontFamily
+              font.pixelSize: Math.round(menu.labelSize * 2.6)
+            }
+
+            Text {
+              id: cellValue
+              anchors.top: cellGlyph.bottom
+              anchors.topMargin: Style.space(2)
+              width: parent.width
+              horizontalAlignment: Text.AlignHCenter
+              text: optionCell.value
+              textFormat: Text.PlainText
+              color: cellArea.containsMouse ? menu.chipFg : menu.foreground
+              opacity: 0.6
+              font.family: menu.fontFamily
+              font.pixelSize: menu.labelSize
+              elide: Text.ElideRight
+            }
+
+            MouseArea {
+              id: cellArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var h = menu.host
+                if (!h)
+                  return
+                if (modelData.id === "chips")
+                  h.cycleChipStyle()
+                else if (modelData.id === "type")
+                  h.cycleKeyboardType()
+                else
+                  h.toggleIconBorders()
+              }
             }
           }
         }
+      }
+
+      Rectangle {
+        width: parent.width
+        height: 1
+        color: menu.borderColor
+        opacity: 0.5
+      }
+
+      // A row as the board would draw it, a size up so the glyphs are
+      // legible at a glance rather than something you lean in to check.
+      Item {
+        width: content.width
+        height: chordSample.height + Style.space(6)
+
+        KeymapChipSample {
+          id: chordSample
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.verticalCenter: parent.verticalCenter
+          keys: "Super + Ctrl + K"
+          chipStyle: menu.host ? menu.host.chipStyle : "icons"
+          keyboardType: menu.host ? menu.host.keyboardType : "windows"
+          iconBorders: menu.host ? menu.host.iconBorders : false
+          fontFamily: menu.fontFamily
+          chipBg: menu.host ? menu.host.chipBg : Color.menu.selectedBackground
+          chipFg: menu.chipFg
+          borderColor: menu.borderColor
+          iconScale: menu.host ? menu.host.iconScale : 1.35
+          textScale: 1.25
+        }
+      }
+
+      Rectangle {
+        width: parent.width
+        height: 1
+        color: menu.borderColor
+        opacity: 0.5
       }
 
       Item {

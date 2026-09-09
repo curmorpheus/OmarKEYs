@@ -98,14 +98,17 @@ box, and closes the overlay when the box is already empty — so to filter
 |---|---|---|
 | Keys 󰌌 | full / short / icons | icons |
 | Type 󰧹 | text / ⌘ mac /  windows /  omarchy | windows |
-| Icon border 󰃇 | on / off | off |
+| Border 󰃇 | on / off | off |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
 
-Each of the first three is an icon with its current setting under it and a
-sample chord beside it, drawn with that setting — the sample shows what you
-are about to get, which the setting's name does not. Grouping, Sort, Order
-and Find are not repeated here; they have their own controls under the tree.
+The first three sit side by side — title, icon, current setting — with a
+sample chord ruled off beneath them, drawn as the board would draw it. The
+sample shows what the three add up to, which none of their names does.
+**Keys** and **Border** describe how an icon is drawn, so they dim while
+the chips are words; both stay clickable, since Keys is how you get icons
+back. Grouping, Sort, Order and Find are not repeated here; they have their
+own controls under the tree.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 

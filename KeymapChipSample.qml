@@ -17,6 +17,7 @@ Row {
   property color chipFg: Color.menu.selectedText
   property color borderColor: Color.menu.border
   property real iconScale: 1.35
+  property real textScale: 1.0
 
   readonly property var chipLabels:
     KeymapData.displayKeys(sample.keys, sample.chipStyle, sample.keyboardType)
@@ -50,7 +51,8 @@ Row {
         textFormat: Text.PlainText
         color: sample.chipFg
         font.family: sample.fontFamily
-        font.pixelSize: Math.round(Style.font.caption * (isIcon ? sample.iconScale : 1))
+        font.pixelSize: Math.round(Style.font.caption * sample.textScale
+          * (isIcon ? sample.iconScale : 1))
         font.bold: true
       }
     }
