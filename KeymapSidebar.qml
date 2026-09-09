@@ -235,33 +235,38 @@ Rectangle {
                 }
               }
 
-              // Inverted heading: a filled bar, so a group reads as a block.
-              Rectangle {
-                anchors.fill: areaLabel
-                anchors.margins: -Style.space(2)
-                radius: 3
-                color: side.chipFg
-                opacity: areaCol.allHidden ? 0.4 : 1
-                z: -1
-              }
 
-              Text {
-                id: areaLabel
+              // Inverted heading: the label sits in a filled bar, so a group
+              // reads as a block that starts a section. Wrapped rather than
+              // backed by a floating rectangle -- nothing then depends on
+              // stacking order to be visible.
+              Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: 14
                 anchors.right: areaSwitch.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: areaCol.modelData.title
-                textFormat: Text.PlainText
-                color: side.panelBg
+                height: areaLabel.implicitHeight + Style.space(4)
+                radius: 3
+                color: side.chipFg
                 opacity: areaCol.allHidden ? 0.4 : 1
-                font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
-                font.bold: true
-                font.capitalization: Font.AllUppercase
-                elide: Text.ElideRight
-                MouseArea {
+
+                Text {
+                  id: areaLabel
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(4)
+                  anchors.rightMargin: Style.space(4)
+                  verticalAlignment: Text.AlignVCenter
+                  text: areaCol.modelData.title
+                  textFormat: Text.PlainText
+                  color: side.panelBg
+                  // The bar above already fades when the branch is hidden.
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: true
+                  font.capitalization: Font.AllUppercase
+                  elide: Text.ElideRight
+                  MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
                   // Show only this area's groups on the board.
@@ -277,7 +282,8 @@ Rectangle {
                       h.selectSource("omarchy")
                     h.soloGroups(titles)
                   }
-                }
+                  }
+              }
               }
             }
 
@@ -535,32 +541,38 @@ Rectangle {
                 }
               }
 
-              // Inverted heading: a filled bar, so a group reads as a block.
-              Rectangle {
-                anchors.fill: kindLabel
-                anchors.margins: -Style.space(2)
-                radius: 3
-                color: side.chipFg
-                opacity: kindCol.modelData.hidden ? 0.4 : 1
-                z: -1
-              }
 
-              Text {
-                id: kindLabel
+              // Inverted heading: the label sits in a filled bar, so a group
+              // reads as a block that starts a section. Wrapped rather than
+              // backed by a floating rectangle -- nothing then depends on
+              // stacking order to be visible.
+              Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: 14
                 anchors.right: kindToggle.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: kindCol.modelData.title
-                textFormat: Text.PlainText
-                color: side.panelBg
+                height: kindLabel.implicitHeight + Style.space(4)
+                radius: 3
+                color: side.chipFg
                 opacity: kindCol.modelData.hidden ? 0.4 : 1
-                font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
-                font.bold: true
-                font.capitalization: Font.AllUppercase
-                elide: Text.ElideRight
+
+                Text {
+                  id: kindLabel
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(4)
+                  anchors.rightMargin: Style.space(4)
+                  verticalAlignment: Text.AlignVCenter
+                  text: kindCol.modelData.title
+                  textFormat: Text.PlainText
+                  color: side.panelBg
+                  // The bar above already fades when the branch is hidden.
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: true
+                  font.capitalization: Font.AllUppercase
+                  elide: Text.ElideRight
+              }
               }
             }
 

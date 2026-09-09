@@ -17,10 +17,15 @@ Rectangle {
   readonly property int labelSize: Style.font.caption
   readonly property bool busy: host ? host.gitBusy : false
   readonly property bool dirty: host ? host.gitDirty : false
+
+  // Channel or Versions, one at a time. They answer the same question in
+  // two ways, and showing both at once halved the width each had to say
+  // it in.
+  property string tab: "channel"
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
 
-  width: Style.space(400)
+  width: Style.space(300)
   height: Math.min(Style.space(320), content.implicitHeight + Style.spacing.sm * 2)
   radius: 6
   color: host ? host.background : Color.menu.background
@@ -174,189 +179,202 @@ Rectangle {
     }
 
     // Update row: only offers the button when there is something to pull.
-    // Channel picks a line of work that keeps moving; Version picks a
-    // release that does not. Side by side because they answer the same
-    // question -- what should this be running -- two different ways.
+    // Two tabs, inverted like every other heading here: the selected one
+    // is filled, the other is an outline you can click.
     Row {
       width: parent.width
-      spacing: Style.space(10)
+      spacing: Style.space(6)
 
-      Column {
-        id: channelCol
-        width: (parent.width - Style.space(10)) / 2
-        spacing: Style.space(4)
-
-        // Inverted: the heading is a filled bar, so a section reads as a
-        // block rather than as another line of text in the list.
-        Rectangle {
-          width: parent.width
-          height: channelHeading.implicitHeight + Style.space(4)
+      Repeater {
+        model: [
+          { id: "channel", label: "Channel" },
+          { id: "versions", label: "Versions" }
+        ]
+        delegate: Rectangle {
+          required property var modelData
+          readonly property bool selected: menu.tab === modelData.id
+          width: (menu.width - Style.spacing.sm * 2 - Style.space(6)) / 2
+          height: tabLabel.implicitHeight + Style.space(6)
           radius: 3
-          color: menu.chipFg
+          color: selected ? menu.chipFg
+            : (tabArea.containsMouse ? menu.borderColor : "transparent")
+          border.width: selected ? 0 : 1
+          border.color: menu.borderColor
 
           Text {
-            id: channelHeading
+            id: tabLabel
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            text: "Channel"
+            text: modelData.label
             textFormat: Text.PlainText
-            color: menu.color
+            color: selected ? menu.color : menu.foreground
             font.family: menu.fontFamily
             font.pixelSize: menu.labelSize
             font.bold: true
             font.capitalization: Font.AllUppercase
           }
+
+          MouseArea {
+            id: tabArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: menu.tab = modelData.id
+          }
         }
+      }
+    }
 
-        Repeater {
-          model: [
-            { id: "main", label: "Main", note: "stable" },
-            { id: "beta", label: "Beta", note: "tested" },
-            { id: "nightly", label: "Nightly", note: "develop" }
-          ]
-          delegate: Rectangle {
-            required property var modelData
-            readonly property bool current: !!(host && host.gitChannel === modelData.id)
-            readonly property string age: !host ? ""
-              : host.versionAge(host.branchForChannel(modelData.id))
-            width: channelCol.width
-            height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
-            radius: 4
-            color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
+    // Channel: exactly the list it was before versions existed.
+    Column {
+      width: parent.width
+      visible: menu.tab === "channel"
+      spacing: Style.space(4)
 
-            Text {
-              id: channelLabel
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.leftMargin: 6
-              anchors.rightMargin: 6
-              anchors.verticalCenter: parent.verticalCenter
-              text: (current ? "• " : "  ") + modelData.label
-                + "  ·  " + (age ? age : modelData.note)
-              textFormat: Text.PlainText
-              color: current ? menu.chipFg : menu.foreground
-              opacity: (menu.dirty && !current) ? 0.45 : 1
-              font.family: menu.fontFamily
-              font.pixelSize: menu.labelSize
-              font.bold: current
-              elide: Text.ElideRight
-            }
+      Repeater {
+        model: [
+          { id: "main", label: "Main", note: "stable" },
+          { id: "beta", label: "Beta", note: "tested, ahead of stable" },
+          { id: "nightly", label: "Nightly", note: "develop" }
+        ]
+        delegate: Rectangle {
+          required property var modelData
+          readonly property bool current: !!(host && host.gitChannel === modelData.id)
+          readonly property string age: !host ? ""
+            : host.versionAge(host.branchForChannel(modelData.id))
+          width: parent.width
+          height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
+          radius: 4
+          color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
 
-            MouseArea {
-              id: channelArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                var h = menu.host
-                if (!h || h.gitBusy || current)
-                  return
-                h.switchChannel(modelData.id)
-              }
+          Text {
+            id: channelLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            text: (current ? "• " : "  ") + modelData.label
+              + "   " + modelData.note + (age ? "  ·  " + age : "")
+            textFormat: Text.PlainText
+            color: current ? menu.chipFg : menu.foreground
+            opacity: (menu.dirty && !current) ? 0.45 : 1
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            font.bold: current
+            elide: Text.ElideRight
+          }
+
+          MouseArea {
+            id: channelArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              var h = menu.host
+              if (!h || h.gitBusy || current)
+                return
+              h.switchChannel(modelData.id)
             }
           }
         }
       }
+    }
 
-      Column {
-        id: versionCol
-        width: (parent.width - Style.space(10)) / 2
-        spacing: Style.space(4)
+    // Versions: a tree, grouped by main version. Only releases whose tree
+    // carries the version marker are here at all -- plugin-git drops the
+    // rest, because a build with no picker in it cannot switch back out.
+    Column {
+      width: parent.width
+      visible: menu.tab === "versions"
+      spacing: Style.space(4)
 
-        // Inverted: the heading is a filled bar, so a section reads as a
-        // block rather than as another line of text in the list.
-        Rectangle {
+      Text {
+        width: parent.width
+        visible: !host || !host.versionTree || host.versionTree.length === 0
+        text: "No released versions yet. One appears here at each tagged release."
+        textFormat: Text.PlainText
+        color: menu.foreground
+        opacity: 0.5
+        wrapMode: Text.WordWrap
+        font.family: menu.fontFamily
+        font.pixelSize: menu.labelSize
+      }
+
+      Flickable {
+        width: parent.width
+        visible: !!(host && host.versionTree && host.versionTree.length)
+        height: visible ? Math.min(Style.space(190), versionTreeCol.height) : 0
+        clip: true
+        contentWidth: width
+        contentHeight: versionTreeCol.height
+        boundsBehavior: Flickable.StopAtBounds
+        activeFocusOnTab: false
+
+        Column {
+          id: versionTreeCol
           width: parent.width
-          height: versionHeading.implicitHeight + Style.space(4)
-          radius: 3
-          color: menu.chipFg
+          spacing: Style.space(3)
 
-          Text {
-            id: versionHeading
-            anchors.fill: parent
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            text: "Version"
-            textFormat: Text.PlainText
-            color: menu.color
-            font.family: menu.fontFamily
-            font.pixelSize: menu.labelSize
-            font.bold: true
-            font.capitalization: Font.AllUppercase
-          }
-        }
+          Repeater {
+            model: host ? host.versionTree : []
+            delegate: Column {
+              required property var modelData
+              width: versionTreeCol.width
+              spacing: 1
 
-        // Only releases carrying the version marker appear -- plugin-git
-        // filters the rest out, because a build with no picker in it has
-        // no way back once you are on it.
-        Text {
-          width: parent.width
-          visible: !host || !host.gitVersions || host.gitVersions.length === 0
-          text: "none released yet"
-          textFormat: Text.PlainText
-          color: menu.foreground
-          opacity: 0.45
-          font.family: menu.fontFamily
-          font.pixelSize: menu.labelSize
-          wrapMode: Text.WordWrap
-        }
+              Text {
+                width: parent.width
+                text: "▾ " + modelData.title
+                textFormat: Text.PlainText
+                color: menu.chipFg
+                font.family: menu.fontFamily
+                font.pixelSize: menu.labelSize
+                font.bold: true
+              }
 
-        Flickable {
-          width: parent.width
-          visible: !!(host && host.gitVersions && host.gitVersions.length)
-          height: visible ? Math.min(Style.space(150), versionList.height) : 0
-          clip: true
-          contentWidth: width
-          contentHeight: versionList.height
-          boundsBehavior: Flickable.StopAtBounds
-          activeFocusOnTab: false
+              Repeater {
+                model: modelData.releases
+                delegate: Rectangle {
+                  required property var modelData
+                  readonly property bool current: !!(host && host.gitDetached
+                    && host.gitDescribe === modelData.tag)
+                  width: versionTreeCol.width
+                  height: Math.max(Style.space(20), releaseLabel.implicitHeight + 4)
+                  radius: 4
+                  color: releaseArea.containsMouse && !current && !menu.busy && !menu.dirty
+                    ? menu.borderColor : "transparent"
 
-          Column {
-            id: versionList
-            width: parent.width
-            spacing: 1
+                  Text {
+                    id: releaseLabel
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: (current ? "• " : "") + modelData.tag
+                      + (modelData.date ? "  ·  " + modelData.date : "")
+                    textFormat: Text.PlainText
+                    color: current ? menu.chipFg : menu.foreground
+                    opacity: menu.dirty && !current ? 0.45 : 1
+                    font.family: menu.fontFamily
+                    font.pixelSize: menu.labelSize
+                    font.bold: current
+                    elide: Text.ElideRight
+                  }
 
-            Repeater {
-              model: host ? host.gitVersions : []
-              delegate: Rectangle {
-                required property var modelData
-                readonly property bool current: !!(host && host.gitDetached
-                  && host.gitDescribe === modelData.tag)
-                width: versionList.width
-                height: Math.max(Style.space(20), versionLabel.implicitHeight + 4)
-                radius: 4
-                color: versionArea.containsMouse && !current && !menu.busy && !menu.dirty
-                  ? menu.borderColor : "transparent"
-
-                Text {
-                  id: versionLabel
-                  anchors.left: parent.left
-                  anchors.right: parent.right
-                  anchors.leftMargin: 6
-                  anchors.rightMargin: 6
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: (current ? "• " : "") + modelData.tag
-                    + (modelData.date ? "  ·  " + modelData.date : "")
-                  textFormat: Text.PlainText
-                  color: current ? menu.chipFg : menu.foreground
-                  opacity: menu.dirty && !current ? 0.45 : 1
-                  font.family: menu.fontFamily
-                  font.pixelSize: menu.labelSize
-                  font.bold: current
-                  elide: Text.ElideRight
-                }
-
-                MouseArea {
-                  id: versionArea
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    var h = menu.host
-                    if (!h || h.gitBusy || current)
-                      return
-                    h.loadVersion(modelData.tag)
+                  MouseArea {
+                    id: releaseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var h = menu.host
+                      if (!h || h.gitBusy || current)
+                        return
+                      h.loadVersion(modelData.tag)
+                    }
                   }
                 }
               }

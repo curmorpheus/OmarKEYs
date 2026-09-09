@@ -436,6 +436,30 @@ Item {
   property double gitEpoch: 0
   property var gitCommits: ({})
 
+  // Releases grouped by their main number, newest first. A flat list of
+  // tags stops reading as anything once there are more than a handful;
+  // 1.<main> is the only level tags exist at, since only beta cuts and
+  // main releases are tagged.
+  readonly property var versionTree: {
+    var list = root.gitVersions || []
+    var order = []
+    var byMain = ({})
+    for (var i = 0; i < list.length; i++) {
+      var v = list[i]
+      var parts = String(v.version || "").split(".")
+      var main = parts.length >= 2 ? parts[0] + "." + parts[1] : "other"
+      if (!byMain[main]) {
+        byMain[main] = []
+        order.push(main)
+      }
+      byMain[main].push(v)
+    }
+    var out = []
+    for (var g = 0; g < order.length; g++)
+      out.push({ title: order[g], releases: byMain[order[g]] })
+    return out
+  }
+
   function branchForChannel(channel) {
     if (channel === "main")
       return root.mainBranch
