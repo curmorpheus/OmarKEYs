@@ -242,6 +242,12 @@ a landing on `develop` bumps the fourth. Today's 1.12.0 becomes 1.12.0.0.
 
 ### 2.0 — editable keymaps, versioned, with the defaults kept
 
+Being built by Grok on its own branch, in its own checkout
+(`~/Work/omarkeys-grok`). 1.0 keeps shipping to beta and main meanwhile;
+nothing of 2.0 reaches a channel until it is ready. The picker already has
+a Track row for it, filtered on what branches and tags carry, so 2.0
+appears there on its own the moment it is tagged or promoted.
+
 The backend is already built and unreachable: `apply-edit` remaps a chord
 into `omarkeys-edits.lua`, snapshots before every write into a git repo
 under `~/.local/state/omarchy/omarkeys-history`, and restores the previous

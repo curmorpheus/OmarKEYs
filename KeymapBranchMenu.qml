@@ -22,6 +22,14 @@ Rectangle {
   // two ways, and showing both at once halved the width each had to say
   // it in.
   property string tab: "channel"
+
+  // Which release track the lists below describe. Not a switch that moves
+  // the checkout: it filters what is offered, so a track with nothing
+  // released shows nothing and says why. 2.0 is being built on its own
+  // branch and has reached no channel yet; when it does it appears here on
+  // its own, because both lists are filtered on what branches and tags
+  // actually carry rather than on a hardcoded name.
+  property string track: "1"
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
 
@@ -179,6 +187,58 @@ Rectangle {
     }
 
     // Update row: only offers the button when there is something to pull.
+    // The release track, above the tabs: 1.0 is what ships today, 2.0 is
+    // the editable-keymaps line being built alongside it.
+    Row {
+      width: parent.width
+      spacing: Style.space(6)
+
+      Text {
+        anchors.verticalCenter: parent.verticalCenter
+        text: "Track"
+        textFormat: Text.PlainText
+        color: menu.foreground
+        opacity: 0.6
+        font.family: menu.fontFamily
+        font.pixelSize: menu.labelSize
+      }
+
+      Repeater {
+        model: [{ id: "1", label: "1.0" }, { id: "2", label: "2.0" }]
+        delegate: Rectangle {
+          required property var modelData
+          readonly property bool selected: menu.track === modelData.id
+          width: trackLabel.implicitWidth + Style.space(10)
+          height: trackLabel.implicitHeight + Style.space(4)
+          radius: 3
+          color: selected ? menu.chipFg
+            : (trackArea.containsMouse ? menu.borderColor : "transparent")
+          border.width: selected ? 0 : 1
+          border.color: menu.borderColor
+
+          Text {
+            id: trackLabel
+            anchors.centerIn: parent
+            text: modelData.label
+            textFormat: Text.PlainText
+            color: selected ? menu.color : menu.foreground
+            opacity: selected ? 1 : 0.75
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            font.bold: selected
+          }
+
+          MouseArea {
+            id: trackArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: menu.track = modelData.id
+          }
+        }
+      }
+    }
+
     // Two tabs, inverted like every other heading here: the selected one
     // is filled, the other is an outline you can click.
     Row {
@@ -232,6 +292,20 @@ Rectangle {
       visible: menu.tab === "channel"
       spacing: Style.space(4)
 
+      Text {
+        width: parent.width
+        visible: !!host && host.channelTrack("main") !== menu.track
+          && host.channelTrack("beta") !== menu.track
+          && host.channelTrack("nightly") !== menu.track
+        text: "OmarKEYS " + menu.track + ".0 has not reached a channel yet."
+        textFormat: Text.PlainText
+        color: menu.foreground
+        opacity: 0.5
+        wrapMode: Text.WordWrap
+        font.family: menu.fontFamily
+        font.pixelSize: menu.labelSize
+      }
+
       Repeater {
         model: [
           { id: "main", label: "Main", note: "stable" },
@@ -243,8 +317,10 @@ Rectangle {
           readonly property bool current: !!(host && host.gitChannel === modelData.id)
           readonly property string age: !host ? ""
             : host.versionAge(host.branchForChannel(modelData.id))
+          // A channel appears under the track its branch is carrying.
+          visible: !!host && host.channelTrack(modelData.id) === menu.track
           width: parent.width
-          height: Math.max(Style.space(22), channelLabel.implicitHeight + 6)
+          height: visible ? Math.max(Style.space(22), channelLabel.implicitHeight + 6) : 0
           radius: 4
           color: channelArea.containsMouse && !menu.busy ? menu.borderColor : "transparent"
 
@@ -293,7 +369,7 @@ Rectangle {
       Text {
         width: parent.width
         visible: !host || !host.versionTree || host.versionTree.length === 0
-        text: "No released versions yet. One appears here at each tagged release."
+        text: "No " + menu.track + ".0 release yet. One appears here when a version is tagged."
         textFormat: Text.PlainText
         color: menu.foreground
         opacity: 0.5
@@ -321,6 +397,8 @@ Rectangle {
             model: host ? host.versionTree : []
             delegate: Column {
               required property var modelData
+              // 1.13.x under track 1, 2.x under track 2.
+              visible: !!host && host.trackOf(modelData.title) === menu.track
               width: versionTreeCol.width
               spacing: 1
 

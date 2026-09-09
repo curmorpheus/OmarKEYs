@@ -520,6 +520,22 @@ Item {
   // one. A tag checkout is detached, so the branch name is "HEAD" and the
   // tag is the only thing that names where you are.
   property var gitVersions: []
+  // Each channel's declared version, so a track can be told from what a
+  // branch actually carries rather than from what it is called.
+  property var gitChannelVersions: ({})
+
+  // The release track a version string belongs to: the major number.
+  // 1.13.1.0 is track 1, 2.0.0.0 is track 2.
+  function trackOf(version) {
+    var first = String(version || "").split(".")[0]
+    return first || ""
+  }
+
+  function channelTrack(channel) {
+    var branch = root.branchForChannel(channel)
+    var map = root.gitChannelVersions || ({})
+    return branch ? root.trackOf(map[branch] || "") : ""
+  }
   property bool gitDetached: false
   property string gitDescribe: ""
   property double gitEpoch: 0
@@ -680,6 +696,7 @@ Item {
     root.gitBranches = data.branches || []
     root.gitDate = data.date || ""
     root.gitVersions = data.versions || []
+    root.gitChannelVersions = data.channelVersions || ({})
     root.gitDetached = data.detached === true
     root.gitDescribe = data.describe || ""
     root.gitEpoch = Number(data.epoch) || 0

@@ -214,6 +214,12 @@ name the commit actually running — otherwise a change that did arrive on
 disk looks like one that never came. Click it to switch channel or
 sync — see [Updating](#updating).
 
+A **Track** row picks which release line the lists describe — 1.0, or the
+2.0 editable-keymaps line being built alongside it. It filters rather
+than switches: a channel appears under the track its branch is actually
+carrying, and a version under the track its number starts with, so 2.0
+is empty until something of it is tagged or reaches a channel.
+
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,
 `develop`), and each is one click. Those are the only destinations: the
 working branches were listed here once, but most of them predate the
