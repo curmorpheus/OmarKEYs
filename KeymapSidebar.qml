@@ -353,6 +353,92 @@ Rectangle {
           }
         }
 
+        // Which workspace the list below is showing. Numbers are the
+        // workspaces that exist, ALL is no filter, and ALL is where it
+        // starts -- the tree should open showing everything you have.
+        //
+        // Click filters, double-click goes there. That is the same split
+        // every row in this tree uses, and it keeps the switch that the
+        // workspace branches used to offer.
+        Item {
+          width: parent.width
+          visible: side.windowsOpen && host && host.workspaces
+            && host.workspaces.length > 0
+          height: visible ? Math.max(Style.space(22), wsPickRow.height + 4) : 0
+
+          Row {
+            id: wsPickRow
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.right: parent.right
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(6)
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: "Workspace"
+              textFormat: Text.PlainText
+              color: side.foreground
+              opacity: 0.6
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+            }
+
+            Repeater {
+              // The workspaces that exist, then ALL. Zero is the id for
+              // no filter, which no real workspace has.
+              model: {
+                var out = []
+                var list = (host && host.workspaces) || []
+                for (var i = 0; i < list.length; i++)
+                  out.push({ id: list[i].id, label: String(list[i].name) })
+                out.push({ id: 0, label: "ALL" })
+                return out
+              }
+              delegate: Rectangle {
+                required property var modelData
+                readonly property bool selected:
+                  !!host && host.workspaceFilter === modelData.id
+                width: pickLabel.implicitWidth + Style.space(8)
+                height: pickLabel.implicitHeight + Style.space(3)
+                radius: 3
+                color: selected ? side.chipFg
+                  : (pickArea.containsMouse ? side.borderColor : "transparent")
+
+                Text {
+                  id: pickLabel
+                  anchors.centerIn: parent
+                  text: modelData.label
+                  textFormat: Text.PlainText
+                  color: selected ? side.panelBg : side.foreground
+                  opacity: selected ? 1 : 0.75
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: selected
+                }
+
+                MouseArea {
+                  id: pickArea
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = side.host
+                    if (h)
+                      h.setWorkspaceFilter(modelData.id)
+                  }
+                  onDoubleClicked: {
+                    var h = side.host
+                    if (h && modelData.id > 0)
+                      h.focusWorkspace(modelData.id)
+                  }
+                }
+              }
+            }
+          }
+        }
+
         Item {
           width: parent.width
           height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
@@ -454,92 +540,6 @@ Rectangle {
             font.family: side.fontFamily
             font.pixelSize: side.subFontSize
             font.italic: true
-          }
-        }
-
-        // Which workspace the list below is showing. Numbers are the
-        // workspaces that exist, ALL is no filter, and ALL is where it
-        // starts -- the tree should open showing everything you have.
-        //
-        // Click filters, double-click goes there. That is the same split
-        // every row in this tree uses, and it keeps the switch that the
-        // workspace branches used to offer.
-        Item {
-          width: parent.width
-          visible: side.windowsOpen && host && host.workspaces
-            && host.workspaces.length > 0
-          height: visible ? Math.max(Style.space(22), wsPickRow.height + 4) : 0
-
-          Row {
-            id: wsPickRow
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            anchors.right: parent.right
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(6)
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Workspace"
-              textFormat: Text.PlainText
-              color: side.foreground
-              opacity: 0.6
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-            }
-
-            Repeater {
-              // The workspaces that exist, then ALL. Zero is the id for
-              // no filter, which no real workspace has.
-              model: {
-                var out = []
-                var list = (host && host.workspaces) || []
-                for (var i = 0; i < list.length; i++)
-                  out.push({ id: list[i].id, label: String(list[i].name) })
-                out.push({ id: 0, label: "ALL" })
-                return out
-              }
-              delegate: Rectangle {
-                required property var modelData
-                readonly property bool selected:
-                  !!host && host.workspaceFilter === modelData.id
-                width: pickLabel.implicitWidth + Style.space(8)
-                height: pickLabel.implicitHeight + Style.space(3)
-                radius: 3
-                color: selected ? side.chipFg
-                  : (pickArea.containsMouse ? side.borderColor : "transparent")
-
-                Text {
-                  id: pickLabel
-                  anchors.centerIn: parent
-                  text: modelData.label
-                  textFormat: Text.PlainText
-                  color: selected ? side.panelBg : side.foreground
-                  opacity: selected ? 1 : 0.75
-                  font.family: side.fontFamily
-                  font.pixelSize: side.subFontSize
-                  font.bold: selected
-                }
-
-                MouseArea {
-                  id: pickArea
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    var h = side.host
-                    if (h)
-                      h.setWorkspaceFilter(modelData.id)
-                  }
-                  onDoubleClicked: {
-                    var h = side.host
-                    if (h && modelData.id > 0)
-                      h.focusWorkspace(modelData.id)
-                  }
-                }
-              }
-            }
           }
         }
 

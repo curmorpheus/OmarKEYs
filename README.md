@@ -77,8 +77,8 @@ box, and closes the overlay when the box is already empty — so to filter
 
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups
-- **Active Apps**: a workspace selector — `Workspace 1 2 3 4 ALL` — over
-  the live windows, grouped by the keymap sheet they share
+- **Active Apps**, headed by a workspace selector — `Workspace 1 2 3 4 ALL`
+  — over the live windows, grouped by the keymap sheet they share
   (Web apps, Terminals, File managers) and then by app. Click any row in
   the branch — the kind, the app, or a window under it — to load that
   app's keys; double-click a window to focus it. In the selector, clicking
