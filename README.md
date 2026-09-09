@@ -96,8 +96,8 @@ box, and closes the overlay when the box is already empty — so to filter
 
 | Option | Values | Default |
 |---|---|---|
+| Keyboard 󰧹 | text / ⌘ mac /  windows /  omarchy | windows |
 | Keys 󰌌 | full / short / icons | icons |
-| Type 󰧹 | text / ⌘ mac /  windows /  omarchy | windows |
 | Border 󰃇 | on / off | off |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
@@ -112,7 +112,7 @@ own controls under the tree.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 
-**Keyboard type** picks which keyboard's keycaps the modifier chips
+**Keyboard** picks which keyboard's keycaps the modifier chips
 imitate. It moves all four modifiers together, and applies in every chip
 style — choosing a layout is pointless if its keycaps only show in icon
 mode.

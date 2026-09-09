@@ -127,10 +127,16 @@ Rectangle {
         width: parent.width
 
         Repeater {
+          // Keyboard first: it decides what the modifiers look like, and
+          // the other two describe what is done with the result.
+          //
+          // The scales even them out by eye rather than by pixel size. A
+          // wide, short keyboard glyph and a square border glyph do not
+          // read as the same size when told to be the same size.
           model: [
-            { id: "chips",  title: "Keys",   glyph: "\udb80\udf0c" },
-            { id: "type",   title: "Type",   glyph: "\udb82\uddf9" },
-            { id: "border", title: "Border", glyph: "\udb80\udcc7" }
+            { id: "type",   title: "Keyboard", glyph: "\udb82\uddf9", scale: 1.15 },
+            { id: "chips",  title: "Keys",     glyph: "\udb80\udf0c", scale: 1.15 },
+            { id: "border", title: "Border",   glyph: "\udb80\udcc7", scale: 1.0 }
           ]
           delegate: Item {
             id: optionCell
@@ -176,7 +182,7 @@ Rectangle {
               textFormat: Text.PlainText
               color: cellArea.containsMouse ? menu.chipFg : menu.foreground
               font.family: menu.fontFamily
-              font.pixelSize: Math.round(menu.labelSize * 2.6)
+              font.pixelSize: Math.round(menu.labelSize * 2.4 * modelData.scale)
             }
 
             Text {
