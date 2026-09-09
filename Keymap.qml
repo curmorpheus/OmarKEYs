@@ -559,25 +559,28 @@ Item {
     root.gitReloadPending = false
   }
 
-  // Debounced. Each switch used to fire its own detached restart, so
-  // clicking through channels started several at once and they raced the
-  // checkouts they were meant to follow -- the surviving shell could be
-  // loaded from a tree two switches ago. One restart, after the clicking
-  // stops.
-  function restartShell() {
-    restartTimer.restart()
-  }
+  // Immediate, and guarded only against a double-fire in the same moment.
+  //
+  // This was briefly deferred behind a timer, to stop rapid channel
+  // switches launching restarts that raced the checkouts they were meant
+  // to follow. That was the wrong fix twice over: the switches in that
+  // incident were seconds apart, far outside any debounce window, and
+  // deferring the call added a way for the restart not to happen at all
+  // -- which is exactly what happened on the first sync afterwards.
+  //
+  // What actually protects against a stale shell is noticing one:
+  // loadedHash against gitHash, above.
+  property double lastRestartAt: 0
 
-  Timer {
-    id: restartTimer
-    interval: 700
-    repeat: false
-    onTriggered: {
-      // Through a login shell: omarchy lives in /usr/share/omarchy/bin,
-      // which is on the user's PATH but not necessarily on the shell
-      // process's. Detached, so it survives the restart it triggers.
-      Quickshell.execDetached(["bash", "-lc", "omarchy restart shell"])
-    }
+  function restartShell() {
+    var now = Date.now()
+    if (now - root.lastRestartAt < 1500)
+      return
+    root.lastRestartAt = now
+    // Through a login shell: omarchy lives in /usr/share/omarchy/bin,
+    // which is on the user's PATH but not necessarily on the shell
+    // process's. Detached, so it survives the restart it triggers.
+    Quickshell.execDetached(["bash", "-lc", "omarchy restart shell"])
   }
 
   Process {

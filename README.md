@@ -176,8 +176,8 @@ clicking it will *check* for updates or *update* to a newer version. Each
 other channel then says how it compares to what is loaded: *same*, or how
 many days *newer* or *older*.
 
-Switching or syncing restarts the shell, because a `keepLoaded` overlay
-keeps the QML it started with. If the checkout moves without a restart
+Switching or syncing restarts the shell immediately, because a
+`keepLoaded` overlay keeps the QML it started with. If the checkout moves without a restart
 taking effect, the corner and the picker both say **restart to load** and
 name the commit actually running — otherwise a change that did arrive on
 disk looks like one that never came. Click it to switch channel or
