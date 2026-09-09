@@ -55,7 +55,8 @@ Rectangle {
           anchors.horizontalCenter: parent.horizontalCenter
           text: "\udb81\udd2a"
           textFormat: Text.PlainText
-          color: (host && host.gitUpdateAvailable) ? menu.chipFg : menu.foreground
+          color: (host && (host.gitUpdateAvailable || host.shellStale))
+            ? menu.chipFg : menu.foreground
           opacity: menu.busy ? 0.4 : (updateArea.containsMouse ? 1 : 0.8)
           font.family: menu.fontFamily
           font.pixelSize: Math.round(menu.labelSize * 3.2)
@@ -67,10 +68,15 @@ Rectangle {
           anchors.topMargin: Style.space(2)
           width: parent.width
           horizontalAlignment: Text.AlignHCenter
+          // Restart outranks update: until the shell reloads you are not
+          // running what the hash above says you are, and syncing again
+          // would not change that.
           text: menu.busy ? "…"
-            : ((host && host.gitUpdateAvailable) ? "update" : "check")
+            : ((host && host.shellStale) ? "restart"
+              : ((host && host.gitUpdateAvailable) ? "update" : "check"))
           textFormat: Text.PlainText
-          color: (host && host.gitUpdateAvailable) ? menu.chipFg : menu.foreground
+          color: (host && (host.gitUpdateAvailable || host.shellStale))
+            ? menu.chipFg : menu.foreground
           opacity: 0.7
           font.family: menu.fontFamily
           font.pixelSize: menu.labelSize
@@ -87,7 +93,9 @@ Rectangle {
             var h = menu.host
             if (!h || h.gitBusy)
               return
-            if (h.gitUpdateAvailable)
+            if (h.shellStale)
+              h.restartShell()
+            else if (h.gitUpdateAvailable)
               h.syncBranch()
             else
               h.checkForUpdates()
@@ -122,6 +130,21 @@ Rectangle {
           }
         }
       }
+    }
+
+    // The checkout moved after this shell loaded, so the hash above is not
+    // the code on screen. Worth saying outright: it looks exactly like a
+    // change that failed to arrive.
+    Text {
+      width: parent.width
+      visible: !!(host && host.shellStale)
+      text: "Running " + (host ? host.loadedHash : "") + " — restart to load "
+        + (host ? host.gitHash : "")
+      textFormat: Text.PlainText
+      color: menu.chipFg
+      wrapMode: Text.WordWrap
+      font.family: menu.fontFamily
+      font.pixelSize: menu.labelSize
     }
 
     // Anything that would make a switch or sync refuse is worth saying

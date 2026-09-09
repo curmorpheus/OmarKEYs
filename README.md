@@ -174,7 +174,13 @@ the channel you are on is behind its remote. The picker opens with what is loade
 **Hash**, one per line — beside a cloud button whose label says whether
 clicking it will *check* for updates or *update* to a newer version. Each
 other channel then says how it compares to what is loaded: *same*, or how
-many days *newer* or *older*. Click it to switch channel or
+many days *newer* or *older*.
+
+Switching or syncing restarts the shell, because a `keepLoaded` overlay
+keeps the QML it started with. If the checkout moves without a restart
+taking effect, the corner and the picker both say **restart to load** and
+name the commit actually running — otherwise a change that did arrive on
+disk looks like one that never came. Click it to switch channel or
 sync — see [Updating](#updating).
 
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,

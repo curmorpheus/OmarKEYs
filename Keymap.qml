@@ -376,6 +376,14 @@ Item {
   // Set when a switch/sync succeeds: the QML on disk changed, so the
   // shell has to restart for it to take effect.
   property bool gitReloadPending: false
+  // The commit this shell was loaded from, latched the first time git
+  // reports one. Everything else about the version is read live from a
+  // subprocess, so without this the overlay can report a commit it is not
+  // actually running -- which is exactly what a restart racing a switch
+  // leaves behind.
+  property string loadedHash: ""
+  readonly property bool shellStale: root.loadedHash !== ""
+    && root.gitHash !== "" && root.loadedHash !== root.gitHash
 
   function refreshGitInfo() {
     root.runGit(["status"], false)
@@ -541,16 +549,35 @@ Item {
     // syncError is soft: the switch itself succeeded, only the follow-up
     // fast-forward did not, so it must not block the reload below.
     root.gitError = data.error || data.fetchError || data.syncError || ""
+    // First hash seen wins: this is the tree the running QML came from.
+    if (!root.loadedHash && root.gitHash)
+      root.loadedHash = root.gitHash
     // Only a clean switch/sync warrants restarting the shell; a refusal
     // leaves the checkout untouched, so there is nothing to reload.
-    if (root.gitReloadPending && data.ok && !data.error) {
-      root.gitReloadPending = false
+    if (root.gitReloadPending && data.ok && !data.error)
+      root.restartShell()
+    root.gitReloadPending = false
+  }
+
+  // Debounced. Each switch used to fire its own detached restart, so
+  // clicking through channels started several at once and they raced the
+  // checkouts they were meant to follow -- the surviving shell could be
+  // loaded from a tree two switches ago. One restart, after the clicking
+  // stops.
+  function restartShell() {
+    restartTimer.restart()
+  }
+
+  Timer {
+    id: restartTimer
+    interval: 700
+    repeat: false
+    onTriggered: {
       // Through a login shell: omarchy lives in /usr/share/omarchy/bin,
       // which is on the user's PATH but not necessarily on the shell
       // process's. Detached, so it survives the restart it triggers.
       Quickshell.execDetached(["bash", "-lc", "omarchy restart shell"])
     }
-    root.gitReloadPending = false
   }
 
   Process {
@@ -1736,6 +1763,7 @@ Item {
               + root.channelLabel(root.gitChannel)
               + (root.gitChannel === "untested" && root.gitBranch ? " · " + root.gitBranch : "")
               + (root.gitHash ? " @ " + root.gitHash : "")
+              + (root.shellStale ? "  · restart to load" : "")
               + (root.gitUpdateAvailable ? " •" : "")
             color: root.gitUpdateAvailable ? root.chipFg : root.foreground
             opacity: buildInfoArea.containsMouse || root.branchMenuOpen ? 0.9 : 0.35
