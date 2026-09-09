@@ -1494,6 +1494,21 @@ Item {
     runTimer.restart()
   }
 
+  // The workspace an app sits on, or 0 when its windows disagree. An app
+  // with windows in two places has no single one to label, and guessing
+  // one would be worse than showing none.
+  function appWorkspace(app) {
+    var windows = (app && app.windows) || []
+    if (!windows.length)
+      return 0
+    var id = windows[0].workspace || 0
+    for (var i = 1; i < windows.length; i++) {
+      if ((windows[i].workspace || 0) !== id)
+        return 0
+    }
+    return id
+  }
+
   function setWorkspaceFilter(id) {
     root.workspaceFilter = Number(id) || 0
   }

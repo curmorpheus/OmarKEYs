@@ -652,6 +652,23 @@ Rectangle {
                   opacity: 0.35
                 }
 
+                // Which workspace this is on, while the list is unfiltered. Left of the row so the numbers line up as a column rather than pushing the labels around.
+                Text {
+                  readonly property int wsId: host ? host.appWorkspace(appCol.modelData) : 0
+                  visible: !!host && host.workspaceFilter === 0 && wsId > 0
+                  anchors.left: parent.left
+                  anchors.leftMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: 12
+                  horizontalAlignment: Text.AlignLeft
+                  text: wsId
+                  textFormat: Text.PlainText
+                  color: side.foreground
+                  opacity: 0.35
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                }
+
                 Text {
                   id: winLabel
                   anchors.left: parent.left
@@ -713,6 +730,23 @@ Rectangle {
                       width: 1
                       color: side.borderColor
                       opacity: 0.35
+                    }
+
+                    // The window's own workspace. Only on the program row: the title row under it is the same window, and saying it twice is noise.
+                    Text {
+                      readonly property int wsId: host ? (winCol.modelData.workspace || 0) : 0
+                      visible: !!host && host.workspaceFilter === 0 && wsId > 0
+                      anchors.left: parent.left
+                      anchors.leftMargin: 2
+                      anchors.verticalCenter: parent.verticalCenter
+                      width: 12
+                      horizontalAlignment: Text.AlignLeft
+                      text: wsId
+                      textFormat: Text.PlainText
+                      color: side.foreground
+                      opacity: 0.35
+                      font.family: side.fontFamily
+                      font.pixelSize: side.subFontSize
                     }
 
                     Text {

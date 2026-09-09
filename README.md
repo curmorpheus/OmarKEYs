@@ -86,7 +86,10 @@ box, and closes the overlay when the box is already empty — so to filter
   the filter; double-clicking a number switches to that workspace. It
   starts on ALL and stays where you put it until the overlay is reopened.
   Filtering scopes an app to the windows it has there, so an app on two
-  workspaces shows only the relevant ones. An app with windows on two workspaces appears under both, each
+  workspaces shows only the relevant ones. On **ALL**, each row carries a
+  faint workspace number down the left — on an app only when its windows
+  agree, since one spread across two workspaces has no single number to
+  show; its windows carry their own. An app with windows on two workspaces appears under both, each
   time with only the windows it has there. Apps with no bundled sheet sit
   under **No keymap sheet**, pinned to the bottom.
 - Click an area or group to *solo* it — everything else hides so the board
