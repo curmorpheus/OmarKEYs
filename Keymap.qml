@@ -113,11 +113,14 @@ Item {
   // window that happens to be open. Scoped to the selected workspace, so
   // the board answers the same question the tree does: what is here, and
   // what does it answer to.
-  readonly property var appSheets: {
+  //
+  // A function, not a binding: the caller is the workspaceFilter change
+  // handler, and a binding read from inside a handler for its own
+  // dependency can still hand back the pre-change value.
+  function appSheetsFor(only) {
     var out = []
     var seen = ({})
     var list = root.clients || []
-    var only = root.workspaceFilter
     for (var i = 0; i < list.length; i++) {
       if (only > 0 && !root.appOnWorkspace(list[i], only))
         continue
@@ -131,7 +134,7 @@ Item {
   }
 
   // The workspace filter is a view of the same client list, so the board
-  // has to be rebuilt when it moves; appSheets alone changing loads nothing.
+  // has to be reloaded when it moves -- nothing else re-reads the sheets.
   onWorkspaceFilterChanged: if (root.appsActive) root.loadAppSheets()
 
   readonly property bool allGroupsVisible: {
@@ -334,7 +337,7 @@ Item {
   // kind it came from so the board can say whose bindings these are.
   function loadAppSheets() {
     root.mergedSections = []
-    root.sheetQueue = root.appSheets.slice()
+    root.sheetQueue = root.appSheetsFor(root.workspaceFilter)
     // Clear first: the queue advances by setting sheetPath, and setting it
     // to what it already holds loads nothing, so re-entering this view
     // would leave the queue waiting on a file that never arrives.
