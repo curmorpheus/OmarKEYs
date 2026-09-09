@@ -44,9 +44,10 @@ Type while it is open to filter, including digits.
 - Greyed-out rows cannot be run: ranges, gestures, and any bind whose
   action OmarKEYS could not recover from your config
 
-**Sidebar** — the tree
+**Sidebar** — three panels: Omarchy, Workspaces, Options
 
-Under the tree sit the settings worth reaching for while reading the board,
+The **Options** panel holds the settings worth reaching for while reading
+the board,
 without opening the popup. They sit under an **Options** heading: **Grouping** 󰋃, **Sort** 󰒺 and **Order** 󰣟, each
 showing its current mode underneath and cycling on click. Order swaps
 between keys first and keys last. The **Filter** 󰈲 keeps its own column under Grouping, mode label and all,

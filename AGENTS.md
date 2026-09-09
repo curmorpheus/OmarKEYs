@@ -9,7 +9,7 @@ so `omarchy plugin add <git-url>` works.
 |---|---|
 | `manifest.json` | Plugin id `io.github.romills.omarkeys`, overlay entry |
 | `Keymap.qml` | Overlay host: config, dump, keyboard, execute |
-| `KeymapSidebar.qml` | The tree: Omarchy areas/groups and Active Apps |
+| `KeymapSidebar.qml` | Three panels: Omarchy, Workspaces (Active Apps), Options |
 | `KeymapBoard.qml` | Two-column section grid |
 | `KeymapSection.qml` | One topic card |
 | `KeymapRow.qml` | One command row |

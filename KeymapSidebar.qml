@@ -26,822 +26,356 @@ Rectangle {
   width: Style.space(200)
   radius: 6
   color: "transparent"
-  border.width: 1
+  border.width: 0
   border.color: side.borderColor
 
   MouseArea { anchors.fill: parent; onClicked: {} }
 
+
+  // Three panels in one column. Options is as tall as its content -- it is
+  // a fixed set of controls -- and the two trees share what is left.
+  //
+  // Sharing, not splitting: when both fit they each take what they need,
+  // and only when they cannot does the space get divided, no worse than
+  // half each. A fixed half would waste it whenever one tree is short,
+  // which Active Apps usually is.
+  readonly property real panelGap: Style.space(6)
+  readonly property real panelPad: Style.spacing.sm
+  readonly property real optionsHeight: footer.implicitHeight + side.panelPad * 2
+  readonly property real treeSpace:
+    Math.max(0, height - side.optionsHeight - side.panelGap * 2)
+  readonly property real omarchyNeed: treeCol.height + side.panelPad * 2
+  readonly property real appsNeed: wsPanelCol.height + side.panelPad * 2
+  readonly property bool bothFit: side.omarchyNeed + side.appsNeed <= side.treeSpace
+  readonly property real omarchyHeight: side.bothFit ? side.omarchyNeed
+    : Math.max(Math.min(side.omarchyNeed, side.treeSpace * 0.5),
+               side.treeSpace - side.appsNeed)
+  readonly property real appsHeight: side.bothFit ? side.appsNeed
+    : side.treeSpace - side.omarchyHeight
+
   Column {
     id: sideCol
     anchors.fill: parent
-    anchors.margins: Style.spacing.sm
-    spacing: Style.space(6)
+    spacing: side.panelGap
 
-    Flickable {
+    // Omarchy's own keymap, by area and group.
+    Rectangle {
       width: parent.width
-      height: parent.height - footer.height - sideCol.spacing
-      clip: true
-      contentWidth: width
-      contentHeight: treeCol.height
-      // Scrollable content will always clip somewhere; the margin keeps a
-      // half-drawn row from sitting flush against the edge, where it reads
-      // as broken rather than as "there is more".
-      bottomMargin: Style.space(6)
-      boundsBehavior: Flickable.StopAtBounds
-      activeFocusOnTab: false
+      height: side.omarchyHeight
+      radius: 6
+      color: "transparent"
+      border.width: 1
+      border.color: side.borderColor
 
-      Column {
-        id: treeCol
-        width: parent.width
-        spacing: 2
+      Flickable {
+        anchors.fill: parent
+        anchors.margins: side.panelPad
+        clip: true
+        contentWidth: width
+        contentHeight: treeCol.height
+        bottomMargin: Style.space(6)
+        boundsBehavior: Flickable.StopAtBounds
+        activeFocusOnTab: false
 
-        Item {
+        Column {
+          id: treeCol
           width: parent.width
-          height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
+          spacing: 2
 
-          HoverHandler { id: omarchyHover }
+          Item {
+            width: parent.width
+            height: Math.max(Style.space(24), omarchyLabel.implicitHeight + 6)
 
-          // Hiding a branch takes its whole subtree off the board and
-          // collapses it here, so one control does both.
-          KeymapHideButton {
-            id: omarchyToggle
-            visible: omarchyHover.hovered || omarchyToggle.hovered
-            anchors.right: parent.right
-            anchors.rightMargin: 2
-            anchors.verticalCenter: parent.verticalCenter
-            shown: side.omarchyOpen && !(host && host.allGroupsHidden)
-            foreground: side.foreground
-            accent: side.chipFg
-            fontFamily: side.fontFamily
-            fontSize: side.subFontSize
-            onToggled: {
-              var h = side.host
-              var reveal = !(side.omarchyOpen && !(h && h.allGroupsHidden))
-              side.omarchyOpen = reveal
-              if (h)
-                h.setAllGroupsVisible(reveal)
-            }
-          }
+            HoverHandler { id: omarchyHover }
 
-          Row {
-            anchors.fill: parent
-            anchors.rightMargin: omarchyToggle.width + 8
-            spacing: 4
-
-            Text {
+            // Hiding a branch takes its whole subtree off the board and
+            // collapses it here, so one control does both.
+            KeymapHideButton {
+              id: omarchyToggle
+              visible: omarchyHover.hovered || omarchyToggle.hovered
+              anchors.right: parent.right
+              anchors.rightMargin: 2
               anchors.verticalCenter: parent.verticalCenter
-              width: 12
-              text: (side.omarchyOpen && !(host && host.allGroupsHidden)) ? "▾" : "▸"
-              color: side.chipFg
-              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
-              font.family: side.fontFamily
-              font.pixelSize: side.rootFontSize
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: side.omarchyOpen = !side.omarchyOpen
+              shown: side.omarchyOpen && !(host && host.allGroupsHidden)
+              foreground: side.foreground
+              accent: side.chipFg
+              fontFamily: side.fontFamily
+              fontSize: side.subFontSize
+              onToggled: {
+                var h = side.host
+                var reveal = !(side.omarchyOpen && !(h && h.allGroupsHidden))
+                side.omarchyOpen = reveal
+                if (h)
+                  h.setAllGroupsVisible(reveal)
               }
             }
 
-            Text {
-              id: omarchyMark
-              anchors.verticalCenter: parent.verticalCenter
-              text: KeymapData.omarchyIcon()
-              textFormat: Text.PlainText
-              color: host && host.omarchyActive ? side.chipFg : side.foreground
-              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
-              font.family: side.fontFamily
-              // A glyph reads smaller than a letter at the same pixel size.
-              font.pixelSize: Math.round(side.rootFontSize * 1.15)
-            }
+            Row {
+              anchors.fill: parent
+              anchors.rightMargin: omarchyToggle.width + 8
+              spacing: 4
 
-            Text {
-              id: omarchyLabel
-              anchors.verticalCenter: parent.verticalCenter
-              width: parent.width - 20 - omarchyMark.width
-              text: "Omarchy"
-              textFormat: Text.PlainText
-              color: host && host.omarchyActive ? side.chipFg : side.foreground
-              opacity: (host && host.allGroupsHidden) ? 0.4 : 1
-              font.family: side.fontFamily
-              font.pixelSize: side.rootFontSize
-              font.bold: true
-              elide: Text.ElideRight
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                // Root of the branch: back to the whole Omarchy keymap,
-                // undoing any area/group solo from a previous click.
-                onClicked: {
-                  var h = side.host
-                  if (!h)
-                    return
-                  h.selectSource("omarchy")
-                  h.setAllGroupsVisible(true)
-                }
-              }
-            }
-          }
-        }
-
-        Repeater {
-          model: side.omarchyOpen && host ? host.omarchyTree : []
-          delegate: Column {
-            id: areaCol
-            required property var modelData
-            width: treeCol.width
-            spacing: 2
-
-            readonly property bool allVisible: {
-              var groups = areaCol.modelData.groups || []
-              for (var gi = 0; gi < groups.length; gi++) {
-                if (groups[gi].hidden)
-                  return false
-              }
-              return true
-            }
-
-            // Hiding an area takes its groups off the board; collapsing the
-            // rows here follows from that rather than being separate state,
-            // so the tree cannot disagree with what the board is showing.
-            readonly property bool allHidden: {
-              var groups = areaCol.modelData.groups || []
-              if (!groups.length)
-                return false
-              for (var hi = 0; hi < groups.length; hi++) {
-                if (!groups[hi].hidden)
-                  return false
-              }
-              return true
-            }
-
-            // Area header (depth 1): the trunk line for this branch of
-            // the tree — its group rows below share the same trunk x.
-            Item {
-              width: areaCol.width
-              height: Math.max(Style.space(18), areaLabel.implicitHeight + 3)
-
-              HoverHandler { id: areaHover }
-
-              // A branch marks itself with a caret rather than the trunk
-              // line its children use: collapsed when everything under it
-              // is hidden, expanded while any of it still shows.
               Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
                 width: 12
-                text: areaCol.allHidden ? "▸" : "▾"
+                text: (side.omarchyOpen && !(host && host.allGroupsHidden)) ? "▾" : "▸"
                 color: side.chipFg
-                opacity: areaCol.allHidden ? 0.4 : 0.7
+                opacity: (host && host.allGroupsHidden) ? 0.4 : 1
                 font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
+                font.pixelSize: side.rootFontSize
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    var h = side.host
-                    if (!h)
-                      return
-                    var titles = []
-                    var groups = areaCol.modelData.groups || []
-                    for (var ci = 0; ci < groups.length; ci++)
-                      titles.push(groups[ci].title)
-                    h.setGroupsVisible(titles, areaCol.allHidden)
-                  }
-                }
-              }
-
-              KeymapHideButton {
-                id: areaSwitch
-                visible: areaHover.hovered || areaSwitch.hovered
-                anchors.right: parent.right
-                anchors.rightMargin: 2
-                anchors.verticalCenter: parent.verticalCenter
-                shown: !areaCol.allHidden
-                foreground: side.foreground
-                accent: side.chipFg
-                fontFamily: side.fontFamily
-                fontSize: side.subFontSize
-                onToggled: {
-                  var h = side.host
-                  if (!h)
-                    return
-                  var titles = []
-                  var groups = areaCol.modelData.groups || []
-                  for (var ti = 0; ti < groups.length; ti++)
-                    titles.push(groups[ti].title)
-                  h.setGroupsVisible(titles, areaCol.allHidden)
+                  onClicked: side.omarchyOpen = !side.omarchyOpen
                 }
               }
 
               Text {
-                id: areaLabel
-                anchors.left: parent.left
-                anchors.leftMargin: 14
-                anchors.right: areaSwitch.left
-                anchors.rightMargin: 6
+                id: omarchyMark
                 anchors.verticalCenter: parent.verticalCenter
-                text: areaCol.modelData.title
+                text: KeymapData.omarchyIcon()
                 textFormat: Text.PlainText
-                color: side.foreground
-                opacity: areaCol.allHidden ? 0.4 : 0.75
+                color: host && host.omarchyActive ? side.chipFg : side.foreground
+                opacity: (host && host.allGroupsHidden) ? 0.4 : 1
                 font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
+                // A glyph reads smaller than a letter at the same pixel size.
+                font.pixelSize: Math.round(side.rootFontSize * 1.15)
+              }
+
+              Text {
+                id: omarchyLabel
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 20 - omarchyMark.width
+                text: "Omarchy"
+                textFormat: Text.PlainText
+                color: host && host.omarchyActive ? side.chipFg : side.foreground
+                opacity: (host && host.allGroupsHidden) ? 0.4 : 1
+                font.family: side.fontFamily
+                font.pixelSize: side.rootFontSize
                 font.bold: true
-                font.capitalization: Font.AllUppercase
                 elide: Text.ElideRight
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  // Show only this area's groups on the board.
+                  // Root of the branch: back to the whole Omarchy keymap,
+                  // undoing any area/group solo from a previous click.
                   onClicked: {
                     var h = side.host
                     if (!h)
                       return
-                    var titles = []
-                    var groups = areaCol.modelData.groups || []
-                    for (var ci = 0; ci < groups.length; ci++)
-                      titles.push(groups[ci].title)
-                    if (!h.omarchyActive)
-                      h.selectSource("omarchy")
-                    h.soloGroups(titles)
+                    h.selectSource("omarchy")
+                    h.setAllGroupsVisible(true)
                   }
                 }
               }
             }
+          }
 
-            // Group rows (depth 2): same trunk x as the header above,
-            // content indented past it.
-            Repeater {
-              model: areaCol.allHidden ? [] : areaCol.modelData.groups
-              delegate: Item {
-                required property var modelData
+          Repeater {
+            model: side.omarchyOpen && host ? host.omarchyTree : []
+            delegate: Column {
+              id: areaCol
+              required property var modelData
+              width: treeCol.width
+              spacing: 2
+
+              readonly property bool allVisible: {
+                var groups = areaCol.modelData.groups || []
+                for (var gi = 0; gi < groups.length; gi++) {
+                  if (groups[gi].hidden)
+                    return false
+                }
+                return true
+              }
+
+              // Hiding an area takes its groups off the board; collapsing the
+              // rows here follows from that rather than being separate state,
+              // so the tree cannot disagree with what the board is showing.
+              readonly property bool allHidden: {
+                var groups = areaCol.modelData.groups || []
+                if (!groups.length)
+                  return false
+                for (var hi = 0; hi < groups.length; hi++) {
+                  if (!groups[hi].hidden)
+                    return false
+                }
+                return true
+              }
+
+              // Area header (depth 1): the trunk line for this branch of
+              // the tree — its group rows below share the same trunk x.
+              Item {
                 width: areaCol.width
-                height: Math.max(Style.space(18), groupLabel.implicitHeight + 3)
+                height: Math.max(Style.space(18), areaLabel.implicitHeight + 3)
 
-                // Reveals this row's control. A HoverHandler rather than a
-                // MouseArea so it does not sit between the label and its
-                // own click handler.
-                HoverHandler { id: groupHover }
+                HoverHandler { id: areaHover }
 
-                Rectangle {
+                // A branch marks itself with a caret rather than the trunk
+                // line its children use: collapsed when everything under it
+                // is hidden, expanded while any of it still shows.
+                Text {
                   anchors.left: parent.left
-                  anchors.leftMargin: 6
-                  anchors.top: parent.top
-                  anchors.bottom: parent.bottom
-                  width: 1
-                  color: side.borderColor
-                  opacity: 0.35
+                  anchors.leftMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: 12
+                  text: areaCol.allHidden ? "▸" : "▾"
+                  color: side.chipFg
+                  opacity: areaCol.allHidden ? 0.4 : 0.7
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var h = side.host
+                      if (!h)
+                        return
+                      var titles = []
+                      var groups = areaCol.modelData.groups || []
+                      for (var ci = 0; ci < groups.length; ci++)
+                        titles.push(groups[ci].title)
+                      h.setGroupsVisible(titles, areaCol.allHidden)
+                    }
+                  }
                 }
 
                 KeymapHideButton {
-                  id: groupSwitch
+                  id: areaSwitch
+                  visible: areaHover.hovered || areaSwitch.hovered
                   anchors.right: parent.right
                   anchors.rightMargin: 2
                   anchors.verticalCenter: parent.verticalCenter
-                  visible: groupHover.hovered || groupSwitch.hovered
-                  shown: !modelData.hidden
+                  shown: !areaCol.allHidden
                   foreground: side.foreground
                   accent: side.chipFg
                   fontFamily: side.fontFamily
                   fontSize: side.subFontSize
                   onToggled: {
                     var h = side.host
-                    if (h)
-                      h.toggleGroup(modelData.title)
+                    if (!h)
+                      return
+                    var titles = []
+                    var groups = areaCol.modelData.groups || []
+                    for (var ti = 0; ti < groups.length; ti++)
+                      titles.push(groups[ti].title)
+                    h.setGroupsVisible(titles, areaCol.allHidden)
                   }
                 }
 
                 Text {
-                  id: groupLabel
+                  id: areaLabel
                   anchors.left: parent.left
-                  anchors.leftMargin: 26
-                  anchors.right: groupSwitch.left
+                  anchors.leftMargin: 14
+                  anchors.right: areaSwitch.left
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.title
+                  text: areaCol.modelData.title
                   textFormat: Text.PlainText
-                  color: host && host.omarchyActive && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
-                  opacity: modelData.hidden ? 0.4 : 1
+                  color: side.foreground
+                  opacity: areaCol.allHidden ? 0.4 : 0.75
                   font.family: side.fontFamily
                   font.pixelSize: side.subFontSize
-                  font.bold: host && host.omarchyActive && modelData.title === host.selectedSectionTitle
+                  font.bold: true
+                  font.capitalization: Font.AllUppercase
                   elide: Text.ElideRight
                   MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    // Show only this group's table on the board.
+                    // Show only this area's groups on the board.
                     onClicked: {
-                      // soloGroups() rebuilds the tree model, which destroys
-                      // this delegate mid-handler. Resolve everything we need
-                      // up front so the calls after it are not running in a
-                      // scope that no longer exists.
                       var h = side.host
                       if (!h)
                         return
-                      var title = modelData.title
+                      var titles = []
+                      var groups = areaCol.modelData.groups || []
+                      for (var ci = 0; ci < groups.length; ci++)
+                        titles.push(groups[ci].title)
                       if (!h.omarchyActive)
                         h.selectSource("omarchy")
-                      h.soloGroups([title])
-                      h.focusGroup(title)
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Which workspace the list below is showing. Numbers are the
-        // workspaces that exist, ALL is no filter, and ALL is where it
-        // starts -- the tree should open showing everything you have.
-        //
-        // Click filters, double-click goes there. That is the same split
-        // every row in this tree uses, and it keeps the switch that the
-        // workspace branches used to offer.
-        Item {
-          width: parent.width
-          visible: side.windowsOpen && host && host.workspaces
-            && host.workspaces.length > 0
-          height: visible ? Math.max(Style.space(22), wsPickRow.height + 4) : 0
-
-          Row {
-            id: wsPickRow
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            anchors.right: parent.right
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(6)
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Workspace"
-              textFormat: Text.PlainText
-              color: side.foreground
-              opacity: 0.6
-              font.family: side.fontFamily
-              font.pixelSize: side.subFontSize
-            }
-
-            Repeater {
-              // The workspaces that exist, then ALL. Zero is the id for
-              // no filter, which no real workspace has.
-              model: {
-                var out = []
-                var list = (host && host.workspaces) || []
-                for (var i = 0; i < list.length; i++)
-                  out.push({ id: list[i].id, label: String(list[i].name) })
-                out.push({ id: 0, label: "ALL" })
-                return out
-              }
-              delegate: Rectangle {
-                required property var modelData
-                readonly property bool selected:
-                  !!host && host.workspaceFilter === modelData.id
-                width: pickLabel.implicitWidth + Style.space(8)
-                height: pickLabel.implicitHeight + Style.space(3)
-                radius: 3
-                color: selected ? side.chipFg
-                  : (pickArea.containsMouse ? side.borderColor : "transparent")
-
-                Text {
-                  id: pickLabel
-                  anchors.centerIn: parent
-                  text: modelData.label
-                  textFormat: Text.PlainText
-                  color: selected ? side.panelBg : side.foreground
-                  opacity: selected ? 1 : 0.75
-                  font.family: side.fontFamily
-                  font.pixelSize: side.subFontSize
-                  font.bold: selected
-                }
-
-                MouseArea {
-                  id: pickArea
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    var h = side.host
-                    if (h)
-                      h.setWorkspaceFilter(modelData.id)
-                  }
-                  onDoubleClicked: {
-                    var h = side.host
-                    if (h && modelData.id > 0)
-                      h.focusWorkspace(modelData.id)
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        Item {
-          width: parent.width
-          height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
-
-          HoverHandler { id: windowsHover }
-
-          KeymapHideButton {
-            id: windowsToggle
-            visible: windowsHover.hovered || windowsToggle.hovered
-            anchors.right: parent.right
-            anchors.rightMargin: 2
-            anchors.verticalCenter: parent.verticalCenter
-            // Tracks content, not just expansion: a branch whose apps are
-            // all hidden must still offer "Show", or hiding everything is
-            // a one-way door.
-            shown: side.windowsOpen && !(host && host.allAppsHidden)
-            foreground: side.foreground
-            accent: side.chipFg
-            fontFamily: side.fontFamily
-            fontSize: side.subFontSize
-            onToggled: {
-              var h = side.host
-              var reveal = !(side.windowsOpen && !(h && h.allAppsHidden))
-              side.windowsOpen = reveal
-              if (h) {
-                if (reveal)
-                  h.showAllApps()
-                else
-                  h.setAppsVisible(h.allAppClasses, false)
-              }
-            }
-          }
-
-          Row {
-            anchors.fill: parent
-            anchors.rightMargin: windowsToggle.width + 8
-            spacing: 4
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              width: 12
-              text: (side.windowsOpen && !(host && host.allAppsHidden)) ? "▾" : "▸"
-              color: side.chipFg
-              opacity: (host && host.allAppsHidden) ? 0.4 : 1
-              font.family: side.fontFamily
-              font.pixelSize: side.rootFontSize
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: side.windowsOpen = !side.windowsOpen
-              }
-            }
-
-            Text {
-              id: windowsLabel
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Active Apps"
-              textFormat: Text.PlainText
-              color: side.chipFg
-              opacity: (host && host.allAppsHidden) ? 0.4 : 1
-              font.family: side.fontFamily
-              font.pixelSize: side.rootFontSize
-              font.bold: true
-              font.capitalization: Font.AllUppercase
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: side.windowsOpen = !side.windowsOpen
-              }
-            }
-          }
-        }
-
-        Item {
-          visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
-          width: treeCol.width
-          height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
-
-          Rectangle {
-            anchors.left: parent.left
-            anchors.leftMargin: 6
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 1
-            color: side.borderColor
-            opacity: 0.35
-          }
-
-          Text {
-            id: noWindowsLabel
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            text: "No windows detected"
-            textFormat: Text.PlainText
-            color: side.foreground
-            opacity: 0.5
-            font.family: side.fontFamily
-            font.pixelSize: side.subFontSize
-            font.italic: true
-          }
-        }
-
-        // Apps grouped by the sheet that gives them their bindings, so
-        // every Chrome PWA sits together under "Web apps" rather than
-        // repeating the same shortcut set once per window.
-        Repeater {
-          model: side.windowsOpen && host ? host.appTree : []
-          delegate: Column {
-            id: kindCol
-            required property var modelData
-            width: treeCol.width
-            spacing: 2
-
-            Item {
-              width: kindCol.width
-              height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
-
-              HoverHandler { id: kindHover }
-
-              Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 2
-                anchors.verticalCenter: parent.verticalCenter
-                width: 12
-                text: kindCol.modelData.hidden ? "▸" : "▾"
-                color: side.chipFg
-                opacity: kindCol.modelData.hidden ? 0.4 : 0.7
-                font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  // A kind groups the apps that share one sheet, so any of
-                  // them names it. Hiding is the button's job, revealed on
-                  // hover -- clicking the row shows the keys, the way every
-                  // other row in this branch does.
-                  onClicked: {
-                    var h = side.host
-                    if (!h)
-                      return
-                    var apps = kindCol.modelData.apps || []
-                    if (apps.length)
-                      h.selectSource(apps[0].class)
-                  }
-                }
-              }
-
-              KeymapHideButton {
-                id: kindToggle
-                visible: kindHover.hovered || kindToggle.hovered
-                anchors.right: parent.right
-                anchors.rightMargin: 2
-                anchors.verticalCenter: parent.verticalCenter
-                shown: !kindCol.modelData.hidden
-                foreground: side.foreground
-                accent: side.chipFg
-                fontFamily: side.fontFamily
-                fontSize: side.subFontSize
-                onToggled: {
-                  var h = side.host
-                  if (!h)
-                    return
-                  var classes = []
-                  var apps = kindCol.modelData.apps || []
-                  for (var ci = 0; ci < apps.length; ci++)
-                    classes.push(apps[ci].class)
-                  h.setAppsVisible(classes, kindCol.modelData.hidden)
-                }
-              }
-
-              Text {
-                id: kindLabel
-                anchors.left: parent.left
-                anchors.leftMargin: 14
-                anchors.right: kindToggle.left
-                anchors.rightMargin: 6
-                anchors.verticalCenter: parent.verticalCenter
-                text: kindCol.modelData.title
-                textFormat: Text.PlainText
-                color: side.foreground
-                opacity: kindCol.modelData.hidden ? 0.4 : 0.75
-                font.family: side.fontFamily
-                font.pixelSize: side.subFontSize
-                font.bold: true
-                font.capitalization: Font.AllUppercase
-                elide: Text.ElideRight
-              }
-            }
-
-            Repeater {
-              model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
-              delegate: Column {
-                id: appCol
-                required property var modelData
-                width: kindCol.width
-                spacing: 2
-
-              Item {
-                width: appCol.width
-                height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
-
-                Rectangle {
-                  anchors.left: parent.left
-                  anchors.leftMargin: 6
-                  anchors.top: parent.top
-                  anchors.bottom: parent.bottom
-                  width: 1
-                  color: side.borderColor
-                  opacity: 0.35
-                }
-
-                // Which workspace this is on, while the list is unfiltered. It
-                // starts the line at the label's own indent rather than sitting in
-                // a gutter off to the left, where it read as belonging to nothing.
-                Text {
-                  id: wsTagApp
-                  readonly property int wsId: host ? host.appWorkspace(appCol.modelData) : 0
-                  visible: !!host && host.workspaceFilter === 0 && wsId > 0
-                  anchors.left: parent.left
-                  anchors.leftMargin: 26
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: wsId
-                  textFormat: Text.PlainText
-                  color: side.foreground
-                  opacity: 0.35
-                  font.family: side.fontFamily
-                  font.pixelSize: side.subFontSize
-                }
-
-                Text {
-                  id: winLabel
-                  anchors.left: parent.left
-                  anchors.right: parent.right
-                  anchors.leftMargin: 26 + (wsTagApp.visible ? wsTagApp.implicitWidth + Style.space(5) : 0)
-                  anchors.rightMargin: 6
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
-                    // The count only says what the rows below already show,
-                    // so it is for the unexpanded case alone.
-                    + ((modelData.count > 1 && !(modelData.windows && modelData.windows.length > 1))
-                      ? " (" + modelData.count + ")" : "")
-                  textFormat: Text.PlainText
-                  color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
-                  opacity: modelData.sheet ? 1 : 0.55
-                  font.family: side.fontFamily
-                  font.pixelSize: side.subFontSize
-                  font.bold: host && host.activeSource === modelData.class
-                  elide: Text.ElideRight
-                  MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    // Click shows the app's keymap; double-click goes to the
-                    // window itself.
-                    onClicked: {
-                      var h = side.host
-                      if (h)
-                        h.selectSource(modelData.class)
-                    }
-                    onDoubleClicked: {
-                      var h = side.host
-                      if (h)
-                        h.focusWindow(modelData.address)
+                      h.soloGroups(titles)
                     }
                   }
                 }
               }
 
-              // One window is the app row itself; more than one and each
-              // gets its own line, named by what is running in it.
+              // Group rows (depth 2): same trunk x as the header above,
+              // content indented past it.
               Repeater {
-                model: (appCol.modelData.windows && appCol.modelData.windows.length > 1)
-                  ? appCol.modelData.windows : []
-                delegate: Column {
-                  id: winCol
+                model: areaCol.allHidden ? [] : areaCol.modelData.groups
+                delegate: Item {
                   required property var modelData
-                  width: appCol.width
-                  spacing: 2
+                  width: areaCol.width
+                  height: Math.max(Style.space(18), groupLabel.implicitHeight + 3)
 
-                  Item {
-                    width: winCol.width
-                    height: Math.max(Style.space(17), exeLabel.implicitHeight + 3)
+                  // Reveals this row's control. A HoverHandler rather than a
+                  // MouseArea so it does not sit between the label and its
+                  // own click handler.
+                  HoverHandler { id: groupHover }
 
-                    Rectangle {
-                      anchors.left: parent.left
-                      anchors.leftMargin: 6
-                      anchors.top: parent.top
-                      anchors.bottom: parent.bottom
-                      width: 1
-                      color: side.borderColor
-                      opacity: 0.35
-                    }
+                  Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 1
+                    color: side.borderColor
+                    opacity: 0.35
+                  }
 
-                    // Which workspace this is on, while the list is unfiltered. It
-                    // starts the line at the label's own indent rather than sitting in
-                    // a gutter off to the left, where it read as belonging to nothing.
-                    Text {
-                      id: wsTagWin
-                      readonly property int wsId: host ? (winCol.modelData.workspace || 0) : 0
-                      visible: !!host && host.workspaceFilter === 0 && wsId > 0
-                      anchors.left: parent.left
-                      // 26, not 38: the numbers line up in one column under
-                      // the app names they belong to, rather than stepping in
-                      // with each level and scattering down the tree.
-                      anchors.leftMargin: 26
-                      anchors.verticalCenter: parent.verticalCenter
-                      text: wsId
-                      textFormat: Text.PlainText
-                      color: side.foreground
-                      opacity: 0.35
-                      font.family: side.fontFamily
-                      font.pixelSize: side.subFontSize
-                    }
-
-                    Text {
-                      id: exeLabel
-                      anchors.left: parent.left
-                      anchors.right: parent.right
-                      anchors.leftMargin: wsTagWin.visible
-                        ? Math.max(38, 26 + wsTagWin.implicitWidth + Style.space(5))
-                        : 38
-                      anchors.rightMargin: 6
-                      anchors.verticalCenter: parent.verticalCenter
-                      // An idle shell has no program to name, so its title
-                      // takes this line instead of an empty one.
-                      text: (winCol.modelData.focused ? "· " : "")
-                        + (winCol.modelData.exe || winCol.modelData.title)
-                      textFormat: Text.PlainText
-                      color: side.foreground
-                      opacity: winCol.modelData.exe ? 1 : 0.8
-                      font.family: side.fontFamily
-                      font.pixelSize: side.subFontSize
-                      elide: Text.ElideRight
-                      MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        // Same as the app row above it: click shows that
-                        // app's keymap, double-click goes to the window.
-                        onClicked: {
-                          var h = side.host
-                          if (h)
-                            h.selectSource(appCol.modelData.class)
-                        }
-                        onDoubleClicked: {
-                          var h = side.host
-                          if (h)
-                            h.focusWindow(winCol.modelData.address)
-                        }
-                      }
+                  KeymapHideButton {
+                    id: groupSwitch
+                    anchors.right: parent.right
+                    anchors.rightMargin: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: groupHover.hovered || groupSwitch.hovered
+                    shown: !modelData.hidden
+                    foreground: side.foreground
+                    accent: side.chipFg
+                    fontFamily: side.fontFamily
+                    fontSize: side.subFontSize
+                    onToggled: {
+                      var h = side.host
+                      if (h)
+                        h.toggleGroup(modelData.title)
                     }
                   }
 
-                  // The window's own name, under the program running in it.
-                  Item {
-                    visible: !!winCol.modelData.exe
-                    width: winCol.width
-                    height: visible ? Math.max(Style.space(16), titleLabel.implicitHeight + 2) : 0
-
-                    Rectangle {
-                      anchors.left: parent.left
-                      anchors.leftMargin: 6
-                      anchors.top: parent.top
-                      anchors.bottom: parent.bottom
-                      width: 1
-                      color: side.borderColor
-                      opacity: 0.35
-                    }
-
-                    Text {
-                      id: titleLabel
-                      anchors.left: parent.left
-                      anchors.right: parent.right
-                      anchors.leftMargin: 50
-                      anchors.rightMargin: 6
-                      anchors.verticalCenter: parent.verticalCenter
-                      text: winCol.modelData.title
-                      textFormat: Text.PlainText
-                      color: side.foreground
-                      opacity: 0.6
-                      font.family: side.fontFamily
-                      font.pixelSize: side.subFontSize
-                      elide: Text.ElideRight
-                      MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        // Same as the app row above it: click shows that
-                        // app's keymap, double-click goes to the window.
-                        onClicked: {
-                          var h = side.host
-                          if (h)
-                            h.selectSource(appCol.modelData.class)
-                        }
-                        onDoubleClicked: {
-                          var h = side.host
-                          if (h)
-                            h.focusWindow(winCol.modelData.address)
-                        }
+                  Text {
+                    id: groupLabel
+                    anchors.left: parent.left
+                    anchors.leftMargin: 26
+                    anchors.right: groupSwitch.left
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.title
+                    textFormat: Text.PlainText
+                    color: host && host.omarchyActive && modelData.title === host.selectedSectionTitle ? side.chipFg : side.foreground
+                    opacity: modelData.hidden ? 0.4 : 1
+                    font.family: side.fontFamily
+                    font.pixelSize: side.subFontSize
+                    font.bold: host && host.omarchyActive && modelData.title === host.selectedSectionTitle
+                    elide: Text.ElideRight
+                    MouseArea {
+                      anchors.fill: parent
+                      cursorShape: Qt.PointingHandCursor
+                      // Show only this group's table on the board.
+                      onClicked: {
+                        // soloGroups() rebuilds the tree model, which destroys
+                        // this delegate mid-handler. Resolve everything we need
+                        // up front so the calls after it are not running in a
+                        // scope that no longer exists.
+                        var h = side.host
+                        if (!h)
+                          return
+                        var title = modelData.title
+                        if (!h.omarchyActive)
+                          h.selectSource("omarchy")
+                        h.soloGroups([title])
+                        h.focusGroup(title)
                       }
                     }
                   }
                 }
-              }
               }
             }
           }
@@ -849,81 +383,670 @@ Rectangle {
       }
     }
 
-
-    // The settings you reach for while reading the board, without opening
-    // the popup for them. Each icon shows its current mode and cycles on
-    // click; the filter shares its row with what is being filtered on.
-    Column {
-      id: footer
+    // Workspaces: which one the list is showing, and what is on it.
+    Rectangle {
       width: parent.width
-      spacing: Style.space(5)
+      height: side.appsHeight
+      radius: 6
+      color: "transparent"
+      border.width: 1
+      border.color: side.borderColor
 
-      Rectangle {
-        width: parent.width
-        height: 1
-        color: side.borderColor
-        opacity: 0.5
-      }
+      Flickable {
+        anchors.fill: parent
+        anchors.margins: side.panelPad
+        clip: true
+        contentWidth: width
+        contentHeight: wsPanelCol.height
+        bottomMargin: Style.space(6)
+        boundsBehavior: Flickable.StopAtBounds
+        activeFocusOnTab: false
 
-      Text {
-        width: parent.width
-        horizontalAlignment: Text.AlignHCenter
-        text: "Options"
-        textFormat: Text.PlainText
-        color: side.chipFg
-        font.family: side.fontFamily
-        font.pixelSize: Math.round(side.rootFontSize * 1.2)
-        font.bold: true
-        font.capitalization: Font.AllUppercase
-      }
+        Column {
+          id: wsPanelCol
+          width: parent.width
+          spacing: 2
 
-      Row {
-        id: controlRow
-        width: parent.width
+          // Which workspace the list below is showing. Numbers are the
+          // workspaces that exist, ALL is no filter, and ALL is where it
+          // starts -- the tree should open showing everything you have.
+          //
+          // Click filters, double-click goes there. That is the same split
+          // every row in this tree uses, and it keeps the switch that the
+          // workspace branches used to offer.
+          Item {
+            width: parent.width
+            visible: side.windowsOpen && host && host.workspaces
+              && host.workspaces.length > 0
+            height: visible ? Math.max(Style.space(22), wsPickRow.height + 4) : 0
 
-        Repeater {
-          model: [
-            { id: "group", glyph: "\udb80\udec3" },
-            { id: "sort",  glyph: "\udb81\udcba" },
-            { id: "order", glyph: "\udb82\udcdf" }
-          ]
-          delegate: Item {
-            required property var modelData
-            readonly property string mode: {
-              var h = side.host
-              if (!h)
-                return ""
-              if (modelData.id === "group")
-                return h.grouping === "off" ? "off"
-                  : (h.grouping === "keytype" ? "by key type" : "by topic")
-              if (modelData.id === "sort")
-                return h.sortBy === "action" ? "by name"
-                  : (h.sortBy === "key" ? "by key" : "by group")
-              return h.rowLayout === "action" ? "keys last" : "keys first"
+            Row {
+              id: wsPickRow
+              anchors.left: parent.left
+              anchors.leftMargin: 14
+              anchors.right: parent.right
+              anchors.rightMargin: 6
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(6)
+
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Workspace"
+                textFormat: Text.PlainText
+                color: side.foreground
+                opacity: 0.6
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+              }
+
+              Repeater {
+                // The workspaces that exist, then ALL. Zero is the id for
+                // no filter, which no real workspace has.
+                model: {
+                  var out = []
+                  var list = (host && host.workspaces) || []
+                  for (var i = 0; i < list.length; i++)
+                    out.push({ id: list[i].id, label: String(list[i].name) })
+                  out.push({ id: 0, label: "ALL" })
+                  return out
+                }
+                delegate: Rectangle {
+                  required property var modelData
+                  readonly property bool selected:
+                    !!host && host.workspaceFilter === modelData.id
+                  width: pickLabel.implicitWidth + Style.space(8)
+                  height: pickLabel.implicitHeight + Style.space(3)
+                  radius: 3
+                  color: selected ? side.chipFg
+                    : (pickArea.containsMouse ? side.borderColor : "transparent")
+
+                  Text {
+                    id: pickLabel
+                    anchors.centerIn: parent
+                    text: modelData.label
+                    textFormat: Text.PlainText
+                    color: selected ? side.panelBg : side.foreground
+                    opacity: selected ? 1 : 0.75
+                    font.family: side.fontFamily
+                    font.pixelSize: side.subFontSize
+                    font.bold: selected
+                  }
+
+                  MouseArea {
+                    id: pickArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var h = side.host
+                      if (h)
+                        h.setWorkspaceFilter(modelData.id)
+                    }
+                    onDoubleClicked: {
+                      var h = side.host
+                      if (h && modelData.id > 0)
+                        h.focusWorkspace(modelData.id)
+                    }
+                  }
+                }
+              }
             }
-            width: controlRow.width / 3
-            height: glyphText.height + modeText.height + Style.space(2)
+          }
+
+          Item {
+            width: parent.width
+            height: Math.max(Style.space(24), windowsLabel.implicitHeight + 8)
+
+            HoverHandler { id: windowsHover }
+
+            KeymapHideButton {
+              id: windowsToggle
+              visible: windowsHover.hovered || windowsToggle.hovered
+              anchors.right: parent.right
+              anchors.rightMargin: 2
+              anchors.verticalCenter: parent.verticalCenter
+              // Tracks content, not just expansion: a branch whose apps are
+              // all hidden must still offer "Show", or hiding everything is
+              // a one-way door.
+              shown: side.windowsOpen && !(host && host.allAppsHidden)
+              foreground: side.foreground
+              accent: side.chipFg
+              fontFamily: side.fontFamily
+              fontSize: side.subFontSize
+              onToggled: {
+                var h = side.host
+                var reveal = !(side.windowsOpen && !(h && h.allAppsHidden))
+                side.windowsOpen = reveal
+                if (h) {
+                  if (reveal)
+                    h.showAllApps()
+                  else
+                    h.setAppsVisible(h.allAppClasses, false)
+                }
+              }
+            }
+
+            Row {
+              anchors.fill: parent
+              anchors.rightMargin: windowsToggle.width + 8
+              spacing: 4
+
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 12
+                text: (side.windowsOpen && !(host && host.allAppsHidden)) ? "▾" : "▸"
+                color: side.chipFg
+                opacity: (host && host.allAppsHidden) ? 0.4 : 1
+                font.family: side.fontFamily
+                font.pixelSize: side.rootFontSize
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: side.windowsOpen = !side.windowsOpen
+                }
+              }
+
+              Text {
+                id: windowsLabel
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Active Apps"
+                textFormat: Text.PlainText
+                color: side.chipFg
+                opacity: (host && host.allAppsHidden) ? 0.4 : 1
+                font.family: side.fontFamily
+                font.pixelSize: side.rootFontSize
+                font.bold: true
+                font.capitalization: Font.AllUppercase
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: side.windowsOpen = !side.windowsOpen
+                }
+              }
+            }
+          }
+
+          Item {
+            visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
+            width: wsPanelCol.width
+            height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.leftMargin: 6
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              width: 1
+              color: side.borderColor
+              opacity: 0.35
+            }
 
             Text {
-              id: glyphText
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: modelData.glyph
+              id: noWindowsLabel
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: 14
+              anchors.verticalCenter: parent.verticalCenter
+              text: "No windows detected"
               textFormat: Text.PlainText
-              color: cellArea.containsMouse ? side.chipFg : side.foreground
-              opacity: cellArea.containsMouse ? 1 : 0.75
+              color: side.foreground
+              opacity: 0.5
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+              font.italic: true
+            }
+          }
+
+          // Apps grouped by the sheet that gives them their bindings, so
+          // every Chrome PWA sits together under "Web apps" rather than
+          // repeating the same shortcut set once per window.
+          Repeater {
+            model: side.windowsOpen && host ? host.appTree : []
+            delegate: Column {
+              id: kindCol
+              required property var modelData
+              width: wsPanelCol.width
+              spacing: 2
+
+              Item {
+                width: kindCol.width
+                height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
+
+                HoverHandler { id: kindHover }
+
+                Text {
+                  anchors.left: parent.left
+                  anchors.leftMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: 12
+                  text: kindCol.modelData.hidden ? "▸" : "▾"
+                  color: side.chipFg
+                  opacity: kindCol.modelData.hidden ? 0.4 : 0.7
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    // A kind groups the apps that share one sheet, so any of
+                    // them names it. Hiding is the button's job, revealed on
+                    // hover -- clicking the row shows the keys, the way every
+                    // other row in this branch does.
+                    onClicked: {
+                      var h = side.host
+                      if (!h)
+                        return
+                      var apps = kindCol.modelData.apps || []
+                      if (apps.length)
+                        h.selectSource(apps[0].class)
+                    }
+                  }
+                }
+
+                KeymapHideButton {
+                  id: kindToggle
+                  visible: kindHover.hovered || kindToggle.hovered
+                  anchors.right: parent.right
+                  anchors.rightMargin: 2
+                  anchors.verticalCenter: parent.verticalCenter
+                  shown: !kindCol.modelData.hidden
+                  foreground: side.foreground
+                  accent: side.chipFg
+                  fontFamily: side.fontFamily
+                  fontSize: side.subFontSize
+                  onToggled: {
+                    var h = side.host
+                    if (!h)
+                      return
+                    var classes = []
+                    var apps = kindCol.modelData.apps || []
+                    for (var ci = 0; ci < apps.length; ci++)
+                      classes.push(apps[ci].class)
+                    h.setAppsVisible(classes, kindCol.modelData.hidden)
+                  }
+                }
+
+                Text {
+                  id: kindLabel
+                  anchors.left: parent.left
+                  anchors.leftMargin: 14
+                  anchors.right: kindToggle.left
+                  anchors.rightMargin: 6
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: kindCol.modelData.title
+                  textFormat: Text.PlainText
+                  color: side.foreground
+                  opacity: kindCol.modelData.hidden ? 0.4 : 0.75
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: true
+                  font.capitalization: Font.AllUppercase
+                  elide: Text.ElideRight
+                }
+              }
+
+              Repeater {
+                model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
+                delegate: Column {
+                  id: appCol
+                  required property var modelData
+                  width: kindCol.width
+                  spacing: 2
+
+                Item {
+                  width: appCol.width
+                  height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
+
+                  Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 1
+                    color: side.borderColor
+                    opacity: 0.35
+                  }
+
+                  // Which workspace this is on, while the list is unfiltered. It
+                  // starts the line at the label's own indent rather than sitting in
+                  // a gutter off to the left, where it read as belonging to nothing.
+                  Text {
+                    id: wsTagApp
+                    readonly property int wsId: host ? host.appWorkspace(appCol.modelData) : 0
+                    visible: !!host && host.workspaceFilter === 0 && wsId > 0
+                    anchors.left: parent.left
+                    anchors.leftMargin: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: wsId
+                    textFormat: Text.PlainText
+                    color: side.foreground
+                    opacity: 0.35
+                    font.family: side.fontFamily
+                    font.pixelSize: side.subFontSize
+                  }
+
+                  Text {
+                    id: winLabel
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 26 + (wsTagApp.visible ? wsTagApp.implicitWidth + Style.space(5) : 0)
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
+                      // The count only says what the rows below already show,
+                      // so it is for the unexpanded case alone.
+                      + ((modelData.count > 1 && !(modelData.windows && modelData.windows.length > 1))
+                        ? " (" + modelData.count + ")" : "")
+                    textFormat: Text.PlainText
+                    color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
+                    opacity: modelData.sheet ? 1 : 0.55
+                    font.family: side.fontFamily
+                    font.pixelSize: side.subFontSize
+                    font.bold: host && host.activeSource === modelData.class
+                    elide: Text.ElideRight
+                    MouseArea {
+                      anchors.fill: parent
+                      cursorShape: Qt.PointingHandCursor
+                      // Click shows the app's keymap; double-click goes to the
+                      // window itself.
+                      onClicked: {
+                        var h = side.host
+                        if (h)
+                          h.selectSource(modelData.class)
+                      }
+                      onDoubleClicked: {
+                        var h = side.host
+                        if (h)
+                          h.focusWindow(modelData.address)
+                      }
+                    }
+                  }
+                }
+
+                // One window is the app row itself; more than one and each
+                // gets its own line, named by what is running in it.
+                Repeater {
+                  model: (appCol.modelData.windows && appCol.modelData.windows.length > 1)
+                    ? appCol.modelData.windows : []
+                  delegate: Column {
+                    id: winCol
+                    required property var modelData
+                    width: appCol.width
+                    spacing: 2
+
+                    Item {
+                      width: winCol.width
+                      height: Math.max(Style.space(17), exeLabel.implicitHeight + 3)
+
+                      Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 6
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        width: 1
+                        color: side.borderColor
+                        opacity: 0.35
+                      }
+
+                      // Which workspace this is on, while the list is unfiltered. It
+                      // starts the line at the label's own indent rather than sitting in
+                      // a gutter off to the left, where it read as belonging to nothing.
+                      Text {
+                        id: wsTagWin
+                        readonly property int wsId: host ? (winCol.modelData.workspace || 0) : 0
+                        visible: !!host && host.workspaceFilter === 0 && wsId > 0
+                        anchors.left: parent.left
+                        // 26, not 38: the numbers line up in one column under
+                        // the app names they belong to, rather than stepping in
+                        // with each level and scattering down the tree.
+                        anchors.leftMargin: 26
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: wsId
+                        textFormat: Text.PlainText
+                        color: side.foreground
+                        opacity: 0.35
+                        font.family: side.fontFamily
+                        font.pixelSize: side.subFontSize
+                      }
+
+                      Text {
+                        id: exeLabel
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: wsTagWin.visible
+                          ? Math.max(38, 26 + wsTagWin.implicitWidth + Style.space(5))
+                          : 38
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        // An idle shell has no program to name, so its title
+                        // takes this line instead of an empty one.
+                        text: (winCol.modelData.focused ? "· " : "")
+                          + (winCol.modelData.exe || winCol.modelData.title)
+                        textFormat: Text.PlainText
+                        color: side.foreground
+                        opacity: winCol.modelData.exe ? 1 : 0.8
+                        font.family: side.fontFamily
+                        font.pixelSize: side.subFontSize
+                        elide: Text.ElideRight
+                        MouseArea {
+                          anchors.fill: parent
+                          cursorShape: Qt.PointingHandCursor
+                          // Same as the app row above it: click shows that
+                          // app's keymap, double-click goes to the window.
+                          onClicked: {
+                            var h = side.host
+                            if (h)
+                              h.selectSource(appCol.modelData.class)
+                          }
+                          onDoubleClicked: {
+                            var h = side.host
+                            if (h)
+                              h.focusWindow(winCol.modelData.address)
+                          }
+                        }
+                      }
+                    }
+
+                    // The window's own name, under the program running in it.
+                    Item {
+                      visible: !!winCol.modelData.exe
+                      width: winCol.width
+                      height: visible ? Math.max(Style.space(16), titleLabel.implicitHeight + 2) : 0
+
+                      Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 6
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        width: 1
+                        color: side.borderColor
+                        opacity: 0.35
+                      }
+
+                      Text {
+                        id: titleLabel
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: 50
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: winCol.modelData.title
+                        textFormat: Text.PlainText
+                        color: side.foreground
+                        opacity: 0.6
+                        font.family: side.fontFamily
+                        font.pixelSize: side.subFontSize
+                        elide: Text.ElideRight
+                        MouseArea {
+                          anchors.fill: parent
+                          cursorShape: Qt.PointingHandCursor
+                          // Same as the app row above it: click shows that
+                          // app's keymap, double-click goes to the window.
+                          onClicked: {
+                            var h = side.host
+                            if (h)
+                              h.selectSource(appCol.modelData.class)
+                          }
+                          onDoubleClicked: {
+                            var h = side.host
+                            if (h)
+                              h.focusWindow(winCol.modelData.address)
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Options: a fixed set of controls, so the panel is its content.
+    Rectangle {
+      width: parent.width
+      height: side.optionsHeight
+      radius: 6
+      color: "transparent"
+      border.width: 1
+      border.color: side.borderColor
+
+      // The settings you reach for while reading the board, without opening
+      // the popup for them. Each icon shows its current mode and cycles on
+      // click; the filter shares its row with what is being filtered on.
+      Column {
+        id: footer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: side.panelPad
+        spacing: Style.space(5)
+
+        Text {
+          width: parent.width
+          horizontalAlignment: Text.AlignHCenter
+          text: "Options"
+          textFormat: Text.PlainText
+          color: side.chipFg
+          font.family: side.fontFamily
+          font.pixelSize: Math.round(side.rootFontSize * 1.2)
+          font.bold: true
+          font.capitalization: Font.AllUppercase
+        }
+
+        Row {
+          id: controlRow
+          width: parent.width
+
+          Repeater {
+            model: [
+              { id: "group", glyph: "\udb80\udec3" },
+              { id: "sort",  glyph: "\udb81\udcba" },
+              { id: "order", glyph: "\udb82\udcdf" }
+            ]
+            delegate: Item {
+              required property var modelData
+              readonly property string mode: {
+                var h = side.host
+                if (!h)
+                  return ""
+                if (modelData.id === "group")
+                  return h.grouping === "off" ? "off"
+                    : (h.grouping === "keytype" ? "by key type" : "by topic")
+                if (modelData.id === "sort")
+                  return h.sortBy === "action" ? "by name"
+                    : (h.sortBy === "key" ? "by key" : "by group")
+                return h.rowLayout === "action" ? "keys last" : "keys first"
+              }
+              width: controlRow.width / 3
+              height: glyphText.height + modeText.height + Style.space(2)
+
+              Text {
+                id: glyphText
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: modelData.glyph
+                textFormat: Text.PlainText
+                color: cellArea.containsMouse ? side.chipFg : side.foreground
+                opacity: cellArea.containsMouse ? 1 : 0.75
+                font.family: side.fontFamily
+                font.pixelSize: Math.round(side.rootFontSize * 3.4)
+              }
+
+              Text {
+                id: modeText
+                anchors.top: glyphText.bottom
+                anchors.topMargin: Style.space(2)
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: mode
+                textFormat: Text.PlainText
+                color: cellArea.containsMouse ? side.chipFg : side.foreground
+                opacity: 0.55
+                font.family: side.fontFamily
+                font.pixelSize: side.subFontSize
+                elide: Text.ElideRight
+              }
+
+              MouseArea {
+                id: cellArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  var h = side.host
+                  if (!h)
+                    return
+                  if (modelData.id === "group")
+                    h.cycleGrouping()
+                  else if (modelData.id === "sort")
+                    h.cycleSortBy()
+                  else
+                    h.cycleRowLayout()
+                }
+              }
+            }
+          }
+        }
+
+        // The filter keeps its own column under Grouping, mode label and
+        // all, so it reads as the fourth of the same kind of control. What
+        // it is filtering on takes the width of the other two.
+        Row {
+          id: filterRow
+          width: parent.width
+
+          Item {
+            width: controlRow.width / 3
+            height: filterGlyph.height + filterMode.height + Style.space(2)
+
+            Text {
+              id: filterGlyph
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: "\udb80\ude32"
+              textFormat: Text.PlainText
+              color: filterModeArea.containsMouse ? side.chipFg : side.foreground
+              opacity: filterModeArea.containsMouse ? 1 : 0.75
               font.family: side.fontFamily
               font.pixelSize: Math.round(side.rootFontSize * 3.4)
             }
 
             Text {
-              id: modeText
-              anchors.top: glyphText.bottom
+              id: filterMode
+              anchors.top: filterGlyph.bottom
               anchors.topMargin: Style.space(2)
               width: parent.width
               horizontalAlignment: Text.AlignHCenter
-              text: mode
+              text: {
+                var h = side.host
+                if (!h)
+                  return ""
+                return h.searchMode === "keys" ? "key"
+                  : (h.searchMode === "action" ? "description" : "all")
+              }
               textFormat: Text.PlainText
-              color: cellArea.containsMouse ? side.chipFg : side.foreground
+              color: filterModeArea.containsMouse ? side.chipFg : side.foreground
               opacity: 0.55
               font.family: side.fontFamily
               font.pixelSize: side.subFontSize
@@ -931,164 +1054,101 @@ Rectangle {
             }
 
             MouseArea {
-              id: cellArea
+              id: filterModeArea
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
+              onClicked: if (side.host) side.host.cycleSearchMode()
+            }
+          }
+
+          // Across the other two columns, and as tall as the glyph beside
+          // it so the two read as one control rather than a big icon with a
+          // small box floating next to it.
+          Rectangle {
+            id: filterBox
+            width: filterRow.width - controlRow.width / 3
+            height: filterGlyph.height
+            radius: 4
+            color: "transparent"
+            border.width: 1
+            border.color: (side.host && side.host.filterCapturing) ? side.chipFg
+              : (filterArea.containsMouse ? side.chipFg : side.borderColor)
+            opacity: filterArea.containsMouse || (side.host && side.host.filterCapturing) ? 1 : 0.8
+
+            Text {
+              id: filterText
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: Style.space(5)
+              anchors.rightMargin: Style.space(5)
+              anchors.verticalCenter: parent.verticalCenter
+              readonly property bool arming: !!(side.host && side.host.filterCapturing)
+              readonly property string hint: {
+                var h = side.host
+                if (!h)
+                  return "type to filter"
+                if (h.filterCapturing)
+                  return "press any key…"
+                return h.searchMode === "keys" ? "click to capture"
+                  : (h.searchMode === "action" ? "type a word" : "type to filter")
+              }
+              text: (!arming && side.host && side.host.filterText)
+                ? side.host.filterText : hint
+              textFormat: Text.PlainText
+              color: (arming || (side.host && side.host.filterText))
+                ? side.chipFg : side.foreground
+              opacity: (!arming && side.host && side.host.filterText) ? 1 : 0.5
+              font.family: side.fontFamily
+              // Sized to the width, not the height: the box is two thirds of
+              // a 200px sidebar, and at 1.4x the hint elided to "click,
+              // then …", which tells you nothing.
+              font.pixelSize: side.subFontSize
+              elide: Text.ElideRight
+            }
+
+            MouseArea {
+              id: filterArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              // In key mode the box takes the next keystroke whole, which is
+              // the only way to filter on Return or Escape -- they do other
+              // jobs the rest of the time. Elsewhere a click just clears.
               onClicked: {
                 var h = side.host
                 if (!h)
                   return
-                if (modelData.id === "group")
-                  h.cycleGrouping()
-                else if (modelData.id === "sort")
-                  h.cycleSortBy()
+                if (h.searchMode === "keys")
+                  h.toggleFilterCapture()
                 else
-                  h.cycleRowLayout()
+                  h.setFilter("")
               }
             }
           }
         }
-      }
 
-      // The filter keeps its own column under Grouping, mode label and
-      // all, so it reads as the fourth of the same kind of control. What
-      // it is filtering on takes the width of the other two.
-      Row {
-        id: filterRow
-        width: parent.width
-
-        Item {
-          width: controlRow.width / 3
-          height: filterGlyph.height + filterMode.height + Style.space(2)
-
-          Text {
-            id: filterGlyph
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "\udb80\ude32"
-            textFormat: Text.PlainText
-            color: filterModeArea.containsMouse ? side.chipFg : side.foreground
-            opacity: filterModeArea.containsMouse ? 1 : 0.75
-            font.family: side.fontFamily
-            font.pixelSize: Math.round(side.rootFontSize * 3.4)
-          }
-
-          Text {
-            id: filterMode
-            anchors.top: filterGlyph.bottom
-            anchors.topMargin: Style.space(2)
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: {
-              var h = side.host
-              if (!h)
-                return ""
-              return h.searchMode === "keys" ? "key"
-                : (h.searchMode === "action" ? "description" : "all")
-            }
-            textFormat: Text.PlainText
-            color: filterModeArea.containsMouse ? side.chipFg : side.foreground
-            opacity: 0.55
-            font.family: side.fontFamily
-            font.pixelSize: side.subFontSize
-            elide: Text.ElideRight
-          }
+        // Everything else, inside the tree's border rather than loose in
+        // the card's padding beneath it.
+        Text {
+          id: optionsLink
+          width: parent.width
+          horizontalAlignment: Text.AlignHCenter
+          text: (side.host && side.host.optionsMenuOpen ? "▾ " : "▴ ") + "All Options"
+          textFormat: Text.PlainText
+          color: side.foreground
+          opacity: optionsLinkArea.containsMouse || (side.host && side.host.optionsMenuOpen)
+            ? 0.9 : 0.45
+          font.family: side.fontFamily
+          font.pixelSize: Math.round(Style.font.body * 1.2)
 
           MouseArea {
-            id: filterModeArea
+            id: optionsLinkArea
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: if (side.host) side.host.cycleSearchMode()
+            onClicked: if (side.host) side.host.toggleOptionsMenu()
           }
-        }
-
-        // Across the other two columns, and as tall as the glyph beside
-        // it so the two read as one control rather than a big icon with a
-        // small box floating next to it.
-        Rectangle {
-          id: filterBox
-          width: filterRow.width - controlRow.width / 3
-          height: filterGlyph.height
-          radius: 4
-          color: "transparent"
-          border.width: 1
-          border.color: (side.host && side.host.filterCapturing) ? side.chipFg
-            : (filterArea.containsMouse ? side.chipFg : side.borderColor)
-          opacity: filterArea.containsMouse || (side.host && side.host.filterCapturing) ? 1 : 0.8
-
-          Text {
-            id: filterText
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Style.space(5)
-            anchors.rightMargin: Style.space(5)
-            anchors.verticalCenter: parent.verticalCenter
-            readonly property bool arming: !!(side.host && side.host.filterCapturing)
-            readonly property string hint: {
-              var h = side.host
-              if (!h)
-                return "type to filter"
-              if (h.filterCapturing)
-                return "press any key…"
-              return h.searchMode === "keys" ? "click to capture"
-                : (h.searchMode === "action" ? "type a word" : "type to filter")
-            }
-            text: (!arming && side.host && side.host.filterText)
-              ? side.host.filterText : hint
-            textFormat: Text.PlainText
-            color: (arming || (side.host && side.host.filterText))
-              ? side.chipFg : side.foreground
-            opacity: (!arming && side.host && side.host.filterText) ? 1 : 0.5
-            font.family: side.fontFamily
-            // Sized to the width, not the height: the box is two thirds of
-            // a 200px sidebar, and at 1.4x the hint elided to "click,
-            // then …", which tells you nothing.
-            font.pixelSize: side.subFontSize
-            elide: Text.ElideRight
-          }
-
-          MouseArea {
-            id: filterArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            // In key mode the box takes the next keystroke whole, which is
-            // the only way to filter on Return or Escape -- they do other
-            // jobs the rest of the time. Elsewhere a click just clears.
-            onClicked: {
-              var h = side.host
-              if (!h)
-                return
-              if (h.searchMode === "keys")
-                h.toggleFilterCapture()
-              else
-                h.setFilter("")
-            }
-          }
-        }
-      }
-
-      // Everything else, inside the tree's border rather than loose in
-      // the card's padding beneath it.
-      Text {
-        id: optionsLink
-        width: parent.width
-        horizontalAlignment: Text.AlignHCenter
-        text: (side.host && side.host.optionsMenuOpen ? "▾ " : "▴ ") + "All Options"
-        textFormat: Text.PlainText
-        color: side.foreground
-        opacity: optionsLinkArea.containsMouse || (side.host && side.host.optionsMenuOpen)
-          ? 0.9 : 0.45
-        font.family: side.fontFamily
-        font.pixelSize: Math.round(Style.font.body * 1.2)
-
-        MouseArea {
-          id: optionsLinkArea
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: if (side.host) side.host.toggleOptionsMenu()
         }
       }
     }
