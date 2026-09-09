@@ -63,6 +63,7 @@ Flickable {
           borderColor: host.border
           chipBg: host.chipBg
           chipFg: host.chipFg
+          panelBg: host.background
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
           chipStyle: host.chipStyle
@@ -114,6 +115,7 @@ Flickable {
           borderColor: host.border
           chipBg: host.chipBg
           chipFg: host.chipFg
+          panelBg: host.background
           selectedBg: Qt.rgba(host.chipFg.r, host.chipFg.g, host.chipFg.b, 0.32)
           selectedFg: host.chipFg
           chipStyle: host.chipStyle

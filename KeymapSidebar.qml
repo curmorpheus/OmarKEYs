@@ -248,7 +248,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 height: areaLabel.implicitHeight + Style.space(4)
                 radius: 3
-                color: side.chipFg
+                color: Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.62)
                 opacity: areaCol.allHidden ? 0.4 : 1
 
                 Text {
@@ -263,8 +263,7 @@ Rectangle {
                   // The bar above already fades when the branch is hidden.
                   font.family: side.fontFamily
                   font.pixelSize: side.subFontSize
-                  font.bold: true
-                  font.capitalization: Font.AllUppercase
+                                    font.capitalization: Font.AllUppercase
                   elide: Text.ElideRight
                   MouseArea {
                   anchors.fill: parent
@@ -554,7 +553,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 height: kindLabel.implicitHeight + Style.space(4)
                 radius: 3
-                color: side.chipFg
+                color: Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.62)
                 opacity: kindCol.modelData.hidden ? 0.4 : 1
 
                 Text {
@@ -569,8 +568,7 @@ Rectangle {
                   // The bar above already fades when the branch is hidden.
                   font.family: side.fontFamily
                   font.pixelSize: side.subFontSize
-                  font.bold: true
-                  font.capitalization: Font.AllUppercase
+                                    font.capitalization: Font.AllUppercase
                   elide: Text.ElideRight
               }
               }
@@ -775,7 +773,7 @@ Rectangle {
         width: parent.width
         height: optionsHeading.implicitHeight + Style.space(4)
         radius: 3
-        color: side.chipFg
+        color: Qt.rgba(side.chipFg.r, side.chipFg.g, side.chipFg.b, 0.62)
 
         Text {
           id: optionsHeading
@@ -787,8 +785,7 @@ Rectangle {
           color: side.panelBg
           font.family: side.fontFamily
           font.pixelSize: Math.round(side.rootFontSize * 1.2)
-          font.bold: true
-          font.capitalization: Font.AllUppercase
+                    font.capitalization: Font.AllUppercase
         }
       }
 

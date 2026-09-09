@@ -16,6 +16,8 @@ Rectangle {
   property color chipFg: Color.menu.selectedText
   property color selectedBg: Color.menu.selectedBackground
   property color selectedFg: Color.menu.selectedText
+  // What an inverted heading puts its text in.
+  property color panelBg: Color.menu.background
   // Which keymap this card came from, shown at the head of the group: the
   // Omarchy mark, or the app whose sheet is loaded. Only one is ever set.
   property string mark: ""
@@ -59,16 +61,25 @@ Rectangle {
       visible: section.title.length > 0
       height: visible ? titleRow.height : 0
 
+      // Inverted, like the tree's group headings: a tinted bar so a card
+      // reads as a block rather than as a line of text above some rows.
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: titleRow.implicitWidth + Style.space(14)
+        height: titleRow.implicitHeight + Style.space(4)
+        radius: 3
+        color: Qt.rgba(section.chipFg.r, section.chipFg.g, section.chipFg.b, 0.62)
+
       Row {
         id: titleRow
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.centerIn: parent
         spacing: 8
 
         Text {
           visible: section.mark.length > 0
           text: section.mark
           textFormat: Text.PlainText
-          color: Color.menu.selectedText
+          color: section.panelBg
           font.family: section.fontFamily
           // A glyph reads smaller than a letter at the same pixel size.
           font.pixelSize: Math.round(Style.font.caption * section.fontScale * 1.2)
@@ -78,8 +89,8 @@ Rectangle {
           visible: section.qualifier.length > 0
           text: section.qualifier
           textFormat: Text.PlainText
-          color: section.selectedFg
-          opacity: 0.7
+          color: section.panelBg
+          opacity: 0.855
           font.family: section.fontFamily
           font.pixelSize: Math.round(Style.font.caption * section.fontScale)
           font.bold: true
@@ -88,7 +99,7 @@ Rectangle {
         Text {
           text: section.title
           textFormat: Text.PlainText
-          color: Color.menu.selectedText
+          color: section.panelBg
           font.family: section.fontFamily
           font.pixelSize: Math.round(Style.font.caption * section.fontScale)
           font.bold: true
@@ -99,12 +110,13 @@ Rectangle {
           visible: section.numberLabel.length > 0
           text: section.numberLabel
           textFormat: Text.PlainText
-          color: section.selectedFg
+          color: section.panelBg
           font.family: section.fontFamily
           font.pixelSize: Math.round(Style.font.caption * section.fontScale)
           font.bold: true
-          opacity: 0.8
+          opacity: 0.85
         }
+      }
       }
     }
 
