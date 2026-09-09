@@ -210,6 +210,69 @@ text per row, and no way to scan by what a command *does*.
 - [ ] Surface `apply-edit revert` / history in the overlay
 - [ ] `install.sh` wires `omarkeys-edits.lua` on first install (first edit already appends the dofile)
 
+### 1.x — four-part versions, and tags that mean something
+
+The version in `manifest.json` is decorative today: nothing reads it, and
+the overlay identifies a build by channel, hash and commit date. There are
+no tags at all. So a release has no name, and "Nightly @ dfe7468" cannot
+tell you how far past a release it is.
+
+Scheme is `1.<main>.<beta>.<dev>`: a main release bumps the second part
+and resets the rest, a beta cut bumps the third and resets the fourth, and
+a landing on `develop` bumps the fourth. Today's 1.12.0 becomes 1.12.0.0.
+
+- [ ] Bump the fourth part when `develop-claude` lands on `develop`, the
+      third at a beta cut, the second at a main release. Checked: the
+      Omarchy validator accepts four-part versions (and prerelease
+      strings), so nothing external constrains this.
+- [ ] Bump on `develop`, never on `develop-claude`. `develop` has one
+      writer; a version line edited on every working branch is a conflict
+      in every merge, and `develop-cursor` would hit it too.
+- [ ] Annotated tag `v1.M.B.D` at each beta cut and each main release.
+      Not on dev bumps: that is tens of tags a day, and `git describe`
+      already renders a dev build as `v1.12.1.0-7-gdfe7468`, which says
+      exactly what a Nightly is — seven commits past the last beta.
+- [ ] `plugin-git` reports `git describe --tags` alongside the hash, and
+      the picker shows the version rather than a bare hash. The date and
+      the newer/older comparison stay: a tag says which release, a date
+      says how stale.
+- [ ] Tag retroactively from RELEASE.md, so the history has names before
+      the scheme starts rather than beginning at 1.13.0.0 with nothing
+      behind it.
+
+### 2.0 — editable keymaps, versioned, with the defaults kept
+
+The backend is already built and unreachable: `apply-edit` remaps a chord
+into `omarkeys-edits.lua`, snapshots before every write into a git repo
+under `~/.local/state/omarchy/omarkeys-history`, and restores the previous
+state when a reload fails. `Keymap.qml` has `setEditMode` and
+`startCapture` that nothing calls. 2.0 is mostly surfacing that safely.
+
+- [ ] View | Edit toggle on the Omarchy branch: pick a row, press the new
+      chord, confirm. The capture primitive exists -- the filter's armed
+      capture takes a whole keystroke including modifiers, Return and
+      Escape, which is exactly what "press a new chord" needs.
+- [ ] Refuse a chord already bound, and say what holds it. The live dump
+      knows every bind, so this is a lookup rather than a guess.
+- [ ] **Two baselines, not one.** "Omarchy defaults" and "what your config
+      looked like before OmarKEYS touched it" are different things the
+      moment someone has customised `bindings.lua`, and conflating them
+      makes Restore either lose their work or fail to restore anything.
+      Capture the shipped defaults from `/usr/share/omarchy/default/hypr/`
+      and the user's own pre-edit dump separately, at install.
+- [ ] Named keymap versions: a version is a set of overrides, one commit
+      in the history repo, switchable. Switching writes that version's
+      `omarkeys-edits.lua` and reloads; a failed reload rolls back, which
+      `apply-edit` already does.
+- [ ] Diff a version against either baseline, and against the live config.
+- [ ] Export and import a version, so a keymap can move between machines.
+
+Boundaries worth keeping from the current design: edits stay additive in
+`omarkeys-edits.lua` rather than rewriting the body of `bindings.lua`;
+chord remaps only, never dispatcher or argument edits; and Super+K, hold
+and double-tap stay out of the chord editor, since breaking those is how
+you lose the way back in.
+
 ### Later (out of the original three phases)
 
 - [ ] More app sheets beyond Chromium / Ghostty / Nautilus
