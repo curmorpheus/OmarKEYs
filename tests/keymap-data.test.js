@@ -690,3 +690,25 @@ test("the options sample chord looks different in every chip style", () => {
     .map((kb) => JSON.stringify(context.displayKeys(chord, "icons", kb)))
   assert.equal(new Set(perKeyboard).size, 4, "keyboards are indistinguishable")
 })
+
+// The all-apps view tags each section with the kind whose sheet it came
+// from, and three separate places rebuild section objects on the way to
+// the board. Two of them already carried the tag; columns() dropped it,
+// which left duplicate section names ("Close tab" from two kinds) with
+// nothing to tell them apart.
+test("columns carries the kind qualifier through to the board", () => {
+  const saved = context.sections.slice()
+  try {
+    context.setSections([
+      { title: "Tabs", qualifier: "[Web apps]",
+        rows: [{ keys: "Ctrl + W", action: "Close tab" }] },
+      { title: "Tabs and windows", qualifier: "[Terminals]",
+        rows: [{ keys: "Ctrl + Shift + W", action: "Close tab" }] }
+    ])
+    const cols = context.columns("")
+    assert.equal(cols.left[0].qualifier, "[Web apps]")
+    assert.equal(cols.right[0].qualifier, "[Terminals]")
+  } finally {
+    context.setSections(saved)
+  }
+})

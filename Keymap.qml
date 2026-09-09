@@ -381,7 +381,10 @@ Item {
       // A sheet that will not parse is one kind missing, not a dead view.
     }
     root.sheetQueue = queue.slice(1)
-    root.nextAppSheet()
+    // Out of the signal handler before touching the path again: assigning
+    // FileView.path from inside its own onLoaded does not start another
+    // load, which stalled the queue after the first sheet.
+    Qt.callLater(root.nextAppSheet)
   }
 
   function emptySheetSections(label) {

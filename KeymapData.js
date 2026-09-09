@@ -975,7 +975,10 @@ function columns(query) {
     return { left: left, right: right }
   }
   for (var i = 0; i < all.length; i++) {
-    var block = { title: all[i].title, rows: all[i].rows, sectionIndex: i }
+    // qualifier rides along here too: this is the last object rebuild
+    // between the merged app sheets and the board.
+    var block = { title: all[i].title, rows: all[i].rows, sectionIndex: i,
+      qualifier: all[i].qualifier || "" }
     if (i % 2 === 0)
       left.push(block)
     else
