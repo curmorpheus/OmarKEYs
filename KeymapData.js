@@ -865,7 +865,8 @@ function withGestures(all, cfg) {
   var out = []
   var injected = false
   for (var i = 0; i < all.length; i++) {
-    var sec = { title: all[i].title, rows: all[i].rows.slice() }
+    var sec = { title: all[i].title, rows: all[i].rows.slice(),
+      qualifier: all[i].qualifier || "" }
     if (!injected && sec.title === "Main") {
       var rows = []
       var placed = false
@@ -911,7 +912,9 @@ function filtered(query) {
     if (sortBy() !== "section")
       rows = rows.slice().sort(compareRows)
     if (rows.length)
-      out.push({ title: section.title, rows: rows })
+      // qualifier rides along: the all-apps view tags each section with
+      // the kind it came from, and rebuilding the object would drop it.
+      out.push({ title: section.title, rows: rows, qualifier: section.qualifier || "" })
   }
   if (grouping() === "topic")
     return out

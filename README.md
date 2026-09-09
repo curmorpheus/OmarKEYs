@@ -44,7 +44,7 @@ Type while it is open to filter, including digits.
 - Greyed-out rows cannot be run: ranges, gestures, and any bind whose
   action OmarKEYS could not recover from your config
 
-**Sidebar** — three panels: Omarchy, Workspaces, Options
+**Sidebar** — three panels: Omarchy, Active Apps, Options
 
 The **Options** panel holds the settings worth reaching for while reading
 the board,
@@ -76,13 +76,22 @@ there are results they go back to moving through them. **Escape** clears the
 box, and closes the overlay when the box is already empty — so to filter
 *on* Escape, arm the box and press it.
 
-- **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
+**Omarchy** and **Active Apps** are one choice between them, not two
+branches: the selected one is accented and its keymap fills the board.
+Clicking either root switches, and so does clicking anything inside
+either tree.
+
+- **Omarchy** (marked with the Omarchy glyph): five areas, each
   holding its topic groups
 - **Active Apps**, headed by a workspace selector — `Workspace 1 2 3 4 ALL`
   — over the live windows, grouped by the keymap sheet they share
   (Web apps, Terminals, File managers) and then by app. Click any row in
   the branch — the kind, the app, or a window under it — to load that
-  app's keys; double-click a window to focus it. In the selector, clicking
+  the app view; double-click a window to focus it. **Active Apps** shows
+  every kind's keymap at once, one set per kind rather than per app —
+  apps sharing a sheet share their bindings, so repeating them per window
+  would say the same thing several times. Each card names the kind it
+  came from. In the selector, clicking
   a number filters the list to that workspace and clicking **ALL** removes
   the filter; double-clicking a number switches to that workspace. It
   starts on ALL and stays where you put it until the overlay is reopened.

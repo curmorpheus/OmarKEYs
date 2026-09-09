@@ -19,11 +19,24 @@ Rectangle {
   readonly property int rootFontSize: Style.font.caption
   // The Options popup opens above this link, which lives down here now.
   // What a selected chip puts its label in.
+  // Clicking anywhere in a panel selects it. The roots are the obvious
+  // way to switch, but reaching into a tree is just as clear a statement
+  // of which one you are working in.
+  function selectOmarchy() {
+    if (host && !host.omarchyActive)
+      host.selectSource("omarchy")
+  }
+
+  function selectApps() {
+    if (host && !host.appsActive)
+      host.selectSource("apps")
+  }
+
   readonly property color panelBg: host ? host.background : Color.menu.background
   readonly property int optionsLinkHeight: optionsLink.height
   readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
 
-  width: Style.space(200)
+  width: Style.space(260)
   radius: 6
   color: "transparent"
   border.width: 0
@@ -45,7 +58,7 @@ Rectangle {
   readonly property real treeSpace:
     Math.max(0, height - side.optionsHeight - side.panelGap * 2)
   readonly property real omarchyNeed: treeCol.height + side.panelPad * 2
-  readonly property real appsNeed: wsPanelCol.height + side.panelPad * 2
+  readonly property real appsNeed: appsPanelCol.height + side.panelPad * 2
   readonly property bool bothFit: side.omarchyNeed + side.appsNeed <= side.treeSpace
   readonly property real omarchyHeight: side.bothFit ? side.omarchyNeed
     : Math.max(Math.min(side.omarchyNeed, side.treeSpace * 0.5),
@@ -126,7 +139,10 @@ Rectangle {
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: side.omarchyOpen = !side.omarchyOpen
+                  onClicked: {
+                    side.selectOmarchy()
+                    side.omarchyOpen = !side.omarchyOpen
+                  }
                 }
               }
 
@@ -383,7 +399,7 @@ Rectangle {
       }
     }
 
-    // Workspaces: which one the list is showing, and what is on it.
+    // Active Apps: which workspace is showing, and what is on it.
     Rectangle {
       width: parent.width
       height: side.appsHeight
@@ -397,13 +413,13 @@ Rectangle {
         anchors.margins: side.panelPad
         clip: true
         contentWidth: width
-        contentHeight: wsPanelCol.height
+        contentHeight: appsPanelCol.height
         bottomMargin: Style.space(6)
         boundsBehavior: Flickable.StopAtBounds
         activeFocusOnTab: false
 
         Column {
-          id: wsPanelCol
+          id: appsPanelCol
           width: parent.width
           spacing: 2
 
@@ -480,6 +496,7 @@ Rectangle {
                     onClicked: {
                       var h = side.host
                       if (h)
+                        side.selectApps()
                         h.setWorkspaceFilter(modelData.id)
                     }
                     onDoubleClicked: {
@@ -542,7 +559,10 @@ Rectangle {
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: side.windowsOpen = !side.windowsOpen
+                  onClicked: {
+                    side.selectApps()
+                    side.windowsOpen = !side.windowsOpen
+                  }
                 }
               }
 
@@ -551,7 +571,9 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Active Apps"
                 textFormat: Text.PlainText
-                color: side.chipFg
+                // One choice between this and Omarchy, so only the selected
+                // one takes the accent.
+                color: host && host.appsActive ? side.chipFg : side.foreground
                 opacity: (host && host.allAppsHidden) ? 0.4 : 1
                 font.family: side.fontFamily
                 font.pixelSize: side.rootFontSize
@@ -560,7 +582,10 @@ Rectangle {
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: side.windowsOpen = !side.windowsOpen
+                  onClicked: {
+                    side.selectApps()
+                    side.windowsOpen = !side.windowsOpen
+                  }
                 }
               }
             }
@@ -568,7 +593,7 @@ Rectangle {
 
           Item {
             visible: side.windowsOpen && host && (!host.clients || host.clients.length === 0)
-            width: wsPanelCol.width
+            width: appsPanelCol.width
             height: visible ? Math.max(Style.space(18), noWindowsLabel.implicitHeight + 3) : 0
 
             Rectangle {
@@ -605,7 +630,7 @@ Rectangle {
             delegate: Column {
               id: kindCol
               required property var modelData
-              width: wsPanelCol.width
+              width: appsPanelCol.width
               spacing: 2
 
               Item {
@@ -637,7 +662,7 @@ Rectangle {
                         return
                       var apps = kindCol.modelData.apps || []
                       if (apps.length)
-                        h.selectSource(apps[0].class)
+                        side.selectApps()
                     }
                   }
                 }
@@ -751,7 +776,7 @@ Rectangle {
                       onClicked: {
                         var h = side.host
                         if (h)
-                          h.selectSource(modelData.class)
+                          side.selectApps()
                       }
                       onDoubleClicked: {
                         var h = side.host
@@ -835,7 +860,7 @@ Rectangle {
                           onClicked: {
                             var h = side.host
                             if (h)
-                              h.selectSource(appCol.modelData.class)
+                              side.selectApps()
                           }
                           onDoubleClicked: {
                             var h = side.host
@@ -884,7 +909,7 @@ Rectangle {
                           onClicked: {
                             var h = side.host
                             if (h)
-                              h.selectSource(appCol.modelData.class)
+                              side.selectApps()
                           }
                           onDoubleClicked: {
                             var h = side.host

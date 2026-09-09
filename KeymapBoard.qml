@@ -49,11 +49,14 @@ Flickable {
           width: leftCol.width
           title: modelData.title
           mark: host.omarchyActive ? KeymapData.omarchyIcon() : ""
-          // The empty-state card is titled with the app's own name, so
-          // naming it again beside it just says it twice.
-          qualifier: (!host.omarchyActive && host.activeLabel
-            && modelData.title !== host.activeLabel)
-            ? "[" + host.activeLabel + "]" : ""
+          // A section can name its own source -- the all-apps view tags
+          // each one with the kind whose sheet it came from. Otherwise the
+          // app being viewed names it, unless the card is already titled
+          // with that name, which would just say it twice.
+          qualifier: modelData.qualifier ? modelData.qualifier
+            : ((!host.omarchyActive && host.activeLabel
+              && modelData.title !== host.activeLabel)
+              ? "[" + host.activeLabel + "]" : "")
           sectionNumber: index * 2 + 1
           rows: modelData.rows
           selectedKeys: host.selectedKeys
@@ -101,11 +104,14 @@ Flickable {
           width: rightCol.width
           title: modelData.title
           mark: host.omarchyActive ? KeymapData.omarchyIcon() : ""
-          // The empty-state card is titled with the app's own name, so
-          // naming it again beside it just says it twice.
-          qualifier: (!host.omarchyActive && host.activeLabel
-            && modelData.title !== host.activeLabel)
-            ? "[" + host.activeLabel + "]" : ""
+          // A section can name its own source -- the all-apps view tags
+          // each one with the kind whose sheet it came from. Otherwise the
+          // app being viewed names it, unless the card is already titled
+          // with that name, which would just say it twice.
+          qualifier: modelData.qualifier ? modelData.qualifier
+            : ((!host.omarchyActive && host.activeLabel
+              && modelData.title !== host.activeLabel)
+              ? "[" + host.activeLabel + "]" : "")
           sectionNumber: index * 2 + 2
           rows: modelData.rows
           selectedKeys: host.selectedKeys

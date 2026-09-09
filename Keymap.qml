@@ -100,6 +100,30 @@ Item {
   property string captureAction: ""
   property string editStatus: ""
   readonly property bool omarchyActive: root.activeSource === "omarchy"
+  readonly property bool appsActive: root.activeSource === "apps"
+
+  // Loading every app sheet at once. One FileView, one sheet at a time:
+  // there are a handful of kinds, and a queue is less machinery than a
+  // FileView per sheet with no way to know when they have all landed.
+  property var sheetQueue: []
+  property var mergedSections: []
+
+  // One entry per kind, not per app. Apps of a kind share a sheet, so
+  // listing them separately would repeat the same bindings once per
+  // window that happens to be open.
+  readonly property var appSheets: {
+    var out = []
+    var seen = ({})
+    var list = root.clients || []
+    for (var i = 0; i < list.length; i++) {
+      var sheet = list[i].sheet || ""
+      if (!sheet || seen[sheet])
+        continue
+      seen[sheet] = true
+      out.push({ sheet: sheet, kind: list[i].kind || root.noSheetKind })
+    }
+    return out
+  }
 
   readonly property bool allGroupsVisible: {
     var list = root.groupList
@@ -297,6 +321,56 @@ Item {
   property string sheetPath: ""
   property string activeLabel: ""
 
+  // Every kind's sheet, one after another, each section tagged with the
+  // kind it came from so the board can say whose bindings these are.
+  function loadAppSheets() {
+    root.mergedSections = []
+    root.sheetQueue = root.appSheets.slice()
+    // Clear first: the queue advances by setting sheetPath, and setting it
+    // to what it already holds loads nothing, so re-entering this view
+    // would leave the queue waiting on a file that never arrives.
+    root.sheetPath = ""
+    root.nextAppSheet()
+  }
+
+  function nextAppSheet() {
+    var queue = root.sheetQueue
+    if (!queue.length) {
+      root.sheetPath = ""
+      KeymapData.setSections(root.mergedSections.length
+        ? root.mergedSections
+        : [{ title: "Active Apps",
+             rows: [{ keys: "—", action: "No app on screen has a bundled keymap sheet" }] }])
+      root.rebuild()
+      return
+    }
+    root.sheetPath = root.sourceDir + "/sheets/" + queue[0].sheet
+  }
+
+  function appSheetLoaded(text) {
+    var queue = root.sheetQueue
+    var kind = queue.length ? queue[0].kind : ""
+    try {
+      var data = JSON.parse(text)
+      var sections = (data && data.sections) || []
+      var merged = root.mergedSections.slice()
+      for (var i = 0; i < sections.length; i++) {
+        var copy = ({})
+        for (var f in sections[i])
+          copy[f] = sections[i][f]
+        // Which kind these bindings belong to. The board already knows how
+        // to show a qualifier beside a heading.
+        copy.qualifier = "[" + kind + "]"
+        merged.push(copy)
+      }
+      root.mergedSections = merged
+    } catch (e) {
+      // A sheet that will not parse is one kind missing, not a dead view.
+    }
+    root.sheetQueue = queue.slice(1)
+    root.nextAppSheet()
+  }
+
   function emptySheetSections(label) {
     var name = label || "this window"
     return [{
@@ -310,6 +384,10 @@ Item {
     path: root.sheetPath
     printErrors: false
     onLoaded: {
+      if (root.appsActive) {
+        root.appSheetLoaded(text())
+        return
+      }
       try {
         var data = JSON.parse(text())
         if (data && data.sections)
@@ -324,6 +402,10 @@ Item {
     onLoadFailed: {
       if (!root.sheetPath)
         return
+      if (root.appsActive) {
+        root.appSheetLoaded("")
+        return
+      }
       KeymapData.setSections(root.emptySheetSections(root.activeLabel))
       root.rebuild()
     }
@@ -914,6 +996,11 @@ Item {
       root.sheetPath = ""
       KeymapData.setSections(root.omarchySections.length ? root.omarchySections : KeymapData.sections)
       root.rebuild()
+      return
+    }
+    if (root.appsActive) {
+      root.activeLabel = ""
+      root.loadAppSheets()
       return
     }
     var sheet = ""
