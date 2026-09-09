@@ -3,6 +3,53 @@
 Written when a finished **beta** is promoted into **main**. Cursor does not
 land on `main`.
 
+## 1.13.0.0 — 2026-09-09
+
+Promoted from `beta`. Cursor not included. First release numbered
+`1.<main>.<beta>.<dev>`, where a main release resets the beta count and a
+beta cut resets the dev count.
+
+- **Active Apps gains a workspace level.** Workspace 1..n, each holding
+  the app groupings you already had but scoped to the windows actually on
+  it — an app with windows on two workspaces appears under both, each
+  time with only the ones there. Double-click a workspace to switch to it;
+  the caret folds it.
+- **Options is an icon panel**: Keyboard, Keys and Border side by side,
+  each with its current setting, over one sample chord drawn exactly as
+  the board draws it. One **Size** slider covers chip text, glyphs and
+  padding together.
+- The board's group titles sit in a tinted bar, so a card reads as a block
+  rather than as a line of text above some rows.
+- Fixed: **the overlay would not open at all** when a QML file set one
+  property twice — a component that does is refused, and everything using
+  it goes with it. qmllint does not report that, so there is now a test.
+- Fixed: double-clicking a workspace did nothing. It dispatched
+  `workspace <id>`, which the Lua config provider parses as Lua and
+  rejects with a syntax error — silently. It uses the same call Omarchy's
+  own bind makes now.
+- Fixed: a click on a workspace row folded it, which fired under the first
+  half of the double-click meant to switch to it.
+- Fixed: selecting a row could drop the scroll-into-view and log
+  `board is not defined`, when a rebuild destroyed the delegate before the
+  deferred call ran.
+
+## 1.12.1.0 — 2026-09-08
+
+Promoted from `beta` (`3e9ba94`). Never released to `main` on its own;
+folded into 1.13.0.0. Cursor not included.
+
+- **Load a released version.** The picker has Channel and Versions as
+  tabs: Channel picks a line of work that keeps moving, Versions picks a
+  release that does not, shown as a tree grouped by main version.
+- **A floor that cannot be talked around.** Only builds carrying the
+  `versionPicker` marker in their manifest are offered, and the marker is
+  read out of the target tree before any checkout. A tag is a label a
+  person can put on any commit, so it cannot testify to what that
+  commit's code can do — an older build has no picker in it and landing
+  there would strand you with no way back.
+- Loading a version leaves you detached on purpose; the corner names the
+  release rather than reporting branch `HEAD`.
+
 ## 1.12.0 — 2026-09-08
 
 Promoted from `beta`. Cursor not included.
