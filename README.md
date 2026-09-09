@@ -20,10 +20,10 @@ Cursor does not land on `main`.
 **Open**
 
 - Double-tap Super (optional)
-- Hold Super (default 5 seconds)
+- Hold Super (default 5 seconds, optional)
 - Super+K (optional)
 
-Hold Super always works, so turning the other two off cannot lock you out.
+At least one of the three always stays on, so they cannot all be turned off.
 
 **Close**
 
@@ -96,15 +96,16 @@ box, and closes the overlay when the box is already empty — so to filter
 
 | Option | Values | Default |
 |---|---|---|
-| Keys | full / short / icons | icons |
-| Keyboard type | text / ⌘ mac /  windows /  omarchy | windows |
-| Icon borders | on / off | off |
-| Order | keys first / action first | action first |
-| Grouping | by topic / by key type / off | by topic |
-| Sort | by group / by name / by key | by key |
-| Find | all / key / description | all |
+| Keys 󰌌 | full / short / icons | icons |
+| Type 󰧹 | text / ⌘ mac /  windows /  omarchy | windows |
+| Icon border 󰃇 | on / off | off |
 | Text size | slider, click the label to reset | 1.0 |
 | Icon size | slider (icons only), click to reset | 1.35 |
+
+Each of the first three is an icon with its current setting under it and a
+sample chord beside it, drawn with that setting — the sample shows what you
+are about to get, which the setting's name does not. Grouping, Sort, Order
+and Find are not repeated here; they have their own controls under the tree.
 
 With icons on, hovering a row spells each glyph out in words beside it.
 
@@ -156,8 +157,10 @@ drop rows that use it (**H**ide), again to clear. Only the states you
 chose are marked, so anything showing a letter is a filter you set. The
 legend words set all four at once.
 
-*Opening* — Super+K on/off, double-tap Super on/off, and hold-Super
-duration (1–10s).
+*Opening* — Super+K, double-tap Super and hold Super each on/off, plus the
+hold duration (1–10s). The last one still on refuses to switch off: with
+all three disabled there is no way back into the overlay short of editing
+`omarkeys.json` by hand.
 
 Turning **Super+K** off hands the chord back to whatever held it before
 OmarKEYS (Omarchy binds it to **Keybindings**). It works by not claiming

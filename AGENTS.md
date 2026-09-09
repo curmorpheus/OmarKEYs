@@ -14,6 +14,7 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapSection.qml` | One topic card |
 | `KeymapRow.qml` | One command row |
 | `KeymapOptionsMenu.qml` | Options popup: display, filters, gestures |
+| `KeymapChipSample.qml` | A chord drawn with a given setting, for the display options |
 | `KeymapHideButton.qml` | Show/Hide control used at every level of the tree |
 | `KeymapData.js` | Grouped bindings, filters, shortcut helpers |
 | `hyprland.lua` | Super double-tap / hold / Super+K |

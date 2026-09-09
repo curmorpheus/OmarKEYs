@@ -117,72 +117,78 @@ Rectangle {
         font.capitalization: Font.AllUppercase
       }
 
+      // Icon, current setting under it, and a sample of what the setting
+      // does beside it. Grouping, Sort, Order and Find used to sit here as
+      // text rows; they have their own controls under the tree now, and
+      // two places to change one setting is one too many.
       Repeater {
         model: [
-          { id: "chips",  label: "Keys" },
-          { id: "super",  label: "Keyboard type" },
-          { id: "caps",   label: "Icon borders" },
-          { id: "layout", label: "Order" },
-          { id: "group",  label: "Grouping" },
-          { id: "sort",   label: "Sort" },
-          { id: "search", label: "Find" }
+          { id: "chips",  glyph: "\udb80\udf0c", sample: "Super + Ctrl + K" },
+          { id: "type",   glyph: "\udb82\uddf9", sample: "Super + Ctrl + Shift + Alt" },
+          { id: "border", glyph: "\udb80\udcc7", sample: "Super + K" }
         ]
         delegate: Item {
+          id: optionRow
           required property var modelData
           readonly property string value: {
-            if (!menu.host)
+            var h = menu.host
+            if (!h)
               return ""
             if (modelData.id === "chips")
-              return menu.host.chipStyle === "short" ? "short"
-                : (menu.host.chipStyle === "icons" ? "icons" : "full")
-            if (modelData.id === "layout")
-              return menu.host.rowLayout === "action" ? "action first" : "keys first"
-            if (modelData.id === "super") {
-              // Symbol then name: the glyph shows what the rows will look
-              // like, the word says which keyboard it is. "text" has no
-              // symbol, which is the whole point of it.
-              var mark = KeymapData.modifierIcon("Super", menu.host.keyboardType)
-              return (mark ? mark + "  " : "") + menu.host.keyboardType
-            }
-            if (modelData.id === "caps")
-              return menu.host.iconBorders ? "on" : "off"
-            if (modelData.id === "group")
-              return menu.host.grouping === "off" ? "off"
-                : (menu.host.grouping === "keytype" ? "by key type" : "by topic")
-            if (modelData.id === "sort")
-              return menu.host.sortBy === "action" ? "by name"
-                : (menu.host.sortBy === "key" ? "by key" : "by group")
-            return menu.host.searchMode === "keys" ? "key"
-              : (menu.host.searchMode === "action" ? "description" : "all")
+              return h.chipStyle
+            if (modelData.id === "type")
+              return h.keyboardType
+            return h.iconBorders ? "border on" : "border off"
           }
           width: content.width
-          height: Math.max(Style.space(24), optionName.implicitHeight + 8)
+          height: Math.max(Style.space(46), glyphText.height + valueText.height + Style.space(4))
 
           Text {
-            id: optionName
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: modelData.label
+            id: glyphText
+            x: Style.space(6)
+            text: modelData.glyph
             textFormat: Text.PlainText
-            color: menu.foreground
-            opacity: 0.75
+            color: rowArea.containsMouse ? menu.chipFg : menu.foreground
+            opacity: rowArea.containsMouse ? 1 : 0.8
             font.family: menu.fontFamily
-            font.pixelSize: menu.labelSize
+            font.pixelSize: Math.round(menu.labelSize * 2.6)
           }
 
           Text {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.value
+            id: valueText
+            anchors.top: glyphText.bottom
+            anchors.topMargin: Style.space(2)
+            x: 0
+            width: glyphText.x + glyphText.width + Style.space(6)
+            horizontalAlignment: Text.AlignHCenter
+            text: optionRow.value
             textFormat: Text.PlainText
-            color: menu.chipFg
-            opacity: optionArea.containsMouse ? 1 : 0.85
+            color: rowArea.containsMouse ? menu.chipFg : menu.foreground
+            opacity: 0.6
             font.family: menu.fontFamily
             font.pixelSize: menu.labelSize
+            elide: Text.ElideRight
+          }
+
+          // Drawn with this row's own setting, not the board's, so the
+          // border row can show a cap while the board has none.
+          KeymapChipSample {
+            anchors.left: valueText.right
+            anchors.leftMargin: Style.space(10)
+            anchors.verticalCenter: glyphText.verticalCenter
+            keys: modelData.sample
+            chipStyle: menu.host ? menu.host.chipStyle : "icons"
+            keyboardType: menu.host ? menu.host.keyboardType : "windows"
+            iconBorders: menu.host ? menu.host.iconBorders : false
+            fontFamily: menu.fontFamily
+            chipBg: menu.host ? menu.host.chipBg : Color.menu.selectedBackground
+            chipFg: menu.chipFg
+            borderColor: menu.borderColor
+            iconScale: menu.host ? menu.host.iconScale : 1.35
           }
 
           MouseArea {
-            id: optionArea
+            id: rowArea
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
@@ -192,18 +198,10 @@ Rectangle {
                 return
               if (modelData.id === "chips")
                 h.cycleChipStyle()
-              else if (modelData.id === "super")
+              else if (modelData.id === "type")
                 h.cycleKeyboardType()
-              else if (modelData.id === "caps")
-                h.toggleIconBorders()
-              else if (modelData.id === "layout")
-                h.cycleRowLayout()
-              else if (modelData.id === "group")
-                h.cycleGrouping()
-              else if (modelData.id === "sort")
-                h.cycleSortBy()
               else
-                h.cycleSearchMode()
+                h.toggleIconBorders()
             }
           }
         }
@@ -535,10 +533,42 @@ Rectangle {
           activeFocusOnTab: false
           onToggled: {
             var h = menu.host
-            if (!h)
-              return
-            h.doubleTap = !h.doubleTap
-            h.saveConfig()
+            if (h)
+              h.toggleDoubleTap()
+          }
+        }
+      }
+
+      Item {
+        width: content.width
+        height: Math.max(Style.space(22), holdSwitchLabel.implicitHeight + 4)
+
+        Text {
+          id: holdSwitchLabel
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          text: "Hold Super"
+          textFormat: Text.PlainText
+          color: menu.foreground
+          opacity: 0.75
+          font.family: menu.fontFamily
+          font.pixelSize: menu.labelSize
+        }
+
+        ToggleSwitch {
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          checked: menu.host ? menu.host.holdEnabled : true
+          foreground: menu.foreground
+          accent: menu.chipFg
+          trackHeight: 16
+          activeFocusOnTab: false
+          // Refuses when it is the last way in: with Super+K, double-tap
+          // and hold all off, the only way back is the config file.
+          onToggled: {
+            var h = menu.host
+            if (h)
+              h.toggleHoldEnabled()
           }
         }
       }
@@ -551,6 +581,7 @@ Rectangle {
           id: holdLabel
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
+          opacity: (menu.host && !menu.host.holdEnabled) ? 0.4 : 0.75
           text: "Hold Super " + (menu.host ? menu.host.holdSeconds : 5) + "s"
           textFormat: Text.PlainText
           color: menu.foreground
@@ -570,6 +601,7 @@ Rectangle {
           tickCount: 10
           activeFocusOnTab: false
           value: menu.host ? menu.host.holdSeconds : 5
+          opacity: (menu.host && !menu.host.holdEnabled) ? 0.35 : 1
           fillColor: menu.chipFg
           knobColor: menu.chipFg
           trackColor: Qt.rgba(menu.chipFg.r, menu.chipFg.g, menu.chipFg.b, 0.22)

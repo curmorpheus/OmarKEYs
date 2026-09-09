@@ -18,7 +18,7 @@ local function clamp(n, lo, hi)
 end
 
 local function read_config()
-  local cfg = { doubleTap = true, holdSeconds = 5, superK = true }
+  local cfg = { doubleTap = true, holdSeconds = 5, superK = true, holdEnabled = true }
   local f = io.open(CONFIG_PATH, "r")
   if not f then
     return cfg
@@ -30,6 +30,9 @@ local function read_config()
   end
   if raw:match('"superK"%s*:%s*false') then
     cfg.superK = false
+  end
+  if raw:match('"holdEnabled"%s*:%s*false') then
+    cfg.holdEnabled = false
   end
   local hold = tonumber(raw:match('"holdSeconds"%s*:%s*(%d+)'))
   if hold then
@@ -171,7 +174,9 @@ local function on_key(keycode, _, state)
       st.close_tap = st.overlay_open
       stop_timer("hold_timer")
       if not st.overlay_open then
-        local hold_ms = math.floor((read_config().holdSeconds or 5) * 1000)
+        local cfg = read_config()
+        local hold_ms = cfg.holdEnabled
+          and math.floor((cfg.holdSeconds or 5) * 1000) or 0
         if hold_ms > 0 then
           st.hold_timer = hl.timer(function()
             st.hold_timer = nil

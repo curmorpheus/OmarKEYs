@@ -36,6 +36,17 @@ Item {
   // Whether OmarKEYS claims Super+K. Off leaves the chord to whatever had
   // it before (Omarchy binds "Keybindings"); hyprland.lua acts on this.
   property bool superK: true
+  property bool holdEnabled: true
+
+  // Hold Super had no off switch, and that was what guaranteed a way in.
+  // Now that all three can be turned off, the last one standing refuses:
+  // otherwise the only way back into the overlay is editing the config
+  // file by hand.
+  readonly property int openerCount: (root.superK ? 1 : 0)
+    + (root.doubleTap ? 1 : 0) + (root.holdEnabled ? 1 : 0)
+  function isLastOpener(on) {
+    return on && root.openerCount <= 1
+  }
   property var hiddenGroups: []
   // Layout experiments, switchable from the settings bar so they can be
   // compared against each other rather than rebuilt to try.
@@ -119,6 +130,7 @@ Item {
       doubleTap: root.doubleTap,
       holdSeconds: root.holdSeconds,
       superK: root.superK,
+      holdEnabled: root.holdEnabled,
       hiddenGroups: root.hiddenGroups,
       hiddenApps: root.hiddenApps,
       chipStyle: root.chipStyle,
@@ -174,6 +186,10 @@ Item {
           root.superK = false
         else if (cfg.superK === true)
           root.superK = true
+        if (cfg.holdEnabled === false)
+          root.holdEnabled = false
+        else if (cfg.holdEnabled === true)
+          root.holdEnabled = true
         var hold = Number(cfg.holdSeconds)
         if (hold >= 1 && hold <= 10)
           root.holdSeconds = Math.round(hold)
@@ -1137,6 +1153,7 @@ Item {
     root.hiddenApps = []
     root.preSoloHidden = null
     root.doubleTap = true
+    root.holdEnabled = true
     root.holdSeconds = 5
     root.filterText = ""
     var hadSuperK = root.superK
@@ -1148,9 +1165,28 @@ Item {
 
   // Super+K is bound in hyprland.lua, which only re-reads omarkeys.json
   // when Hyprland reloads its config, so flipping this has to ask for one.
+  function toggleDoubleTap() {
+    if (root.isLastOpener(root.doubleTap))
+      return
+    root.doubleTap = !root.doubleTap
+    root.saveConfig()
+  }
+
+  // Hold lives in hyprland.lua like Super+K does, so turning it off has to
+  // reach Hyprland the same way.
+  function toggleHoldEnabled() {
+    if (root.isLastOpener(root.holdEnabled))
+      return
+    root.holdEnabled = !root.holdEnabled
+    root.saveConfig()
+    root.reloadHyprland()
+  }
+
   function setSuperK(on) {
     var next = !!on
     if (root.superK === next)
+      return
+    if (!next && root.isLastOpener(root.superK))
       return
     root.superK = next
     root.saveConfig()
