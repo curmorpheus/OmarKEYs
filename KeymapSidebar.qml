@@ -652,15 +652,16 @@ Rectangle {
                   opacity: 0.35
                 }
 
-                // Which workspace this is on, while the list is unfiltered. Left of the row so the numbers line up as a column rather than pushing the labels around.
+                // Which workspace this is on, while the list is unfiltered. It
+                // starts the line at the label's own indent rather than sitting in
+                // a gutter off to the left, where it read as belonging to nothing.
                 Text {
+                  id: wsTagApp
                   readonly property int wsId: host ? host.appWorkspace(appCol.modelData) : 0
                   visible: !!host && host.workspaceFilter === 0 && wsId > 0
                   anchors.left: parent.left
-                  anchors.leftMargin: 2
+                  anchors.leftMargin: 26
                   anchors.verticalCenter: parent.verticalCenter
-                  width: 12
-                  horizontalAlignment: Text.AlignLeft
                   text: wsId
                   textFormat: Text.PlainText
                   color: side.foreground
@@ -673,7 +674,7 @@ Rectangle {
                   id: winLabel
                   anchors.left: parent.left
                   anchors.right: parent.right
-                  anchors.leftMargin: 26
+                  anchors.leftMargin: 26 + (wsTagApp.visible ? wsTagApp.implicitWidth + Style.space(5) : 0)
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
                   text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
@@ -732,15 +733,19 @@ Rectangle {
                       opacity: 0.35
                     }
 
-                    // The window's own workspace. Only on the program row: the title row under it is the same window, and saying it twice is noise.
+                    // Which workspace this is on, while the list is unfiltered. It
+                    // starts the line at the label's own indent rather than sitting in
+                    // a gutter off to the left, where it read as belonging to nothing.
                     Text {
+                      id: wsTagWin
                       readonly property int wsId: host ? (winCol.modelData.workspace || 0) : 0
                       visible: !!host && host.workspaceFilter === 0 && wsId > 0
                       anchors.left: parent.left
-                      anchors.leftMargin: 2
+                      // 26, not 38: the numbers line up in one column under
+                      // the app names they belong to, rather than stepping in
+                      // with each level and scattering down the tree.
+                      anchors.leftMargin: 26
                       anchors.verticalCenter: parent.verticalCenter
-                      width: 12
-                      horizontalAlignment: Text.AlignLeft
                       text: wsId
                       textFormat: Text.PlainText
                       color: side.foreground
@@ -753,7 +758,9 @@ Rectangle {
                       id: exeLabel
                       anchors.left: parent.left
                       anchors.right: parent.right
-                      anchors.leftMargin: 38
+                      anchors.leftMargin: wsTagWin.visible
+                        ? Math.max(38, 26 + wsTagWin.implicitWidth + Style.space(5))
+                        : 38
                       anchors.rightMargin: 6
                       anchors.verticalCenter: parent.verticalCenter
                       // An idle shell has no program to name, so its title
