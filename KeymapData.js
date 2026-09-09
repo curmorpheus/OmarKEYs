@@ -539,6 +539,17 @@ function shortKey(name) {
   return key
 }
 
+// The chord the options panel shows as its sample. It has to look
+// different in every chip style, or the sample says nothing about the
+// setting it sits under: "Super + Ctrl + K" was identical at full, short
+// and icons, because none of its parts has a short form or an icon.
+// Shift shortens, Return does both. There is a test.
+var SAMPLE_CHORD = "Super + Shift + Return"
+
+function sampleChord() {
+  return SAMPLE_CHORD
+}
+
 function displayKeys(keys, style, keyboardOS) {
   var parts = collapseMouse(splitKeys(keys))
   // The keyboard set overrides whatever the chip style would have drawn:

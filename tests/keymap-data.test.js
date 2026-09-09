@@ -8,7 +8,7 @@ const src = fs.readFileSync(path.join(__dirname, "..", "KeymapData.js"), "utf8")
   .replace(/^\.pragma library\s*/, "")
 const context = {}
 vm.createContext(context)
-vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.keyTypeOf = keyTypeOf; this.displayClasses = displayClasses;", context)
+vm.runInContext(src + "\nthis.filtered = filtered; this.columns = columns; this.splitKeys = splitKeys; this.sections = sections; this.isRunnable = isRunnable; this.shortcut = shortcut; this.navList = navList; this.sectionStarts = sectionStarts; this.setConfig = setConfig; this.setSections = setSections; this.catalog = catalog; this.catalogFor = catalogFor; this.groupedCatalog = groupedCatalog; this.displayKeys = displayKeys; this.shortKey = shortKey; this.displayNames = displayNames; this.rowMatchesModifiers = rowMatchesModifiers; this.normalizeModifierMode = normalizeModifierMode; this.isIconGlyph = isIconGlyph; this.modifierIcon = modifierIcon; this.normalizeKeyboardOS = normalizeKeyboardOS; this.keyClass = keyClass; this.sortKeyOf = sortKeyOf; this.omarchyIcon = omarchyIcon; this.sampleChord = sampleChord; this.keyTypeOf = keyTypeOf; this.displayClasses = displayClasses;", context)
 
 test("splitKeys splits Super chords", () => {
   assert.equal(JSON.stringify(context.splitKeys("Super + K")), JSON.stringify(["Super", "K"]))
@@ -671,4 +671,22 @@ test("a gesture sorts by the key it is performed on, and still displays as one",
   assert.equal(JSON.stringify(context.filtered("")[0].rows.map((r) => r.action)),
     JSON.stringify(["a", "double", "hold", "z"]), "gestures sit together under Super")
   context.setConfig({})
+})
+
+test("the options sample chord looks different in every chip style", () => {
+  // The sample sits under Keys / Type / Border to show what they do. If it
+  // renders the same at full, short and icons it shows nothing: "Super +
+  // Ctrl + K" did exactly that, because no part of it has a short form or
+  // an icon.
+  const chord = context.sampleChord()
+  const styles = ["full", "short", "icons"]
+  for (const kb of ["text", "mac", "windows", "omarchy"]) {
+    const seen = styles.map((s) => JSON.stringify(context.displayKeys(chord, s, kb)))
+    assert.equal(new Set(seen).size, styles.length,
+      `chip styles are indistinguishable on the ${kb} keyboard: ${seen.join(" ")}`)
+  }
+  // And the keyboard has to be visible in it too, or Type shows nothing.
+  const perKeyboard = ["text", "mac", "windows", "omarchy"]
+    .map((kb) => JSON.stringify(context.displayKeys(chord, "icons", kb)))
+  assert.equal(new Set(perKeyboard).size, 4, "keyboards are indistinguishable")
 })

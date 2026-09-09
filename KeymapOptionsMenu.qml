@@ -232,7 +232,7 @@ Rectangle {
           id: chordSample
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.verticalCenter: parent.verticalCenter
-          keys: "Super + Ctrl + K"
+          keys: KeymapData.sampleChord()
           chipStyle: menu.host ? menu.host.chipStyle : "icons"
           keyboardType: menu.host ? menu.host.keyboardType : "windows"
           iconBorders: menu.host ? menu.host.iconBorders : false
