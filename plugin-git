@@ -210,6 +210,23 @@ def is_tag(name: str) -> bool:
     return git("rev-parse", "--verify", "--quiet", f"refs/tags/{name}").returncode == 0
 
 
+CHANNEL_BRANCHES = ("main", "beta", "develop", "2.0")
+
+
+def channel_versions() -> dict[str, str]:
+    """Each channel's declared version, so the overlay can tell which
+    release track a channel is currently carrying without guessing from
+    branch names -- 2.0 may not be named the way 1.0 was."""
+    out = {}
+    for name in CHANNEL_BRANCHES:
+        for ref in (f"refs/remotes/origin/{name}", f"refs/heads/{name}"):
+            version = manifest_at(ref).get("version", "")
+            if version:
+                out[name] = version
+                break
+    return out
+
+
 def versions() -> list[dict]:
     """Tags that can be loaded, newest first."""
     proc = git(
@@ -272,6 +289,7 @@ def status_payload(error: str = "") -> dict:
         "date": head["date"],
         "epoch": head["epoch"],
         "commits": ref_commits(),
+        "channelVersions": channel_versions(),
         "detached": detached(),
         "describe": describe(),
         "version": manifest_at("HEAD").get("version", ""),

@@ -97,7 +97,7 @@ if (( UNINSTALL )); then
 fi
 
 mkdir -p "$(dirname "$PLUGIN_DIR")"
-chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap" "$ROOT/apply-edit" "$ROOT/plugin-git"
+chmod +x "$ROOT/run-shortcut" "$ROOT/dump-keymap" "$ROOT/apply-edit" "$ROOT/plugin-git" "$ROOT/keymap-store"
 
 if (( DEV )); then
   if [[ -e $PLUGIN_DIR && ! -L $PLUGIN_DIR ]]; then
@@ -144,6 +144,9 @@ fi
 
 if [[ -f $BINDINGS ]]; then
   cp "$BINDINGS" "$BINDINGS.bak.$(date +%s)"
+  # Capture both baselines before OmarKEYS wiring is appended, so the
+  # user snapshot is the file as it stood on a fresh (or current) install.
+  "$ROOT/keymap-store" snapshot >/dev/null || log "WARNING: keymap baseline snapshot failed"
   strip_omarkeys_from_bindings
   printf '\n%s\n%s\n' "$MARKER_BEGIN" "$DOFLE_LINE" >> "$BINDINGS"
   log "wired $BINDINGS -> hyprland.lua"

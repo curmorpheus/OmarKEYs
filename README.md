@@ -17,7 +17,9 @@ branch** (editable keymaps) and is not promoted to beta or main yet.
 | `develop-claude` | not in the picker | Claude's working branch |
 | `develop-cursor` | not in the picker | Cursor's working branch |
 
-The picker also has a 1.0 / 2.0 track switch. Cursor does not land on `main`.
+The picker's Track row filters 1.0 vs 2.0; it does not switch the
+checkout. On the 2.0 branch, a **2.0** channel appears under track 2.
+Cursor does not land on `main`.
 
 **Open**
 
@@ -216,6 +218,13 @@ name the commit actually running — otherwise a change that did arrive on
 disk looks like one that never came. Click it to switch channel or
 sync — see [Updating](#updating).
 
+A **Track** row picks which release line the lists describe — 1.0, or the
+2.0 editable-keymaps line being built alongside it. It filters rather
+than switches: a channel appears under the track its branch is actually
+carrying, and a version under the track its number starts with. On the
+2.0 branch, a **2.0** channel is listed under track 2; it has not been
+promoted to Beta or Main.
+
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,
 `develop`), and each is one click. Those are the only destinations: the
 working branches were listed here once, but most of them predate the
@@ -372,7 +381,8 @@ user bindings file so Super+chords stay unmodified.
 | `KeymapData.js` | Filter, catalog, shortcut parse, fallback list |
 | `dump-keymap` | Live Hyprland binds → JSON sections |
 | `run-shortcut` | Runs a row after the overlay closes: dispatches the bind's own action, or sends the chord for app-sheet rows |
-| `apply-edit` | Remap a chord into `omarkeys-edits.lua` (no UI yet) |
+| `apply-edit` | Remap a chord into `omarkeys-edits.lua` |
+| `keymap-store` | Save/load named keymaps; first-install Omarchy vs user baselines |
 | `plugin-git` | Channel picker's git backend: status, fetch, switch, sync |
 | `install.sh` | Install the plugin and wire the Hyprland gestures |
 | `sheets/` | Bundled app keymaps (Chromium, Ghostty, Nautilus) |

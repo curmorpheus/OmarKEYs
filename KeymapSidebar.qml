@@ -33,7 +33,7 @@ Rectangle {
   }
 
   readonly property color panelBg: host ? host.background : Color.menu.background
-  readonly property int optionsLinkHeight: optionsLink.height
+  readonly property int optionsLinkHeight: optionsLink.height + mapsLink.height + Style.space(4)
   readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
 
   width: Style.space(260)
@@ -1155,6 +1155,27 @@ Rectangle {
 
         // Everything else, inside the tree's border rather than loose in
         // the card's padding beneath it.
+        Text {
+          id: mapsLink
+          width: parent.width
+          horizontalAlignment: Text.AlignHCenter
+          text: (side.host && side.host.mapsMenuOpen ? "▾ " : "▴ ") + "Keymaps"
+          textFormat: Text.PlainText
+          color: side.foreground
+          opacity: mapsLinkArea.containsMouse || (side.host && side.host.mapsMenuOpen)
+            ? 0.9 : 0.45
+          font.family: side.fontFamily
+          font.pixelSize: Math.round(Style.font.body * 1.2)
+
+          MouseArea {
+            id: mapsLinkArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: if (side.host) side.host.toggleMapsMenu()
+          }
+        }
+
         Text {
           id: optionsLink
           width: parent.width

@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+"""Named keymap save/load, plus the two first-install baselines.
+
+A keymap here is the *user-visible* binding state OmarKEYS can restore:
+
+  - `bindings.lua` — personal overrides, OmarKEYS wiring stripped
+  - `edits.lua`    — OmarKEYS remaps (`omarkeys-edits.lua`)
+
+It does not rewrite Omarchy's packaged defaults in /usr/share/omarchy.
+Those are snapshotted once as the **omarchy** baseline so Restore has
+something to compare against after Omarchy itself updates.
+
+The **user** baseline is `bindings.lua` as it was before OmarKEYS first
+touched it (wiring stripped). That is not the same as Omarchy defaults
+the moment someone has customised their overrides.
+
+Storage (XDG):
+
+  ~/.config/omarchy/omarkeys/
+    baselines/omarchy/   shipped user stub + copy of default/hypr/bindings
+    baselines/user/      pre-OmarKEYS personal overrides
+    keymaps/<slug>/      named saves (bindings.lua + edits.lua + meta.json)
+    current.json         which id is loaded
+
+Every mutating command snapshots into ~/.local/state/omarchy/omarkeys-history
+first, reloads Hyprland, and rolls back on a config error — same contract
+as apply-edit.
+
+Prints one JSON object on stdout.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
+HOME = Path(os.environ.get("HOME", ""))
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local" / "state"))
+HYPR = CONFIG / "hypr"
+BINDINGS = HYPR / "bindings.lua"
+EDITS = HYPR / "omarkeys-edits.lua"
+STORE = CONFIG / "omarchy" / "omarkeys"
+BASELINES = STORE / "baselines"
+MAPS = STORE / "keymaps"
+CURRENT = STORE / "current.json"
+HISTORY = STATE / "omarchy" / "omarkeys-history"
+OMARCHY_PATH = Path(os.environ.get("OMARCHY_PATH", "/usr/share/omarchy"))
+PLUGIN_ID = "io.github.romills.omarkeys"
+RESERVED = {"omarchy", "user"}
+SKIP_RELOAD = os.environ.get("OMARKEYS_SKIP_RELOAD") == "1"
+
+GIT_ENV = {
+    **os.environ,
+    "GIT_AUTHOR_NAME": "OmarKEYS",
+    "GIT_AUTHOR_EMAIL": "omarkeys@local",
+    "GIT_COMMITTER_NAME": "OmarKEYS",
+    "GIT_COMMITTER_EMAIL": "omarkeys@local",
+}
+
+HYPRLAND_DOFLE = (
+    'dofile((os.getenv("HOME") or "") .. "/.config/omarchy/plugins/'
+    + PLUGIN_ID
+    + '/hyprland.lua")'
+)
+EDITS_DOFLE = (
+    'dofile((os.getenv("HOME") or "") .. "/.config/hypr/omarkeys-edits.lua")'
+)
+EMPTY_EDITS = (
+    "-- OmarKEYS chord overrides.\n"
+    "-- Named keymaps: ~/.config/omarchy/omarkeys/keymaps/\n"
+    "-- History: ~/.local/state/omarchy/omarkeys-history\n"
+)
+
+
+def now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def log(msg: str) -> None:
+    print(msg, file=sys.stderr)
+
+
+def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, check=False, text=True, capture_output=True, **kwargs)
+
+
+def git(*args: str) -> subprocess.CompletedProcess:
+    return run(["git", "-C", str(HISTORY), *args], env=GIT_ENV)
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    return sha256_bytes(path.read_bytes())
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle_fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(handle_fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        tmp.chmod(0o600)
+        tmp.replace(path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def payload(ok: bool = True, error: str = "", **extra: Any) -> dict[str, Any]:
+    out: dict[str, Any] = {"ok": ok, "error": error}
+    out.update(extra)
+    return out
+
+
+def emit(data: dict[str, Any]) -> int:
+    json.dump(data, sys.stdout, separators=(",", ":"), sort_keys=True)
+    sys.stdout.write("\n")
+    return 0 if data.get("ok") else 1
+
+
+def omarchy_version() -> str:
+    path = OMARCHY_PATH / "version"
+    if path.is_file():
+        return path.read_text(encoding="utf-8", errors="replace").strip()
+    proc = run(["omarchy", "version"])
+    return (proc.stdout or "").strip().splitlines()[0] if proc.returncode == 0 else ""
+
+
+def strip_omarkeys(text: str) -> str:
+    """Remove OmarKEYS wiring so a snapshot is the user's own overrides."""
+    patterns = [
+        re.compile(r"\n-- OmarKEYS edits[^\n]*\n"),
+        re.compile(r"\n-- OmarKEYS[^\n]*\n"),
+        re.compile(
+            r"\ndofile\(\(os\.getenv\(\"HOME\"\) or \"\"\) \.\. "
+            r"\"/.config/omarchy/plugins/[^\"\n]+/hyprland\.lua\"\)\n"
+        ),
+        re.compile(
+            r"\ndofile\(\(os\.getenv\(\"HOME\"\) or \"\"\) \.\. "
+            r"\"/.config/hypr/omarkeys-edits\.lua\"\)\n"
+        ),
+        re.compile(r"\n-- SUPER\+K was the searchable keybinding menu[\s\S]*?\nend\n"),
+    ]
+    for pat in patterns:
+        text = pat.sub("\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def wire_bindings(text: str) -> str:
+    text = strip_omarkeys(text)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text + "\n-- OmarKEYS\n" + HYPRLAND_DOFLE + "\n-- OmarKEYS edits\n" + EDITS_DOFLE + "\n"
+
+
+def empty_edits() -> str:
+    return EMPTY_EDITS
+
+
+def ensure_history() -> None:
+    HISTORY.mkdir(parents=True, exist_ok=True)
+    if not (HISTORY / ".git").exists():
+        git("init")
+        git("commit", "--allow-empty", "-m", "OmarKEYS keymap history")
+
+
+def snapshot_into_history() -> None:
+    ensure_history()
+    for src in (BINDINGS, EDITS):
+        if src.exists():
+            shutil.copy2(src, HISTORY / src.name)
+
+
+def commit_history(message: str) -> None:
+    snapshot_into_history()
+    git("add", "-A")
+    status = git("status", "--porcelain")
+    if not (status.stdout or "").strip():
+        return
+    git("commit", "-m", message)
+
+
+def restore_last_commit() -> None:
+    git("checkout", "--", ".")
+    for name in ("bindings.lua", "omarkeys-edits.lua"):
+        src = HISTORY / name
+        dest = HYPR / name
+        if src.exists():
+            shutil.copy2(src, dest)
+
+
+def reload_hypr() -> str:
+    if SKIP_RELOAD:
+        return ""
+    run(["hyprctl", "reload"])
+    err = run(["hyprctl", "configerrors"])
+    return (err.stdout or "").strip()
+
+
+def apply_live(bindings_text: str, edits_text: str, history_message: str) -> dict[str, Any]:
+    """Write live files, reload, roll back on a Hyprland config error."""
+    HYPR.mkdir(parents=True, exist_ok=True)
+    ensure_history()
+    commit_history("pre-load snapshot")
+    BINDINGS.write_text(wire_bindings(bindings_text), encoding="utf-8")
+    EDITS.write_text(edits_text if edits_text.strip() else empty_edits(), encoding="utf-8")
+    errors = reload_hypr()
+    if errors:
+        log(errors)
+        restore_last_commit()
+        reload_hypr()
+        return payload(False, "reload failed; restored previous keymap")
+    commit_history(history_message)
+    return payload(True)
+
+
+def slugify(name: str) -> str:
+    text = re.sub(r"[^a-z0-9]+", "-", (name or "").strip().lower()).strip("-")
+    return text[:40]
+
+
+def copy_tree(src: Path, dest: Path) -> list[str]:
+    dest.mkdir(parents=True, exist_ok=True)
+    names: list[str] = []
+    if not src.is_dir():
+        return names
+    for path in sorted(src.iterdir()):
+        if not path.is_file():
+            continue
+        shutil.copy2(path, dest / path.name)
+        names.append(path.name)
+    return names
+
+
+def snapshot_omarchy(force: bool = False) -> dict[str, Any]:
+    dest = BASELINES / "omarchy"
+    meta_path = dest / "meta.json"
+    if meta_path.exists() and not force:
+        return read_json(meta_path)
+
+    stub = OMARCHY_PATH / "config" / "hypr" / "bindings.lua"
+    default_dir = OMARCHY_PATH / "default" / "hypr" / "bindings"
+    if not stub.is_file():
+        return payload(False, f"missing shipped stub {stub}")
+
+    dest.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(stub, dest / "bindings.lua")
+    copied = copy_tree(default_dir, dest / "default-bindings")
+    meta = {
+        "id": "omarchy",
+        "kind": "baseline",
+        "label": "Omarchy defaults",
+        "capturedAt": now_iso(),
+        "omarchyVersion": omarchy_version(),
+        "sourceStub": str(stub),
+        "sourceDefaults": str(default_dir),
+        "stubHash": sha256_file(dest / "bindings.lua"),
+        "defaultFiles": copied,
+    }
+    write_json(meta_path, meta)
+    return meta
+
+
+def snapshot_user(force: bool = False) -> dict[str, Any]:
+    dest = BASELINES / "user"
+    meta_path = dest / "meta.json"
+    if meta_path.exists() and not force:
+        return read_json(meta_path)
+
+    dest.mkdir(parents=True, exist_ok=True)
+    if BINDINGS.is_file():
+        text = strip_omarkeys(BINDINGS.read_text(encoding="utf-8", errors="replace"))
+    else:
+        stub = OMARCHY_PATH / "config" / "hypr" / "bindings.lua"
+        text = stub.read_text(encoding="utf-8") if stub.is_file() else ""
+    (dest / "bindings.lua").write_text(text, encoding="utf-8")
+    meta = {
+        "id": "user",
+        "kind": "baseline",
+        "label": "My config",
+        "capturedAt": now_iso(),
+        "source": str(BINDINGS),
+        "hash": sha256_file(dest / "bindings.lua"),
+        "hadBindings": BINDINGS.is_file(),
+    }
+    write_json(meta_path, meta)
+    return meta
+
+
+def cmd_snapshot(_args: argparse.Namespace) -> dict[str, Any]:
+    """Capture both baselines if missing. Safe to call on every overlay open."""
+    STORE.mkdir(parents=True, exist_ok=True)
+    omarchy = snapshot_omarchy()
+    user = snapshot_user()
+    if omarchy.get("ok") is False:
+        return omarchy
+    current = read_json(CURRENT)
+    if not current:
+        write_json(CURRENT, {"id": "user", "kind": "baseline"})
+        current = {"id": "user", "kind": "baseline"}
+    return payload(
+        True,
+        omarchy=omarchy,
+        user=user,
+        current=current.get("id", "user"),
+    )
+
+
+def live_bindings_stripped() -> str:
+    if BINDINGS.is_file():
+        return strip_omarkeys(BINDINGS.read_text(encoding="utf-8", errors="replace"))
+    return ""
+
+
+def live_edits() -> str:
+    if EDITS.is_file():
+        return EDITS.read_text(encoding="utf-8", errors="replace")
+    return empty_edits()
+
+
+def cmd_save(args: argparse.Namespace) -> dict[str, Any]:
+    cmd_snapshot(args)
+    name = (args.name or "").strip() or dt.datetime.now().strftime("saved-%Y-%m-%d-%H%M")
+    slug = slugify(name)
+    if not slug:
+        return payload(False, "name produced an empty id")
+    if slug in RESERVED:
+        return payload(False, f"{slug} is a baseline; pick another name")
+    dest = MAPS / slug
+    if dest.exists() and not args.force:
+        return payload(False, f"keymap {slug} already exists (pass --force to replace)")
+
+    dest.mkdir(parents=True, exist_ok=True)
+    bindings = live_bindings_stripped()
+    edits = live_edits()
+    (dest / "bindings.lua").write_text(bindings, encoding="utf-8")
+    (dest / "edits.lua").write_text(edits, encoding="utf-8")
+    meta = {
+        "id": slug,
+        "kind": "saved",
+        "label": name if name != slug else slug,
+        "createdAt": now_iso(),
+        "baseline": "user",
+        "bindingsHash": sha256_bytes(bindings.encode()),
+        "editsHash": sha256_bytes(edits.encode()),
+        "hasEdits": bool(edits.strip()) and edits.strip() != empty_edits().strip(),
+    }
+    write_json(dest / "meta.json", meta)
+    write_json(CURRENT, {"id": slug, "kind": "saved"})
+    return payload(True, keymap=meta)
+
+
+def load_baseline(name: str) -> dict[str, Any]:
+    meta_path = BASELINES / name / "meta.json"
+    bindings_path = BASELINES / name / "bindings.lua"
+    if not meta_path.is_file() or not bindings_path.is_file():
+        return payload(False, f"baseline {name} has not been snapshotted")
+    bindings = bindings_path.read_text(encoding="utf-8")
+    applied = apply_live(bindings, empty_edits(), f"load baseline {name}")
+    if not applied["ok"]:
+        return applied
+    write_json(CURRENT, {"id": name, "kind": "baseline"})
+    meta = read_json(meta_path)
+    return payload(True, keymap=meta, current=name)
+
+
+def cmd_load(args: argparse.Namespace) -> dict[str, Any]:
+    cmd_snapshot(args)
+    name = slugify(args.name or "")
+    if not name:
+        return payload(False, "no keymap given")
+    if name in RESERVED:
+        return load_baseline(name)
+    dest = MAPS / name
+    if not (dest / "meta.json").is_file():
+        return payload(False, f"unknown keymap {name}")
+    bindings = (dest / "bindings.lua").read_text(encoding="utf-8") if (dest / "bindings.lua").is_file() else ""
+    edits = (dest / "edits.lua").read_text(encoding="utf-8") if (dest / "edits.lua").is_file() else empty_edits()
+    applied = apply_live(bindings, edits, f"load keymap {name}")
+    if not applied["ok"]:
+        return applied
+    write_json(CURRENT, {"id": name, "kind": "saved"})
+    return payload(True, keymap=read_json(dest / "meta.json"), current=name)
+
+
+def list_item(meta: dict[str, Any], present: bool = True) -> dict[str, Any]:
+    return {
+        "id": meta.get("id", ""),
+        "kind": meta.get("kind", ""),
+        "label": meta.get("label") or meta.get("id") or "",
+        "capturedAt": meta.get("capturedAt") or meta.get("createdAt") or "",
+        "baseline": meta.get("baseline", ""),
+        "hasEdits": bool(meta.get("hasEdits")),
+        "present": present,
+    }
+
+
+def cmd_list(_args: argparse.Namespace) -> dict[str, Any]:
+    cmd_snapshot(_args)
+    current = read_json(CURRENT).get("id", "")
+    baselines = []
+    for name, label in (("omarchy", "Omarchy defaults"), ("user", "My config")):
+        meta = read_json(BASELINES / name / "meta.json")
+        if meta:
+            baselines.append(list_item(meta, True))
+        else:
+            baselines.append(list_item({"id": name, "kind": "baseline", "label": label}, False))
+    keymaps = []
+    if MAPS.is_dir():
+        for dest in sorted(MAPS.iterdir()):
+            meta = read_json(dest / "meta.json")
+            if meta.get("id"):
+                keymaps.append(list_item(meta, True))
+    return payload(True, current=current, baselines=baselines, keymaps=keymaps)
+
+
+def cmd_delete(args: argparse.Namespace) -> dict[str, Any]:
+    name = slugify(args.name or "")
+    if name in RESERVED:
+        return payload(False, "baselines cannot be deleted")
+    dest = MAPS / name
+    if not dest.exists():
+        return payload(False, f"unknown keymap {name}")
+    shutil.rmtree(dest)
+    current = read_json(CURRENT)
+    if current.get("id") == name:
+        write_json(CURRENT, {"id": "user", "kind": "baseline"})
+    return cmd_list(args)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("snapshot", help="capture both baselines if missing").set_defaults(func=cmd_snapshot)
+    save = sub.add_parser("save", help="save the current keymap under a name")
+    save.add_argument("name", nargs="?", default="")
+    save.add_argument("--force", action="store_true")
+    save.set_defaults(func=cmd_save)
+    load = sub.add_parser("load", help="apply a saved keymap or a baseline")
+    load.add_argument("name")
+    load.set_defaults(func=cmd_load)
+    sub.add_parser("list", help="baselines and saved keymaps as JSON").set_defaults(func=cmd_list)
+    delete = sub.add_parser("delete", help="remove a named save, not a baseline")
+    delete.add_argument("name")
+    delete.set_defaults(func=cmd_delete)
+    args = parser.parse_args()
+    try:
+        data = args.func(args)
+    except Exception as exc:
+        data = payload(False, str(exc))
+    if "baselines" not in data and args.cmd in ("snapshot", "save", "load"):
+        listed = cmd_list(args)
+        for key in ("baselines", "keymaps", "current"):
+            data.setdefault(key, listed.get(key))
+    return emit(data)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

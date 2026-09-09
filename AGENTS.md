@@ -22,7 +22,9 @@ so `omarchy plugin add <git-url>` works.
 | `dump-keymap` | Read live Hyprland binds into OmarKEYS JSON sections |
 | `apply-edit` | Remap a chord; required at runtime by edit mode |
 | `plugin-git` | Channel picker state: switch + sync |
-| `KeymapBranchMenu.qml` | Corner picker: 1.0 / 2.0 tracks, then Main / Beta / Nightly |
+| `keymap-store` | Named keymap save/load and first-install baselines |
+| `KeymapBranchMenu.qml` | Corner picker: Track filter, then Main / Beta / Nightly / 2.0 |
+| `KeymapMapsMenu.qml` | Named keymap save/load |
 | `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
 | `install.sh` | Install plugin (real directory; `--dev` to symlink), wire Hyprland |
 | `RELEASE.md` | Release notes, written when promoting `beta` → `main`. |

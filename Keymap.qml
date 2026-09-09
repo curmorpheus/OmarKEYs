@@ -478,6 +478,13 @@ Item {
   property bool gitBusy: false
   property bool branchMenuOpen: false
   property bool optionsMenuOpen: false
+  property bool mapsMenuOpen: false
+  property bool keymapBusy: false
+  property string keymapError: ""
+  property string keymapCurrent: ""
+  property var keymapBaselines: []
+  property var keymapSaved: []
+  property bool keymapRefreshPending: false
   // Set when a switch/sync succeeds: the QML on disk changed, so the
   // shell has to restart for it to take effect.
   property bool gitReloadPending: false
@@ -535,6 +542,22 @@ Item {
   // one. A tag checkout is detached, so the branch name is "HEAD" and the
   // tag is the only thing that names where you are.
   property var gitVersions: []
+  // Each channel's declared version, so a track can be told from what a
+  // branch actually carries rather than from what it is called.
+  property var gitChannelVersions: ({})
+
+  // The release track a version string belongs to: the major number.
+  // 1.13.1.0 is track 1, 2.0.0.0 is track 2.
+  function trackOf(version) {
+    var first = String(version || "").split(".")[0]
+    return first || ""
+  }
+
+  function channelTrack(channel) {
+    var branch = root.branchForChannel(channel)
+    var map = root.gitChannelVersions || ({})
+    return branch ? root.trackOf(map[branch] || "") : ""
+  }
   property bool gitDetached: false
   property string gitDescribe: ""
   property double gitEpoch: 0
@@ -652,14 +675,78 @@ Item {
 
   function toggleOptionsMenu() {
     root.optionsMenuOpen = !root.optionsMenuOpen
-    if (root.optionsMenuOpen)
+    if (root.optionsMenuOpen) {
       root.branchMenuOpen = false
+      root.mapsMenuOpen = false
+    }
+  }
+
+  function toggleMapsMenu() {
+    root.mapsMenuOpen = !root.mapsMenuOpen
+    if (root.mapsMenuOpen) {
+      root.optionsMenuOpen = false
+      root.branchMenuOpen = false
+      root.refreshKeymaps()
+    } else
+      root.keymapError = ""
+  }
+
+  function refreshKeymaps() {
+    root.runKeymapStore(["list"], false)
+  }
+
+  function saveKeymap(name) {
+    root.keymapError = ""
+    var args = ["save"]
+    if (name)
+      args.push(String(name))
+    root.runKeymapStore(args, false)
+  }
+
+  function loadKeymap(name) {
+    if (!name)
+      return
+    root.keymapError = ""
+    root.runKeymapStore(["load", String(name)], true)
+  }
+
+  function runKeymapStore(args, refreshAfter) {
+    if (root.keymapBusy)
+      return
+    root.keymapBusy = true
+    root.keymapRefreshPending = !!refreshAfter
+    keymapProc.command = [root.sourceDir + "/keymap-store"].concat(args)
+    keymapProc.running = true
+  }
+
+  function applyKeymapPayload(text) {
+    var data = null
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      root.keymapError = "could not read keymap store"
+      return
+    }
+    if (!data)
+      return
+    root.keymapError = data.error || ""
+    if (data.current)
+      root.keymapCurrent = data.current
+    if (data.baselines)
+      root.keymapBaselines = data.baselines
+    if (data.keymaps)
+      root.keymapSaved = data.keymaps
+    if (root.keymapRefreshPending && data.ok)
+      root.refreshKeymap()
+    root.keymapRefreshPending = false
   }
 
   function toggleBranchMenu() {
     root.branchMenuOpen = !root.branchMenuOpen
-    if (root.branchMenuOpen)
+    if (root.branchMenuOpen) {
       root.optionsMenuOpen = false
+      root.mapsMenuOpen = false
+    }
     // Opening is the moment the branch list matters, so refresh it then
     // rather than paying for git on every overlay open.
     if (root.branchMenuOpen)
@@ -711,6 +798,7 @@ Item {
     root.gitBranches = data.branches || []
     root.gitDate = data.date || ""
     root.gitVersions = data.versions || []
+    root.gitChannelVersions = data.channelVersions || ({})
     root.gitDetached = data.detached === true
     root.gitDescribe = data.describe || ""
     root.gitEpoch = Number(data.epoch) || 0
@@ -773,9 +861,27 @@ Item {
     }
   }
 
+  Process {
+    id: keymapProc
+    command: [root.sourceDir + "/keymap-store", "list"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        root.keymapBusy = false
+        root.applyKeymapPayload(text)
+      }
+    }
+    onExited: function(code) {
+      root.keymapBusy = false
+      if (code !== 0 && !root.keymapError)
+        root.keymapError = "keymap-store failed (" + code + ")"
+    }
+  }
+
   Component.onCompleted: {
     root.refreshKeymap()
     root.refreshGitInfo()
+    root.runKeymapStore(["snapshot"], false)
   }
 
   Timer {
@@ -864,6 +970,7 @@ Item {
     root.opened = false
     root.branchMenuOpen = false
     root.optionsMenuOpen = false
+    root.mapsMenuOpen = false
     root.clearSolo()
   }
 
@@ -873,6 +980,7 @@ Item {
     root.opened = false
     root.branchMenuOpen = false
     root.optionsMenuOpen = false
+    root.mapsMenuOpen = false
     root.clearSolo()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId())
@@ -1756,9 +1864,10 @@ Item {
     }
 
     if (event.key === Qt.Key_Escape) {
-      if (root.branchMenuOpen || root.optionsMenuOpen) {
+      if (root.branchMenuOpen || root.optionsMenuOpen || root.mapsMenuOpen) {
         root.branchMenuOpen = false
         root.optionsMenuOpen = false
+        root.mapsMenuOpen = false
       }
       else if (root.filterText)
         root.setFilter("")
@@ -2120,6 +2229,16 @@ Item {
             anchors.bottom: buildInfo.top
             anchors.rightMargin: Style.spacing.sm
             anchors.bottomMargin: Style.space(4)
+          }
+
+          KeymapMapsMenu {
+            host: root
+            visible: root.mapsMenuOpen
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: Style.spacing.sm
+            anchors.bottomMargin: card.contentBottomInset
+              + sideBar.optionsLinkHeight + Style.space(8)
           }
         }
       }

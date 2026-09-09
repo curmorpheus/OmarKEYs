@@ -243,9 +243,10 @@ and kept in sync by merging `shared/develop` in; never merged back into
 `develop`, and not promoted to `beta` or `main` yet. Manifest version on
 this branch is `2.0.0.0`.
 
-The overlay picker has a **1.0 / 2.0** track switch so the two lines can
-see each other. 1.0 lands on Nightly (`develop`); 2.0 lands on this
-branch. Main / Beta stay 1.0-only.
+1.0's Track row is a **filter**, not a checkout: a channel appears under
+the track its branch's manifest declares. On this branch the `2.0`
+channel is listed under track 2 so you can actually land here; Main /
+Beta stay 1.0-only.
 
 The backend is already built and was unreachable: `apply-edit` remaps a
 chord into `omarkeys-edits.lua`, snapshots before every write into a git
@@ -260,19 +261,18 @@ previous state when a reload fails. `Keymap.qml` had `setEditMode` and
       keystroke, modifiers and Return included). Esc cancels.
 - [x] Refuse a chord already bound, and say what holds it (`findBound`)
 - [x] Super+K / hold / double-tap cannot be remapped (lock-out guard)
+- [x] Two baselines, snapshotted once: **Omarchy defaults** from
+      `/usr/share/omarchy` (user stub + `default/hypr/bindings`) and
+      **My config** (`bindings.lua` before OmarKEYS wiring). Never
+      overwritten on later snapshot. `keymap-store snapshot` on install
+      and overlay open.
+- [x] Save a keymap: personal overrides + remap layer under
+      `~/.config/omarchy/omarkeys/keymaps/<slug>/`
+- [x] Load a keymap (or a baseline): writes live files, reloads Hyprland,
+      rolls back on a config error via `omarkeys-history`
 - [ ] Confirm step before `apply-edit` writes
 - [ ] Dim non-editable rows in Edit
 - [ ] Surface `apply-edit revert` / history in the overlay
-- [ ] **Two baselines, not one.** "Omarchy defaults" and "what your config
-      looked like before OmarKEYS touched it" are different things the
-      moment someone has customised `bindings.lua`, and conflating them
-      makes Restore either lose their work or fail to restore anything.
-      Capture the shipped defaults from `/usr/share/omarchy/default/hypr/`
-      and the user's own pre-edit dump separately, at install.
-- [ ] Named keymap versions: a version is a set of overrides, one commit
-      in the history repo, switchable. Switching writes that version's
-      `omarkeys-edits.lua` and reloads; a failed reload rolls back, which
-      `apply-edit` already does.
 - [ ] Diff a version against either baseline, and against the live config.
 - [ ] Export and import a version, so a keymap can move between machines.
 
