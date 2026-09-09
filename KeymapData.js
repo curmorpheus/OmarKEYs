@@ -233,11 +233,25 @@ var MODIFIER_PARTS = {
 // What a chord is *about*: the key you actually press. Sorting on the
 // whole string files every Super bind under S, which is no order at all
 // when almost everything starts with Super.
+// "Double-tap" and "Hold 5s" are how a key is pressed, not a key. They
+// are chips of their own so the row reads right, but a key sort must look
+// past them or every gesture files under D and H instead of under the key
+// it applies to.
+function isGesturePart(part) {
+  return /^(Double-tap|Hold \d+s)$/.test(String(part || ""))
+}
+
 function sortKeyOf(keys) {
   var parts = collapseMouse(splitKeys(keys))
   for (var i = parts.length - 1; i >= 0; i--) {
-    if (!MODIFIER_PARTS[parts[i]])
+    if (!MODIFIER_PARTS[parts[i]] && !isGesturePart(parts[i]))
       return parts[i]
+  }
+  // Only modifiers and gestures left, so the last of them is the key the
+  // gesture is performed on -- Super, for both of ours.
+  for (var j = parts.length - 1; j >= 0; j--) {
+    if (!isGesturePart(parts[j]))
+      return parts[j]
   }
   return parts.length ? parts[parts.length - 1] : ""
 }

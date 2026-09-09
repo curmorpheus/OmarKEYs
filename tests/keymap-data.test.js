@@ -639,3 +639,36 @@ test("all mode reads the length of what you typed", () => {
   assert.equal(found("windows").length, 3, "the topic")
   context.setConfig({})
 })
+
+test("a gesture sorts by the key it is performed on, and still displays as one", () => {
+  // "Double-tap" and "Hold 5s" are how a key is pressed, not a key. Sorted
+  // as keys they filed under D and H, away from the Super they belong to.
+  assert.equal(context.sortKeyOf("Double-tap Super"), "Super")
+  assert.equal(context.sortKeyOf("Hold Super 5s"), "Super")
+  assert.equal(context.sortKeyOf("Hold Super 8s"), "Super")
+
+  // The display is untouched: the gesture is still its own chip in front
+  // of the key, at every chip style.
+  assert.equal(JSON.stringify(context.displayKeys("Double-tap Super", "full", "text")),
+    JSON.stringify(["Double-tap", "Super"]))
+  assert.equal(JSON.stringify(context.displayKeys("Hold Super 5s", "short", "text")),
+    JSON.stringify(["Hold 5s", "Sup"]))
+
+  // And they still group as things that are not keyboard keys.
+  assert.equal(context.keyTypeOf("Double-tap Super"), "Non-keyboard")
+  assert.equal(context.keyTypeOf("Hold Super 5s"), "Non-keyboard")
+
+  // In a key sort they land together, next to Super, not under D and H.
+  context.setSections([{ title: "One", rows: [
+    { keys: "Super + A", action: "a" },
+    { keys: "Double-tap Super", action: "double" },
+    { keys: "Super + Z", action: "z" },
+    { keys: "Hold Super 5s", action: "hold" }
+  ]}])
+  context.setConfig({ sortBy: "key", grouping: "topic" })
+  // Both sort under Super, so the tie-break falls to the action and they
+  // come out in that order -- together, between A and Z, not under D and H.
+  assert.equal(JSON.stringify(context.filtered("")[0].rows.map((r) => r.action)),
+    JSON.stringify(["a", "double", "hold", "z"]), "gestures sit together under Super")
+  context.setConfig({})
+})
