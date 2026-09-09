@@ -29,7 +29,40 @@ Rectangle {
   // branch and has reached no channel yet; when it does it appears here on
   // its own, because both lists are filtered on what branches and tags
   // actually carry rather than on a hardcoded name.
-  property string track: "1"
+  // Opens on the track this build is running, so loading a 2.0 release
+  // leaves the picker describing 2.0 rather than still claiming 1.
+  property string track: host ? host.currentTrack() : "1"
+
+  // Every release the repo has: the selected track's first, then the rest,
+  // each of those marked. The Channel list stays filtered -- a channel is
+  // a line of work you follow -- but a version list that hides releases
+  // makes them unreachable, and a tag is loadable on its own terms. This
+  // is the way up into 2.0 without touching the Track pill, and the way
+  // back down again afterwards. It also survives 1.0 being retired: with
+  // one track left there is simply nothing to mark.
+  readonly property var versionGroups: {
+    var list = (host && host.versionTree) || []
+    var mine = []
+    var other = []
+    for (var i = 0; i < list.length; i++) {
+      var entry = { title: list[i].title, releases: list[i].releases,
+        crossTrack: !!host && host.trackOf(list[i].title) !== menu.track }
+      if (entry.crossTrack)
+        other.push(entry)
+      else
+        mine.push(entry)
+    }
+    return mine.concat(other)
+  }
+
+  readonly property int ownTrackGroups: {
+    var n = 0
+    for (var i = 0; i < menu.versionGroups.length; i++) {
+      if (!menu.versionGroups[i].crossTrack)
+        n++
+    }
+    return n
+  }
   // Open by default when already on a working branch, so you can see
   // where you are without hunting for the disclosure.
 
@@ -368,8 +401,10 @@ Rectangle {
 
       Text {
         width: parent.width
-        visible: !host || !host.versionTree || host.versionTree.length === 0
-        text: "No " + menu.track + ".0 release yet. One appears here when a version is tagged."
+        visible: menu.ownTrackGroups === 0
+        text: menu.versionGroups.length
+          ? "No " + menu.track + ".0 release yet. Other tracks are listed below."
+          : "No " + menu.track + ".0 release yet. One appears here when a version is tagged."
         textFormat: Text.PlainText
         color: menu.foreground
         opacity: 0.5
@@ -394,22 +429,37 @@ Rectangle {
           spacing: Style.space(3)
 
           Repeater {
-            model: host ? host.versionTree : []
+            model: menu.versionGroups
             delegate: Column {
               required property var modelData
-              // 1.13.x under track 1, 2.x under track 2.
-              visible: !!host && host.trackOf(modelData.title) === menu.track
               width: versionTreeCol.width
               spacing: 1
 
-              Text {
+              Row {
                 width: parent.width
-                text: "▾ " + modelData.title
-                textFormat: Text.PlainText
-                color: menu.chipFg
-                font.family: menu.fontFamily
-                font.pixelSize: menu.labelSize
-                font.bold: true
+                spacing: Style.space(6)
+
+                Text {
+                  text: "▾ " + modelData.title
+                  textFormat: Text.PlainText
+                  color: menu.chipFg
+                  font.family: menu.fontFamily
+                  font.pixelSize: menu.labelSize
+                  font.bold: true
+                }
+
+                // Says what loading one of these does, rather than leaving
+                // it to be inferred from the number.
+                Text {
+                  anchors.verticalCenter: parent.verticalCenter
+                  visible: modelData.crossTrack
+                  text: "switches track"
+                  textFormat: Text.PlainText
+                  color: menu.foreground
+                  opacity: 0.5
+                  font.family: menu.fontFamily
+                  font.pixelSize: menu.labelSize
+                }
               }
 
               Repeater {

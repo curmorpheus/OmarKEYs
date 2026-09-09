@@ -217,8 +217,17 @@ sync — see [Updating](#updating).
 A **Track** row picks which release line the lists describe — 1.0, or the
 2.0 editable-keymaps line being built alongside it. It filters rather
 than switches: a channel appears under the track its branch is actually
-carrying, and a version under the track its number starts with, so 2.0
-is empty until something of it is tagged or reaches a channel.
+carrying, so 2.0 has no channel until it reaches one. The row opens on
+the track the running build belongs to.
+
+**Versions** is deliberately not filtered that way. The selected track's
+releases come first, then every other track's, each marked *switches
+track* — because a version list that hides releases makes them
+unreachable, and a tag is loadable on its own terms. So a build sitting
+on 1.0 can move up to 2.0 by loading a 2.0 release, without touching the
+Track row, and come back down the same way. A release only appears at all
+if its own tree carries the version marker; 2.0 keeping that marker is
+what keeps it reachable from here.
 
 Main, Beta and Nightly are each the tip of one branch (`main`, `beta`,
 `develop`), and each is one click. Those are the only destinations: the

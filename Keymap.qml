@@ -550,6 +550,15 @@ Item {
     return first || ""
   }
 
+  // The track this build is actually running, so the picker opens on it
+  // rather than on a hardcoded 1. Detached on a tag, the tag names the
+  // version; on a branch, the branch's manifest does.
+  function currentTrack() {
+    if (root.gitDetached && root.gitDescribe)
+      return root.trackOf(String(root.gitDescribe).replace(/^v/, "")) || "1"
+    return root.channelTrack(root.gitChannel) || "1"
+  }
+
   function channelTrack(channel) {
     var branch = root.branchForChannel(channel)
     var map = root.gitChannelVersions || ({})

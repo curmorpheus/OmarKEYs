@@ -302,9 +302,12 @@ def cmd_status(_args: argparse.Namespace) -> dict:
 
 
 def cmd_fetch(_args: argparse.Namespace) -> dict:
+    # --tags explicitly: the version list is built from local tags, and a
+    # release cut on a branch this checkout does not track would otherwise
+    # only arrive if a fetched ref happened to reach it.
     error = ""
     try:
-        proc = git("fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT)
+        proc = git("fetch", "--quiet", "--tags", "origin", timeout=FETCH_TIMEOUT)
         if proc.returncode != 0:
             error = git_error(proc)
     except subprocess.TimeoutExpired:
@@ -336,7 +339,7 @@ def cmd_switch(args: argparse.Namespace) -> dict:
             # A branch created since this checkout last fetched (a fresh
             # release channel, say) is not "unknown" - just unseen.
             try:
-                git("fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT)
+                git("fetch", "--quiet", "--tags", "origin", timeout=FETCH_TIMEOUT)
             except subprocess.TimeoutExpired:
                 return status_payload("fetch timed out")
             remote = git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
@@ -361,7 +364,7 @@ def cmd_switch(args: argparse.Namespace) -> dict:
 def fast_forward() -> str:
     """Bring the current branch up to its upstream. Returns "" or an error."""
     try:
-        fetched = git("fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT)
+        fetched = git("fetch", "--quiet", "--tags", "origin", timeout=FETCH_TIMEOUT)
     except subprocess.TimeoutExpired:
         return "fetch timed out"
     if fetched.returncode != 0:
