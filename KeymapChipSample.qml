@@ -39,8 +39,11 @@ Row {
       readonly property bool capped:
         !isIcon || (sample.iconBorders && chipClass === "key")
 
-      implicitWidth: chipText.implicitWidth + (capped ? 10 : 4)
-      implicitHeight: Math.max(Style.space(18), chipText.implicitHeight + 4)
+      // Identical to KeymapRow's, so the preview is the board.
+      readonly property int pad: Math.round(10 * sample.fontScale)
+      implicitWidth: chipText.implicitWidth + pad
+      implicitHeight: Math.max(Style.space(18) * sample.fontScale,
+        chipText.implicitHeight + Math.round(4 * sample.fontScale))
       radius: 4
       color: capped ? sample.chipBg : "transparent"
       border.width: capped ? 1 : 0

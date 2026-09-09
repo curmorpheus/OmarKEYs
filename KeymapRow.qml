@@ -113,8 +113,14 @@ Rectangle {
         // the key does, or for a mouse button, is not a key on a keyboard,
         // so it stays loose whatever this is set to.
         readonly property bool capped: !isIcon || (row.iconBorders && chipClass === "key")
-        implicitWidth: chipContent.implicitWidth + (capped ? 10 : 4)
-        implicitHeight: Math.max(Style.space(18), chipContent.implicitHeight + 4)
+        // Padding scales with the text and does not depend on the cap.
+        // Fixed pixels stopped being proportional as the Size slider
+        // climbed, and padding only capped chips made a chord jump width
+        // when Border was toggled.
+        readonly property int pad: Math.round(10 * row.fontScale)
+        implicitWidth: chipContent.implicitWidth + pad
+        implicitHeight: Math.max(Style.space(18) * row.fontScale,
+          chipContent.implicitHeight + Math.round(4 * row.fontScale))
         radius: 4
         color: capped ? row.chipBg : "transparent"
         border.width: capped ? 1 : 0

@@ -63,12 +63,12 @@ Item {
   property bool iconBorders: false
   // Text size for the board, now that the overlay fills more of the screen.
   property real fontScale: 1.0
-  // Icons no longer carry their own slider. A glyph still has to be drawn
-  // larger than a letter to read the same, but by how much depends on
-  // whether it is in a cap: a bordered chip lends the glyph presence, so
-  // it needs less; loose beside boxed text chips it needs more. Derived,
-  // so one size control covers everything.
-  readonly property real iconScale: root.iconBorders ? 1.30 : 1.45
+  // One number, not two. Compensating for the cap by resizing the glyph
+  // meant toggling Border resized every icon by 11% -- subtle small, and
+  // obvious at the top of the Size range, which is the opposite of the
+  // two states matching. A cap is drawn around the same glyph now, so the
+  // border changes the outline and nothing else.
+  readonly property real iconScale: 1.35
   // Apps switched off in the tree, by window class. A hidden app leaves the
   // list rather than sitting there dimmed: this is a live window list, so a
   // permanent dimmed entry is just clutter of a different kind. Showing the

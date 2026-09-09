@@ -141,11 +141,11 @@ chord under the key you actually press — `Super+Shift+K` sorts under `K`.
 Sorting on the whole chord would file almost everything under S, since
 almost every bind starts with Super.
 
-One **Size** slider covers everything. Icons still have to be drawn
-larger than letters to read the same size, but by how much depends on
-whether they are capped — a border lends a glyph presence, loose beside
-boxed text chips it needs more — so that compensation is derived rather
-than being a second slider to keep in step.
+One **Size** slider covers everything: chip text, glyphs and the padding
+around them all scale together, so a chord keeps its proportions at any
+setting. Icons are drawn a little larger than letters to read the same
+size, by a fixed amount that does not depend on the border — toggling
+Border changes the outline and nothing else.
 
 **Icon borders** draws a cap around each key. Only keys you press get
 one — a glyph standing for what the key *does* (volume, brightness) or for
