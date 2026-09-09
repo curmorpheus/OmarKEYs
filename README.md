@@ -77,14 +77,16 @@ box, and closes the overlay when the box is already empty — so to filter
 
 - **Omarchy** (expanded, marked with the Omarchy glyph): five areas, each
   holding its topic groups
-- **Active Apps**: a branch per workspace, and under each the live
-  windows on it, grouped by the keymap sheet they share
+- **Active Apps**: a workspace selector — `Workspace 1 2 3 4 ALL` — over
+  the live windows, grouped by the keymap sheet they share
   (Web apps, Terminals, File managers) and then by app. Click any row in
   the branch — the kind, the app, or a window under it — to load that
-  app's keys; double-click a window to focus it, or a workspace to switch
-  to it. A workspace row folds from its caret, not from a click on the
-  row — a click there would fire under the first half of the
-  double-click that switches to it. An app with windows on two workspaces appears under both, each
+  app's keys; double-click a window to focus it. In the selector, clicking
+  a number filters the list to that workspace and clicking **ALL** removes
+  the filter; double-clicking a number switches to that workspace. It
+  starts on ALL and stays where you put it until the overlay is reopened.
+  Filtering scopes an app to the windows it has there, so an app on two
+  workspaces shows only the relevant ones. An app with windows on two workspaces appears under both, each
   time with only the windows it has there. Apps with no bundled sheet sit
   under **No keymap sheet**, pinned to the bottom.
 - Click an area or group to *solo* it — everything else hides so the board

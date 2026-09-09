@@ -89,6 +89,10 @@ Item {
   property var omarchySections: []
   property var clients: []
   property var workspaces: []
+  // Which workspace the app tree is showing. 0 is all of them, which is
+  // where it starts: the tree should open showing everything you have,
+  // not a slice of it.
+  property int workspaceFilter: 0
   property string activeSource: "omarchy"
   property bool editMode: false
   property bool capturing: false
@@ -156,6 +160,7 @@ Item {
 
   function open(payloadJson) {
     root.filterText = ""
+    root.workspaceFilter = 0
     root.grabKeys = false
     root.launching = false
     root.contextArmed = false
@@ -946,81 +951,33 @@ Item {
   // so the sort below and the fallback cannot drift apart.
   readonly property string noSheetKind: "No keymap sheet"
 
-  // Windows grouped by the workspace they are on, then by kind, then by
-  // app -- the tree Active Apps already showed, with a workspace above it.
-  //
-  // Scoped per workspace rather than filtered: one app can have windows on
-  // several workspaces, so an app entry belongs to a workspace only for
-  // the windows it has there. Sharing the client object across workspaces
-  // would make each copy claim all of them.
-  readonly property var workspaceTree: {
-    var spaces = root.workspaces || []
-    var clients = root.clients || []
-    var order = []
-    var byId = ({})
-    for (var w = 0; w < spaces.length; w++) {
-      byId[spaces[w].id] = { id: spaces[w].id, name: spaces[w].name,
-        title: "Workspace " + spaces[w].name, kinds: [], kindIndex: ({}), hidden: true }
-      order.push(spaces[w].id)
-    }
-    for (var c = 0; c < clients.length; c++) {
-      var app = clients[c]
-      var windows = app.windows || []
-      var perSpace = ({})
-      for (var n = 0; n < windows.length; n++) {
-        var id = windows[n].workspace || 0
-        if (!byId[id])
-          continue
-        if (!perSpace[id])
-          perSpace[id] = []
-        perSpace[id].push(windows[n])
-      }
-      for (var key in perSpace) {
-        var space = byId[key]
-        var kind = app.kind || root.noSheetKind
-        if (space.kindIndex[kind] === undefined) {
-          space.kindIndex[kind] = space.kinds.length
-          space.kinds.push({ title: kind, apps: [], hidden: true })
-        }
-        var bucket = space.kinds[space.kindIndex[kind]]
-        var scoped = ({})
-        for (var f in app)
-          scoped[f] = app[f]
-        scoped.windows = perSpace[key]
-        scoped.count = perSpace[key].length
-        bucket.apps.push(scoped)
-        if (!root.appIsHidden(app.class)) {
-          bucket.hidden = false
-          space.hidden = false
-        }
-      }
-    }
-    var out = []
-    for (var o = 0; o < order.length; o++) {
-      var entry = byId[order[o]]
-      if (!entry.kinds.length)
-        continue
-      // Same rule as the flat tree: no-sheet apps sit last.
-      var kinds = []
-      var noSheet = []
-      for (var k = 0; k < entry.kinds.length; k++) {
-        if (entry.kinds[k].title === root.noSheetKind)
-          noSheet.push(entry.kinds[k])
-        else
-          kinds.push(entry.kinds[k])
-      }
-      entry.kinds = kinds.concat(noSheet)
-      out.push(entry)
-    }
-    return out
-  }
-
   readonly property var appTree: {
     var out = []
     var index = ({})
     var list = root.clients || []
+    var only = root.workspaceFilter
     for (var i = 0; i < list.length; i++) {
-      var kind = list[i].kind || root.noSheetKind
+      var app = list[i]
+      var windows = app.windows || []
+      // Filtering scopes an app to the windows it has on that workspace,
+      // rather than showing the whole app because one of its windows
+      // qualifies. An app with nothing there drops out entirely.
+      if (only > 0) {
+        var kept = []
+        for (var w = 0; w < windows.length; w++) {
+          if (windows[w].workspace === only)
+            kept.push(windows[w])
+        }
+        if (!kept.length)
+          continue
+        var scoped = ({})
+        for (var f in app)
+          scoped[f] = app[f]
+        scoped.windows = kept
+        scoped.count = kept.length
+        app = scoped
+      }
+      var kind = app.kind || root.noSheetKind
       if (index[kind] === undefined) {
         index[kind] = out.length
         out.push({ title: kind, apps: [], hidden: true })
@@ -1028,10 +985,10 @@ Item {
       // Apps keep their windows so the tree can nest them: an app with
       // more than one window becomes a branch of its own.
       var entry = out[index[kind]]
-      entry.apps.push(list[i])
+      entry.apps.push(app)
       // A kind is hidden only when every app under it is, so the row
       // itself always survives to offer a way back.
-      if (!root.appIsHidden(list[i].class))
+      if (!root.appIsHidden(app.class))
         entry.hidden = false
     }
     // Apps with no keymap are the least useful branch of a keymap overlay,
@@ -1535,6 +1492,10 @@ Item {
     root.launching = true
     root.dismiss()
     runTimer.restart()
+  }
+
+  function setWorkspaceFilter(id) {
+    root.workspaceFilter = Number(id) || 0
   }
 
   function focusWindow(address) {

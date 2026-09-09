@@ -18,6 +18,8 @@ Rectangle {
   // scaling with the user's base font size.
   readonly property int rootFontSize: Style.font.caption
   // The Options popup opens above this link, which lives down here now.
+  // What a selected chip puts its label in.
+  readonly property color panelBg: host ? host.background : Color.menu.background
   readonly property int optionsLinkHeight: optionsLink.height
   readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
 
@@ -455,167 +457,253 @@ Rectangle {
           }
         }
 
-        // Workspaces first: the same app groupings as before, but only the
-        // windows actually on that workspace. An app with windows on two of
-        // them appears under both, each time with just the ones there.
+        // Which workspace the list below is showing. Numbers are the
+        // workspaces that exist, ALL is no filter, and ALL is where it
+        // starts -- the tree should open showing everything you have.
+        //
+        // Click filters, double-click goes there. That is the same split
+        // every row in this tree uses, and it keeps the switch that the
+        // workspace branches used to offer.
+        Item {
+          width: parent.width
+          visible: side.windowsOpen && host && host.workspaces
+            && host.workspaces.length > 0
+          height: visible ? Math.max(Style.space(22), wsPickRow.height + 4) : 0
+
+          Row {
+            id: wsPickRow
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.right: parent.right
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(6)
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: "Workspace"
+              textFormat: Text.PlainText
+              color: side.foreground
+              opacity: 0.6
+              font.family: side.fontFamily
+              font.pixelSize: side.subFontSize
+            }
+
+            Repeater {
+              // The workspaces that exist, then ALL. Zero is the id for
+              // no filter, which no real workspace has.
+              model: {
+                var out = []
+                var list = (host && host.workspaces) || []
+                for (var i = 0; i < list.length; i++)
+                  out.push({ id: list[i].id, label: String(list[i].name) })
+                out.push({ id: 0, label: "ALL" })
+                return out
+              }
+              delegate: Rectangle {
+                required property var modelData
+                readonly property bool selected:
+                  !!host && host.workspaceFilter === modelData.id
+                width: pickLabel.implicitWidth + Style.space(8)
+                height: pickLabel.implicitHeight + Style.space(3)
+                radius: 3
+                color: selected ? side.chipFg
+                  : (pickArea.containsMouse ? side.borderColor : "transparent")
+
+                Text {
+                  id: pickLabel
+                  anchors.centerIn: parent
+                  text: modelData.label
+                  textFormat: Text.PlainText
+                  color: selected ? side.panelBg : side.foreground
+                  opacity: selected ? 1 : 0.75
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: selected
+                }
+
+                MouseArea {
+                  id: pickArea
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var h = side.host
+                    if (h)
+                      h.setWorkspaceFilter(modelData.id)
+                  }
+                  onDoubleClicked: {
+                    var h = side.host
+                    if (h && modelData.id > 0)
+                      h.focusWorkspace(modelData.id)
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Apps grouped by the sheet that gives them their bindings, so
+        // every Chrome PWA sits together under "Web apps" rather than
+        // repeating the same shortcut set once per window.
         Repeater {
-          model: side.windowsOpen && host ? host.workspaceTree : []
+          model: side.windowsOpen && host ? host.appTree : []
           delegate: Column {
-            id: wsCol
+            id: kindCol
             required property var modelData
-            property bool open: true
             width: treeCol.width
             spacing: 2
 
             Item {
-              width: parent.width
-              height: Math.max(Style.space(22), wsLabel.implicitHeight + 4)
+              width: kindCol.width
+              height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
+
+              HoverHandler { id: kindHover }
 
               Text {
                 anchors.left: parent.left
                 anchors.leftMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
                 width: 12
-                text: wsCol.open ? "▾" : "▸"
+                text: kindCol.modelData.hidden ? "▸" : "▾"
                 color: side.chipFg
-                opacity: wsCol.modelData.hidden ? 0.4 : 0.7
+                opacity: kindCol.modelData.hidden ? 0.4 : 0.7
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: wsCol.open = !wsCol.open
+                  // A kind groups the apps that share one sheet, so any of
+                  // them names it. Hiding is the button's job, revealed on
+                  // hover -- clicking the row shows the keys, the way every
+                  // other row in this branch does.
+                  onClicked: {
+                    var h = side.host
+                    if (!h)
+                      return
+                    var apps = kindCol.modelData.apps || []
+                    if (apps.length)
+                      h.selectSource(apps[0].class)
+                  }
+                }
+              }
+
+              KeymapHideButton {
+                id: kindToggle
+                visible: kindHover.hovered || kindToggle.hovered
+                anchors.right: parent.right
+                anchors.rightMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                shown: !kindCol.modelData.hidden
+                foreground: side.foreground
+                accent: side.chipFg
+                fontFamily: side.fontFamily
+                fontSize: side.subFontSize
+                onToggled: {
+                  var h = side.host
+                  if (!h)
+                    return
+                  var classes = []
+                  var apps = kindCol.modelData.apps || []
+                  for (var ci = 0; ci < apps.length; ci++)
+                    classes.push(apps[ci].class)
+                  h.setAppsVisible(classes, kindCol.modelData.hidden)
                 }
               }
 
               Text {
-                id: wsLabel
+                id: kindLabel
                 anchors.left: parent.left
                 anchors.leftMargin: 14
-                anchors.right: parent.right
+                anchors.right: kindToggle.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: wsCol.modelData.title
+                text: kindCol.modelData.title
                 textFormat: Text.PlainText
                 color: side.foreground
-                opacity: wsCol.modelData.hidden ? 0.4 : 0.85
+                opacity: kindCol.modelData.hidden ? 0.4 : 0.75
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
                 font.capitalization: Font.AllUppercase
                 elide: Text.ElideRight
-
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  // Double-click goes to the workspace. A single click does
-                  // nothing here on purpose: folding is the caret's job, and
-                  // having the row fold under the first half of a
-                  // double-click made switching flinch every time.
-                  onDoubleClicked: {
-                    var h = side.host
-                    if (h)
-                      h.focusWorkspace(wsCol.modelData.id)
-                  }
-                }
               }
             }
 
             Repeater {
-              model: wsCol.open ? wsCol.modelData.kinds : []
+              model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
               delegate: Column {
-                id: kindCol
+                id: appCol
                 required property var modelData
-                width: treeCol.width
+                width: kindCol.width
                 spacing: 2
 
-                Item {
-                  width: kindCol.width
-                  height: Math.max(Style.space(18), kindLabel.implicitHeight + 3)
+              Item {
+                width: appCol.width
+                height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
 
-                  HoverHandler { id: kindHover }
-
-                  Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 14
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 12
-                    text: kindCol.modelData.hidden ? "▸" : "▾"
-                    color: side.chipFg
-                    opacity: kindCol.modelData.hidden ? 0.4 : 0.7
-                    font.family: side.fontFamily
-                    font.pixelSize: side.subFontSize
-                    MouseArea {
-                      anchors.fill: parent
-                      cursorShape: Qt.PointingHandCursor
-                      // A kind groups the apps that share one sheet, so any of
-                      // them names it. Hiding is the button's job, revealed on
-                      // hover -- clicking the row shows the keys, the way every
-                      // other row in this branch does.
-                      onClicked: {
-                        var h = side.host
-                        if (!h)
-                          return
-                        var apps = kindCol.modelData.apps || []
-                        if (apps.length)
-                          h.selectSource(apps[0].class)
-                      }
-                    }
-                  }
-
-                  KeymapHideButton {
-                    id: kindToggle
-                    visible: kindHover.hovered || kindToggle.hovered
-                    anchors.right: parent.right
-                    anchors.rightMargin: 2
-                    anchors.verticalCenter: parent.verticalCenter
-                    shown: !kindCol.modelData.hidden
-                    foreground: side.foreground
-                    accent: side.chipFg
-                    fontFamily: side.fontFamily
-                    fontSize: side.subFontSize
-                    onToggled: {
-                      var h = side.host
-                      if (!h)
-                        return
-                      var classes = []
-                      var apps = kindCol.modelData.apps || []
-                      for (var ci = 0; ci < apps.length; ci++)
-                        classes.push(apps[ci].class)
-                      h.setAppsVisible(classes, kindCol.modelData.hidden)
-                    }
-                  }
-
-                  Text {
-                    id: kindLabel
-                    anchors.left: parent.left
-                    anchors.leftMargin: 26
-                    anchors.right: kindToggle.left
-                    anchors.rightMargin: 6
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: kindCol.modelData.title
-                    textFormat: Text.PlainText
-                    color: side.foreground
-                    opacity: kindCol.modelData.hidden ? 0.4 : 0.75
-                    font.family: side.fontFamily
-                    font.pixelSize: side.subFontSize
-                    font.bold: true
-                    font.capitalization: Font.AllUppercase
-                    elide: Text.ElideRight
-                  }
+                Rectangle {
+                  anchors.left: parent.left
+                  anchors.leftMargin: 6
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
+                  width: 1
+                  color: side.borderColor
+                  opacity: 0.35
                 }
 
-                Repeater {
-                  model: kindCol.modelData.hidden ? [] : kindCol.modelData.apps
-                  delegate: Column {
-                    id: appCol
-                    required property var modelData
-                    width: kindCol.width
-                    spacing: 2
+                Text {
+                  id: winLabel
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.leftMargin: 26
+                  anchors.rightMargin: 6
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
+                    // The count only says what the rows below already show,
+                    // so it is for the unexpanded case alone.
+                    + ((modelData.count > 1 && !(modelData.windows && modelData.windows.length > 1))
+                      ? " (" + modelData.count + ")" : "")
+                  textFormat: Text.PlainText
+                  color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
+                  opacity: modelData.sheet ? 1 : 0.55
+                  font.family: side.fontFamily
+                  font.pixelSize: side.subFontSize
+                  font.bold: host && host.activeSource === modelData.class
+                  elide: Text.ElideRight
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    // Click shows the app's keymap; double-click goes to the
+                    // window itself.
+                    onClicked: {
+                      var h = side.host
+                      if (h)
+                        h.selectSource(modelData.class)
+                    }
+                    onDoubleClicked: {
+                      var h = side.host
+                      if (h)
+                        h.focusWindow(modelData.address)
+                    }
+                  }
+                }
+              }
+
+              // One window is the app row itself; more than one and each
+              // gets its own line, named by what is running in it.
+              Repeater {
+                model: (appCol.modelData.windows && appCol.modelData.windows.length > 1)
+                  ? appCol.modelData.windows : []
+                delegate: Column {
+                  id: winCol
+                  required property var modelData
+                  width: appCol.width
+                  spacing: 2
 
                   Item {
-                    width: appCol.width
-                    height: Math.max(Style.space(18), winLabel.implicitHeight + 3)
+                    width: winCol.width
+                    height: Math.max(Style.space(17), exeLabel.implicitHeight + 3)
 
                     Rectangle {
                       anchors.left: parent.left
@@ -628,156 +716,91 @@ Rectangle {
                     }
 
                     Text {
-                      id: winLabel
+                      id: exeLabel
                       anchors.left: parent.left
                       anchors.right: parent.right
                       anchors.leftMargin: 38
                       anchors.rightMargin: 6
                       anchors.verticalCenter: parent.verticalCenter
-                      text: (modelData.focused ? "· " : "") + (modelData.label || modelData.class)
-                        // The count only says what the rows below already show,
-                        // so it is for the unexpanded case alone.
-                        + ((modelData.count > 1 && !(modelData.windows && modelData.windows.length > 1))
-                          ? " (" + modelData.count + ")" : "")
+                      // An idle shell has no program to name, so its title
+                      // takes this line instead of an empty one.
+                      text: (winCol.modelData.focused ? "· " : "")
+                        + (winCol.modelData.exe || winCol.modelData.title)
                       textFormat: Text.PlainText
-                      color: host && host.activeSource === modelData.class ? side.chipFg : side.foreground
-                      opacity: modelData.sheet ? 1 : 0.55
+                      color: side.foreground
+                      opacity: winCol.modelData.exe ? 1 : 0.8
                       font.family: side.fontFamily
                       font.pixelSize: side.subFontSize
-                      font.bold: host && host.activeSource === modelData.class
                       elide: Text.ElideRight
                       MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        // Click shows the app's keymap; double-click goes to the
-                        // window itself.
+                        // Same as the app row above it: click shows that
+                        // app's keymap, double-click goes to the window.
                         onClicked: {
                           var h = side.host
                           if (h)
-                            h.selectSource(modelData.class)
+                            h.selectSource(appCol.modelData.class)
                         }
                         onDoubleClicked: {
                           var h = side.host
                           if (h)
-                            h.focusWindow(modelData.address)
+                            h.focusWindow(winCol.modelData.address)
                         }
                       }
                     }
                   }
 
-                  // One window is the app row itself; more than one and each
-                  // gets its own line, named by what is running in it.
-                  Repeater {
-                    model: (appCol.modelData.windows && appCol.modelData.windows.length > 1)
-                      ? appCol.modelData.windows : []
-                    delegate: Column {
-                      id: winCol
-                      required property var modelData
-                      width: appCol.width
-                      spacing: 2
+                  // The window's own name, under the program running in it.
+                  Item {
+                    visible: !!winCol.modelData.exe
+                    width: winCol.width
+                    height: visible ? Math.max(Style.space(16), titleLabel.implicitHeight + 2) : 0
 
-                      Item {
-                        width: winCol.width
-                        height: Math.max(Style.space(17), exeLabel.implicitHeight + 3)
+                    Rectangle {
+                      anchors.left: parent.left
+                      anchors.leftMargin: 6
+                      anchors.top: parent.top
+                      anchors.bottom: parent.bottom
+                      width: 1
+                      color: side.borderColor
+                      opacity: 0.35
+                    }
 
-                        Rectangle {
-                          anchors.left: parent.left
-                          anchors.leftMargin: 6
-                          anchors.top: parent.top
-                          anchors.bottom: parent.bottom
-                          width: 1
-                          color: side.borderColor
-                          opacity: 0.35
+                    Text {
+                      id: titleLabel
+                      anchors.left: parent.left
+                      anchors.right: parent.right
+                      anchors.leftMargin: 50
+                      anchors.rightMargin: 6
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: winCol.modelData.title
+                      textFormat: Text.PlainText
+                      color: side.foreground
+                      opacity: 0.6
+                      font.family: side.fontFamily
+                      font.pixelSize: side.subFontSize
+                      elide: Text.ElideRight
+                      MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        // Same as the app row above it: click shows that
+                        // app's keymap, double-click goes to the window.
+                        onClicked: {
+                          var h = side.host
+                          if (h)
+                            h.selectSource(appCol.modelData.class)
                         }
-
-                        Text {
-                          id: exeLabel
-                          anchors.left: parent.left
-                          anchors.right: parent.right
-                          anchors.leftMargin: 50
-                          anchors.rightMargin: 6
-                          anchors.verticalCenter: parent.verticalCenter
-                          // An idle shell has no program to name, so its title
-                          // takes this line instead of an empty one.
-                          text: (winCol.modelData.focused ? "· " : "")
-                            + (winCol.modelData.exe || winCol.modelData.title)
-                          textFormat: Text.PlainText
-                          color: side.foreground
-                          opacity: winCol.modelData.exe ? 1 : 0.8
-                          font.family: side.fontFamily
-                          font.pixelSize: side.subFontSize
-                          elide: Text.ElideRight
-                          MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            // Same as the app row above it: click shows that
-                            // app's keymap, double-click goes to the window.
-                            onClicked: {
-                              var h = side.host
-                              if (h)
-                                h.selectSource(appCol.modelData.class)
-                            }
-                            onDoubleClicked: {
-                              var h = side.host
-                              if (h)
-                                h.focusWindow(winCol.modelData.address)
-                            }
-                          }
-                        }
-                      }
-
-                      // The window's own name, under the program running in it.
-                      Item {
-                        visible: !!winCol.modelData.exe
-                        width: winCol.width
-                        height: visible ? Math.max(Style.space(16), titleLabel.implicitHeight + 2) : 0
-
-                        Rectangle {
-                          anchors.left: parent.left
-                          anchors.leftMargin: 6
-                          anchors.top: parent.top
-                          anchors.bottom: parent.bottom
-                          width: 1
-                          color: side.borderColor
-                          opacity: 0.35
-                        }
-
-                        Text {
-                          id: titleLabel
-                          anchors.left: parent.left
-                          anchors.right: parent.right
-                          anchors.leftMargin: 62
-                          anchors.rightMargin: 6
-                          anchors.verticalCenter: parent.verticalCenter
-                          text: winCol.modelData.title
-                          textFormat: Text.PlainText
-                          color: side.foreground
-                          opacity: 0.6
-                          font.family: side.fontFamily
-                          font.pixelSize: side.subFontSize
-                          elide: Text.ElideRight
-                          MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            // Same as the app row above it: click shows that
-                            // app's keymap, double-click goes to the window.
-                            onClicked: {
-                              var h = side.host
-                              if (h)
-                                h.selectSource(appCol.modelData.class)
-                            }
-                            onDoubleClicked: {
-                              var h = side.host
-                              if (h)
-                                h.focusWindow(winCol.modelData.address)
-                            }
-                          }
+                        onDoubleClicked: {
+                          var h = side.host
+                          if (h)
+                            h.focusWindow(winCol.modelData.address)
                         }
                       }
                     }
-                  }
                   }
                 }
+              }
               }
             }
           }
