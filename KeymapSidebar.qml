@@ -508,10 +508,10 @@ Rectangle {
                 MouseArea {
                   anchors.fill: parent
                   cursorShape: Qt.PointingHandCursor
-                  // Click folds it away, double-click goes there -- the same
-                  // split as an app row, where a click loads the sheet and a
-                  // double-click focuses the window.
-                  onClicked: wsCol.open = !wsCol.open
+                  // Double-click goes to the workspace. A single click does
+                  // nothing here on purpose: folding is the caret's job, and
+                  // having the row fold under the first half of a
+                  // double-click made switching flinch every time.
                   onDoubleClicked: {
                     var h = side.host
                     if (h)

@@ -82,7 +82,9 @@ box, and closes the overlay when the box is already empty — so to filter
   (Web apps, Terminals, File managers) and then by app. Click any row in
   the branch — the kind, the app, or a window under it — to load that
   app's keys; double-click a window to focus it, or a workspace to switch
-  to it. An app with windows on two workspaces appears under both, each
+  to it. A workspace row folds from its caret, not from a click on the
+  row — a click there would fire under the first half of the
+  double-click that switches to it. An app with windows on two workspaces appears under both, each
   time with only the windows it has there. Apps with no bundled sheet sit
   under **No keymap sheet**, pinned to the bottom.
 - Click an area or group to *solo* it — everything else hides so the board
