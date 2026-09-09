@@ -18,6 +18,8 @@ Rectangle {
   // scaling with the user's base font size.
   readonly property int rootFontSize: Style.font.caption
   // The Options popup opens above this link, which lives down here now.
+  // What an inverted heading puts its text in.
+  readonly property color panelBg: host ? host.background : Color.menu.background
   readonly property int optionsLinkHeight: optionsLink.height
   readonly property int subFontSize: Math.max(8, Math.round(Style.font.caption * 0.9))
 
@@ -233,6 +235,16 @@ Rectangle {
                 }
               }
 
+              // Inverted heading: a filled bar, so a group reads as a block.
+              Rectangle {
+                anchors.fill: areaLabel
+                anchors.margins: -Style.space(2)
+                radius: 3
+                color: side.chipFg
+                opacity: areaCol.allHidden ? 0.4 : 1
+                z: -1
+              }
+
               Text {
                 id: areaLabel
                 anchors.left: parent.left
@@ -242,8 +254,8 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: areaCol.modelData.title
                 textFormat: Text.PlainText
-                color: side.foreground
-                opacity: areaCol.allHidden ? 0.4 : 0.75
+                color: side.panelBg
+                opacity: areaCol.allHidden ? 0.4 : 1
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
@@ -523,6 +535,16 @@ Rectangle {
                 }
               }
 
+              // Inverted heading: a filled bar, so a group reads as a block.
+              Rectangle {
+                anchors.fill: kindLabel
+                anchors.margins: -Style.space(2)
+                radius: 3
+                color: side.chipFg
+                opacity: kindCol.modelData.hidden ? 0.4 : 1
+                z: -1
+              }
+
               Text {
                 id: kindLabel
                 anchors.left: parent.left
@@ -532,8 +554,8 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: kindCol.modelData.title
                 textFormat: Text.PlainText
-                color: side.foreground
-                opacity: kindCol.modelData.hidden ? 0.4 : 0.75
+                color: side.panelBg
+                opacity: kindCol.modelData.hidden ? 0.4 : 1
                 font.family: side.fontFamily
                 font.pixelSize: side.subFontSize
                 font.bold: true
@@ -736,16 +758,26 @@ Rectangle {
         opacity: 0.5
       }
 
-      Text {
+      // Inverted, like the picker's section headings.
+      Rectangle {
         width: parent.width
-        horizontalAlignment: Text.AlignHCenter
-        text: "Options"
-        textFormat: Text.PlainText
+        height: optionsHeading.implicitHeight + Style.space(4)
+        radius: 3
         color: side.chipFg
-        font.family: side.fontFamily
-        font.pixelSize: Math.round(side.rootFontSize * 1.2)
-        font.bold: true
-        font.capitalization: Font.AllUppercase
+
+        Text {
+          id: optionsHeading
+          anchors.fill: parent
+          horizontalAlignment: Text.AlignHCenter
+          verticalAlignment: Text.AlignVCenter
+          text: "Options"
+          textFormat: Text.PlainText
+          color: side.panelBg
+          font.family: side.fontFamily
+          font.pixelSize: Math.round(side.rootFontSize * 1.2)
+          font.bold: true
+          font.capitalization: Font.AllUppercase
+        }
       }
 
       Row {

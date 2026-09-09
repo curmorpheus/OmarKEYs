@@ -186,15 +186,27 @@ Rectangle {
         width: (parent.width - Style.space(10)) / 2
         spacing: Style.space(4)
 
-        Text {
+        // Inverted: the heading is a filled bar, so a section reads as a
+        // block rather than as another line of text in the list.
+        Rectangle {
           width: parent.width
-          text: "Channel"
-          textFormat: Text.PlainText
+          height: channelHeading.implicitHeight + Style.space(4)
+          radius: 3
           color: menu.chipFg
-          font.family: menu.fontFamily
-          font.pixelSize: menu.labelSize
-          font.bold: true
-          font.capitalization: Font.AllUppercase
+
+          Text {
+            id: channelHeading
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: "Channel"
+            textFormat: Text.PlainText
+            color: menu.color
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            font.bold: true
+            font.capitalization: Font.AllUppercase
+          }
         }
 
         Repeater {
@@ -252,15 +264,27 @@ Rectangle {
         width: (parent.width - Style.space(10)) / 2
         spacing: Style.space(4)
 
-        Text {
+        // Inverted: the heading is a filled bar, so a section reads as a
+        // block rather than as another line of text in the list.
+        Rectangle {
           width: parent.width
-          text: "Version"
-          textFormat: Text.PlainText
+          height: versionHeading.implicitHeight + Style.space(4)
+          radius: 3
           color: menu.chipFg
-          font.family: menu.fontFamily
-          font.pixelSize: menu.labelSize
-          font.bold: true
-          font.capitalization: Font.AllUppercase
+
+          Text {
+            id: versionHeading
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: "Version"
+            textFormat: Text.PlainText
+            color: menu.color
+            font.family: menu.fontFamily
+            font.pixelSize: menu.labelSize
+            font.bold: true
+            font.capitalization: Font.AllUppercase
+          }
         }
 
         // Only releases carrying the version marker appear -- plugin-git
