@@ -1,7 +1,62 @@
 # OmarKEYS release notes
 
-Grok writes this file when promoting a finished **beta** (Claude) into
-**main**. Cursor does not land on `main`.
+Written when a finished **beta** is promoted into **main**. Cursor does not
+land on `main`.
+
+## 1.12.0 — 2026-09-08
+
+Promoted from `beta`. Cursor not included.
+
+- **Options is an icon panel.** Keyboard, Keys and Border sit side by side
+  — title, icon, current setting — over one sample chord drawn exactly as
+  the board draws it, ruled off above and below. Keys and Border dim while
+  the chips are words, since neither changes anything until they are icons.
+- **One Size slider** covers chip text, glyphs and the padding around them,
+  so a chord keeps its proportions at any setting.
+- Fixed: toggling **Border** used to resize every glyph by 11% and change a
+  chord's width, because the icon compensation and the padding both
+  depended on the cap. A border changes the outline and nothing else now.
+- Fixed: the options sample was drawn at a fixed size, so it only matched
+  the board at one slider position; and its chord rendered identically at
+  full, short and icons, so it showed nothing about the setting it sat
+  under. It is `Super + Shift + Return` now, and there is a test that the
+  sample distinguishes all three chip styles and all four keyboards.
+- Fixed: **the overlay would not open at all** if a QML file set one
+  property twice — a component that does is refused, and everything using
+  it goes with it. Caught only by the running shell, since qmllint does not
+  report it, so there is now a test that walks every QML file for it.
+- Fixed: selecting a row could log `board is not defined` and drop the
+  scroll-into-view, when a rebuild destroyed the delegate before the
+  deferred call ran.
+- **Untested is gone from the channel picker.** Most of those branches
+  predate the picker, so switching to one left you running code that could
+  not fetch or switch back out. A checkout on any other branch is still
+  named in the corner, and any channel gets you out of it.
+- **Hold Super can be turned off.** The last opener still enabled refuses
+  to switch off, so Super+K, double-tap and hold cannot all be disabled.
+- The close button reads `[ ✕ ]`, and the tree's Options block has a
+  heading.
+
+## 1.11.0 — 2026-09-08
+
+Promoted from `beta` (`1e7ee0a`). Never released to `main` on its own;
+folded into 1.12.0. Cursor not included.
+
+- The corner reads **Version: Channel @ hash**, and the picker opens with
+  what is loaded as three labelled lines — Updated, Branch, Hash — beside a
+  cloud button whose label says whether clicking it will *check* or
+  *update*.
+- Every other channel says how it compares to what is loaded: *same*, or
+  how many days *newer* or *older*. Sameness is by commit, not by clock.
+- **The overlay says when it is running older code than the checkout.**
+  Switching or syncing restarts the shell, but if that restart does not
+  take effect the corner and the picker both say **restart to load** and
+  name the commit actually running. Without it, a change that had arrived
+  on disk looked exactly like one that never came.
+- **Gestures sort by the key they are performed on**, so Double-tap and
+  Hold sit with Super instead of filing under D and H.
+- Fixed: every row in the **Active Apps** branch loads that app's keys.
+  Only the app row did; the rows under it did nothing on a click.
 
 ## 1.10.0 — 2026-09-08
 

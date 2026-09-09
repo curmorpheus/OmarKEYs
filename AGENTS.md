@@ -25,7 +25,7 @@ so `omarchy plugin add <git-url>` works.
 | `KeymapBranchMenu.qml` | Corner picker: Main / Beta / Nightly |
 | `sheets/` | Bundled per-app keymap JSON; `kind` groups apps in the tree |
 | `install.sh` | Install plugin (real directory; `--dev` to symlink), wire Hyprland |
-| `RELEASE.md` | Release notes. Grok updates this when promoting `beta` → `main`. |
+| `RELEASE.md` | Release notes, written when promoting `beta` → `main`. |
 
 Keep overlay logic in the host (`Keymap.qml`) and UI chrome in the child
 QML files. `KeymapData.js` is the only place that decides which rows are
@@ -56,15 +56,16 @@ tested on `beta`.
 
 | Branch | Channel | Owner | Fed by |
 |---|---|---|---|
-| `main` | Main | Grok | `beta`, when Claude calls one finished |
+| `main` | Main | Claude | `beta` |
 | `beta` | Beta | Claude | `develop` |
 | `develop` | Nightly | Claude | `develop-claude`; PRs from `develop-cursor` |
 | `develop-claude` | — | Claude | direct work |
 | `develop-cursor` | — | Cursor | direct work; PRs into `develop` |
 
-Claude works on `develop-claude` and brings it into `develop` once it is
-approved, then ships `develop` to `beta`. Grok pulls a finished `beta`
-into `main` and updates `RELEASE.md`. Cursor does not land on `main`.
+Claude promotes all three: `develop-claude` into `develop` once it is
+approved, `develop` to `beta`, and a finished `beta` into `main`, writing
+`RELEASE.md` at the last step. Grok reviews rather than promotes. Cursor
+does not land on `main`.
 
 Write release-note and version changes on the branch that *feeds* the one
 being promoted, never directly on `beta` or `main` — a commit made on the

@@ -9,7 +9,7 @@ overlay's corner picker maps to one of its branches:
 
 | Branch | Channel | Owner |
 |---|---|---|
-| `main` | Main | Grok promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
+| `main` | Main | Claude promotes a finished beta and writes [RELEASE.md](RELEASE.md) |
 | `beta` | Beta | Claude |
 | `develop` | Nightly | Claude integrates; Cursor opens PRs into it from `develop-cursor` |
 | `develop-claude` | not in the picker | Claude's working branch |
