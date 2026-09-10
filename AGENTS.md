@@ -39,6 +39,10 @@ node --test tests/*.test.js
 git diff --check
 ```
 
+Hyprland's input path and Quickshell's layer surfaces both behave differently
+from how they read. [VERIFYING.md](VERIFYING.md) lists the specific ways, and
+how to check a change against a real desktop rather than a stub.
+
 After editing `hyprland.lua` on a live install:
 
 ```sh
